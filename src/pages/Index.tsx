@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   FileText, Users, MapPin, Landmark, AlertTriangle, TrendingUp,
   Plus, Calendar, MessageSquare, Flame, Snowflake, Zap,
@@ -10,6 +11,7 @@ import {
 import { cidadesData } from "@/lib/mock-data";
 import { calcularScoreCidade, canViewRanking, type UserRole } from "@/lib/scoring";
 import { useMemo } from "react";
+import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 
 // Simulated current role — will be replaced by real auth
 const CURRENT_ROLE: UserRole = "deputado";
