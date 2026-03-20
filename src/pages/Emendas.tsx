@@ -8,15 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Landmark, Plus, Pencil, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { emendasData as initialEmendas } from "@/lib/mock-data";
-import { cidadesData } from "@/lib/mock-data";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-type Emenda = typeof initialEmendas[0];
+import { useEmendas, type EmendaRow } from "@/hooks/use-emendas";
+import { useCidades } from "@/hooks/use-cidades";
 
 const statusColors: Record<string, string> = {
   Proposta: "bg-muted text-muted-foreground",
@@ -28,9 +26,10 @@ const statusColors: Record<string, string> = {
 const TIPOS = ["Saúde", "Educação", "Infraestrutura", "Segurança", "Cultura", "Esporte", "Meio Ambiente"];
 const STATUSES = ["Proposta", "Aprovada", "Liberada", "Paga"];
 
-function EmendaFormDialog({ open, onOpenChange, onSave, initial }: {
+function EmendaFormDialog({ open, onOpenChange, onSave, initial, cidadeOptions }: {
   open: boolean; onOpenChange: (v: boolean) => void;
-  onSave: (e: Emenda) => void; initial?: Emenda;
+  onSave: (e: { cidade: string; valor: string; status: string; tipo: string; ano: number }) => void;
+  initial?: EmendaRow; cidadeOptions: string[];
 }) {
   const [cidade, setCidade] = useState(initial?.cidade || "");
   const [valor, setValor] = useState(initial?.valor || "");
@@ -40,7 +39,7 @@ function EmendaFormDialog({ open, onOpenChange, onSave, initial }: {
 
   const handleSave = () => {
     if (!cidade || !valor.trim()) return;
-    onSave({ id: initial?.id || Date.now(), cidade, valor: valor.trim(), status, tipo, ano: Number(ano) });
+    onSave({ cidade, valor: valor.trim(), status, tipo, ano: Number(ano) });
     onOpenChange(false);
   };
 
@@ -51,7 +50,12 @@ function EmendaFormDialog({ open, onOpenChange, onSave, initial }: {
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Cidade *</Label>
-            <Select value={cidade} onValueChange={setCidade}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{cidadesData.map((c) => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select>
+            <Select value={cidade} onValueChange={setCidade}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {cidadeOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs">Valor *</Label><Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="R$ 1.000.000" /></div>
@@ -78,27 +82,37 @@ function EmendaFormDialog({ open, onOpenChange, onSave, initial }: {
 }
 
 export default function Emendas() {
-  const [emendas, setEmendas] = useState(initialEmendas);
+  const { emendas, insert, update, remove } = useEmendas();
+  const { cidades } = useCidades();
+  const cidadeOptions = cidades.map((c) => c.name);
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Emenda | undefined>();
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [editing, setEditing] = useState<EmendaRow | undefined>();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const handleSave = (e: Emenda) => {
-    if (editing) {
-      setEmendas((prev) => prev.map((p) => p.id === editing.id ? e : p));
-      toast.success("Emenda atualizada");
-    } else {
-      setEmendas((prev) => [...prev, e]);
-      toast.success("Emenda cadastrada");
+  const handleSave = async (e: { cidade: string; valor: string; status: string; tipo: string; ano: number }) => {
+    try {
+      if (editing) {
+        await update({ id: editing.id, data: e });
+        toast.success("Emenda atualizada");
+      } else {
+        await insert(e);
+        toast.success("Emenda cadastrada");
+      }
+      setEditing(undefined);
+    } catch {
+      toast.error("Erro ao salvar");
     }
-    setEditing(undefined);
   };
 
-  const handleDelete = () => {
-    if (deleteId === null) return;
-    setEmendas((prev) => prev.filter((e) => e.id !== deleteId));
-    setDeleteId(null);
-    toast.success("Emenda excluída");
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await remove(deleteId);
+      setDeleteId(null);
+      toast.success("Emenda excluída");
+    } catch {
+      toast.error("Erro ao excluir");
+    }
   };
 
   return (
@@ -140,7 +154,11 @@ export default function Emendas() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {emendas.map((e) => (
+              {emendas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma emenda cadastrada</TableCell>
+                </TableRow>
+              ) : emendas.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.cidade}</TableCell>
                   <TableCell>{e.tipo}</TableCell>
@@ -164,9 +182,9 @@ export default function Emendas() {
         </CardContent>
       </Card>
 
-      <EmendaFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} initial={editing} />
+      <EmendaFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} initial={editing} cidadeOptions={cidadeOptions} />
 
-      <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir emenda</AlertDialogTitle>

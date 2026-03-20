@@ -3,10 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical, Paperclip, MapPin, User } from "lucide-react";
-import { demandasData as rawDemandas } from "@/lib/mock-data";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
 import type { Demanda } from "@/components/demandas/types";
+import { useDemandas } from "@/hooks/use-demandas";
+import { toast } from "sonner";
 
 const columns = [
   { id: "nova", title: "Nova", color: "bg-info" },
@@ -23,29 +24,51 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
-// Convert legacy mock data to new Demanda type
-const initialDemandas: Demanda[] = rawDemandas.map((d) => ({
-  ...d,
-  description: "",
-  attachments: [],
-  history: [{ id: crypto.randomUUID(), action: "Demanda criada", user: "Sistema", date: new Date("2025-01-15") }],
-}));
-
 export default function Demandas() {
-  const [demandas, setDemandas] = useState<Demanda[]>(initialDemandas);
+  const { demandas: rawDemandas, insert, update, remove } = useDemandas();
   const [newOpen, setNewOpen] = useState(false);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
 
-  const handleCreate = (d: Demanda) => setDemandas((prev) => [...prev, d]);
+  // Convert DB rows to Demanda type for UI
+  const demandas: Demanda[] = useMemo(() => rawDemandas.map((d) => ({
+    id: d.id as any,
+    col: d.col,
+    title: d.title,
+    description: "",
+    city: d.city,
+    priority: d.priority,
+    responsible: d.responsible || "Não atribuído",
+    attachments: [],
+    history: [],
+  })), [rawDemandas]);
 
-  const handleUpdate = (updated: Demanda) => {
-    setDemandas((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
-    setSelectedDemanda(updated);
+  const handleCreate = async (d: Demanda) => {
+    try {
+      await insert({ col: d.col, title: d.title, city: d.city, priority: d.priority, responsible: d.responsible });
+      toast.success("Demanda criada");
+    } catch {
+      toast.error("Erro ao criar");
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setDemandas((prev) => prev.filter((d) => d.id !== id));
-    setSelectedDemanda(null);
+  const handleUpdate = async (updated: Demanda) => {
+    try {
+      await update({ id: String(updated.id), data: { col: updated.col, title: updated.title, city: updated.city, priority: updated.priority, responsible: updated.responsible } });
+      setSelectedDemanda(null);
+      toast.success("Demanda atualizada");
+    } catch {
+      toast.error("Erro ao atualizar");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await remove(String(id));
+      setSelectedDemanda(null);
+      toast.success("Demanda excluída");
+    } catch {
+      toast.error("Erro ao excluir");
+    }
   };
 
   return (
