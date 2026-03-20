@@ -12,6 +12,7 @@ import Emendas from "./pages/Emendas";
 import Agenda from "./pages/Agenda";
 import Documentos from "./pages/Documentos";
 import Mensagens from "./pages/Mensagens";
+import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/agenda" element={<Agenda />} />
             <Route path="/documentos" element={<Documentos />} />
             <Route path="/mensagens" element={<Mensagens />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

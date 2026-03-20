@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +49,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { profile } = useDeputyProfile();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
@@ -131,14 +134,30 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3">
-        {!collapsed && (
-          <div className="rounded-md bg-sidebar-accent/30 p-3">
-            <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">
-              Versão Beta
-            </p>
-            <p className="text-xs text-sidebar-foreground/70 mt-0.5">v0.1.0</p>
-          </div>
-        )}
+        <div className="flex items-center gap-3 rounded-md bg-sidebar-accent/30 p-3">
+          <Avatar className="h-8 w-8 shrink-0">
+            {profile?.avatar_url ? (
+              <AvatarImage src={profile.avatar_url} alt="Avatar" className="object-cover" />
+            ) : null}
+            <AvatarFallback className="text-xs font-bold bg-sidebar-primary/20 text-sidebar-foreground">
+              {(profile?.full_name || "AC")
+                .split(" ")
+                .filter((w) => w.length > 2)
+                .slice(0, 2)
+                .map((w) => w[0])
+                .join("")
+                .toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">
+                {profile?.public_name || profile?.full_name || "Deputado"}
+              </p>
+              <p className="text-[10px] text-sidebar-foreground/50">{profile?.party || "PL"}</p>
+            </div>
+          )}
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
