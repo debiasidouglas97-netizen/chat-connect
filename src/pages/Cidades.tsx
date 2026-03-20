@@ -28,11 +28,11 @@ const REGIOES = ["Baixada Santista", "Região de Bauru", "Interior de SP", "Gran
 interface IBGEMunicipio {
   id: number;
   nome: string;
-  microrregiao: {
-    mesorregiao: {
-      UF: { sigla: string; nome: string };
+  microrregiao?: {
+    mesorregiao?: {
+      UF?: { sigla?: string; nome?: string };
     };
-  };
+  } | null;
 }
 
 function useIBGEMunicipios() {
