@@ -28,6 +28,7 @@ export default function Liderancas() {
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
   const [novaOpen, setNovaOpen] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { cidades: cidadesRaw } = useCidades();
