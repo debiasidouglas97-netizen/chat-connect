@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props) {
+  const { cidades: cidadesData } = useCidades();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [cargo, setCargo] = useState("");
