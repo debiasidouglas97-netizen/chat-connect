@@ -117,6 +117,7 @@ export default function Demandas() {
         open={!!selectedDemanda}
         onOpenChange={(v) => { if (!v) setSelectedDemanda(null); }}
         onUpdate={handleUpdate}
+        onDelete={handleDelete}
       />
     </div>
   );
