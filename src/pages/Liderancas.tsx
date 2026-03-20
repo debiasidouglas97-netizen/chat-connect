@@ -2,7 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, MapPin, Star, StickyNote } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Plus, MapPin, Star, StickyNote, X } from "lucide-react";
 import { cidadesData, liderancasData as initialData } from "@/lib/mock-data";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore, type LiderancaBase } from "@/lib/scoring";
 import { useMemo, useState } from "react";
@@ -26,6 +27,7 @@ export default function Liderancas() {
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
   const [localData, setLocalData] = useState(initialData);
   const [novaOpen, setNovaOpen] = useState(false);
+  const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
 
   const cidadesMap = useMemo(() => {
     const map = new Map<string, CidadeBase>();
@@ -92,10 +94,19 @@ export default function Liderancas() {
           >
             <CardContent className="p-5">
               <div className="flex items-start gap-4">
-                <Avatar className="h-12 w-12 border border-primary/20 shrink-0">
-                  {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
-                </Avatar>
+                <button
+                  className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (l.avatar_url) setPhotoLightbox({ url: l.avatar_url, name: l.name });
+                  }}
+                  title={l.avatar_url ? "Ver foto em tela cheia" : undefined}
+                >
+                  <Avatar className={`h-12 w-12 border border-primary/20 ${l.avatar_url ? "cursor-zoom-in" : ""}`}>
+                    {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
+                  </Avatar>
+                </button>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground">{l.name}</h3>
                   <p className="text-xs text-muted-foreground">{l.cargo}</p>
@@ -159,6 +170,29 @@ export default function Liderancas() {
           toast.success("Liderança cadastrada");
         }}
       />
+
+      {/* Photo lightbox */}
+      {photoLightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
+          onClick={() => setPhotoLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            onClick={() => setPhotoLightbox(null)}
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <div className="text-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={photoLightbox.url}
+              alt={photoLightbox.name}
+              className="max-h-[80vh] max-w-[90vw] rounded-lg shadow-2xl object-contain cursor-default"
+            />
+            <p className="text-white text-lg font-semibold mt-4">{photoLightbox.name}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
