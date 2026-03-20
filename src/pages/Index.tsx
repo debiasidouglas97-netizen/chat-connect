@@ -8,10 +8,10 @@ import {
   Plus, Calendar, MessageSquare, Flame, Snowflake, Zap,
   ArrowRight, CheckCircle2,
 } from "lucide-react";
-import { cidadesData } from "@/lib/mock-data";
 import { calcularScoreCidade, canViewRanking, type UserRole } from "@/lib/scoring";
 import { useMemo } from "react";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
+import { useCidades } from "@/hooks/use-cidades";
 
 // Simulated current role — will be replaced by real auth
 const CURRENT_ROLE: UserRole = "deputado";
