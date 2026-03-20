@@ -83,7 +83,7 @@ export default function Index() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className="hover:shadow-md transition-shadow">
+          <Card key={kpi.label} className={`hover:shadow-md transition-shadow border-0 ${kpi.bg}`}>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -91,8 +91,8 @@ export default function Index() {
                   <p className="text-3xl font-bold text-foreground mt-1">{kpi.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{kpi.change}</p>
                 </div>
-                <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <kpi.icon className="h-5 w-5 text-primary" />
+                <div className={`h-11 w-11 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
+                  <kpi.icon className={`h-5 w-5 ${kpi.iconColor}`} />
                 </div>
               </div>
             </CardContent>
