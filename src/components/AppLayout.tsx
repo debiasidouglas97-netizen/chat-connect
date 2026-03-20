@@ -23,7 +23,7 @@ export function AppLayout() {
                 </Badge>
               </Button>
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-xs font-semibold text-primary-foreground">DP</span>
+                <span className="text-xs font-semibold text-primary-foreground">AC</span>
               </div>
             </div>
           </header>

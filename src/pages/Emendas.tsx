@@ -1,17 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Landmark, Plus, ArrowUpRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-const emendas = [
-  { id: 1, cidade: "Uberlândia", valor: "R$ 2.500.000", status: "Liberada", tipo: "Saúde", ano: 2024 },
-  { id: 2, cidade: "Uberaba", valor: "R$ 1.200.000", status: "Aprovada", tipo: "Educação", ano: 2024 },
-  { id: 3, cidade: "Araguari", valor: "R$ 800.000", status: "Paga", tipo: "Infraestrutura", ano: 2024 },
-  { id: 4, cidade: "Uberlândia", valor: "R$ 500.000", status: "Proposta", tipo: "Cultura", ano: 2025 },
-  { id: 5, cidade: "Patrocínio", valor: "R$ 1.000.000", status: "Aprovada", tipo: "Saúde", ano: 2024 },
-  { id: 6, cidade: "Ituiutaba", valor: "R$ 600.000", status: "Liberada", tipo: "Educação", ano: 2024 },
-];
+import { emendasData } from "@/lib/mock-data";
 
 const statusColors: Record<string, string> = {
   Proposta: "bg-muted text-muted-foreground",
@@ -39,7 +31,7 @@ export default function Emendas() {
             <CardContent className="p-4 text-center">
               <p className="text-xs text-muted-foreground uppercase">{s}</p>
               <p className="text-2xl font-bold text-foreground mt-1">
-                {emendas.filter((e) => e.status === s).length}
+                {emendasData.filter((e) => e.status === s).length}
               </p>
             </CardContent>
           </Card>
@@ -60,7 +52,7 @@ export default function Emendas() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {emendas.map((e) => (
+              {emendasData.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.cidade}</TableCell>
                   <TableCell>{e.tipo}</TableCell>

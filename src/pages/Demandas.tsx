@@ -1,7 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical, Paperclip, MapPin, User } from "lucide-react";
+import { demandasData } from "@/lib/mock-data";
 
 const columns = [
   { id: "nova", title: "Nova", color: "bg-info" },
@@ -9,16 +10,6 @@ const columns = [
   { id: "encaminhada", title: "Encaminhada", color: "bg-primary" },
   { id: "execucao", title: "Em Execução", color: "bg-success" },
   { id: "resolvida", title: "Resolvida", color: "bg-muted-foreground" },
-];
-
-const mockDemandas = [
-  { id: 1, col: "nova", title: "Pavimentação da Rua das Flores", city: "Uberlândia", priority: "Alta", responsible: "João Silva", attachments: 2 },
-  { id: 2, col: "nova", title: "Reforma do posto de saúde central", city: "Uberaba", priority: "Urgente", responsible: "Maria Santos", attachments: 1 },
-  { id: 3, col: "analise", title: "Construção de creche no Bairro Norte", city: "Araguari", priority: "Média", responsible: "Pedro Costa", attachments: 3 },
-  { id: 4, col: "analise", title: "Iluminação pública na Av. Principal", city: "Uberlândia", priority: "Alta", responsible: "João Silva", attachments: 0 },
-  { id: 5, col: "encaminhada", title: "Equipamentos para escola municipal", city: "Patrocínio", priority: "Média", responsible: "Ana Lima", attachments: 1 },
-  { id: 6, col: "execucao", title: "Ponte sobre o Rio Paranaíba", city: "Ituiutaba", priority: "Alta", responsible: "Pedro Costa", attachments: 4 },
-  { id: 7, col: "resolvida", title: "Ambulância para o município", city: "Monte Carmelo", priority: "Urgente", responsible: "Maria Santos", attachments: 2 },
 ];
 
 const priorityColors: Record<string, string> = {
@@ -43,7 +34,7 @@ export default function Demandas() {
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((col) => {
-          const items = mockDemandas.filter((d) => d.col === col.id);
+          const items = demandasData.filter((d) => d.col === col.id);
           return (
             <div key={col.id} className="min-w-[280px] flex-1">
               <div className="flex items-center gap-2 mb-3">
