@@ -17,10 +17,10 @@ import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 const CURRENT_ROLE: UserRole = "deputado";
 
 const kpis = [
-  { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana" },
-  { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês" },
-  { label: "Emendas Cadastradas", value: 9, icon: Landmark, change: "R$ 10,0M total" },
-  { label: "Cidades Atendidas", value: 12, icon: MapPin, change: "2 regiões de foco" },
+  { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
+  { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
+  { label: "Emendas Cadastradas", value: 9, icon: Landmark, change: "R$ 10,0M total", bg: "bg-[hsl(210_60%_92%)]", iconBg: "bg-[hsl(210_60%_85%)]", iconColor: "text-[hsl(210_60%_35%)]" },
+  { label: "Cidades Atendidas", value: 12, icon: MapPin, change: "2 regiões de foco", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
 ];
 
 const opportunities = [
@@ -83,7 +83,7 @@ export default function Index() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className="hover:shadow-md transition-shadow">
+          <Card key={kpi.label} className={`hover:shadow-md transition-shadow border-0 ${kpi.bg}`}>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -91,8 +91,8 @@ export default function Index() {
                   <p className="text-3xl font-bold text-foreground mt-1">{kpi.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{kpi.change}</p>
                 </div>
-                <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <kpi.icon className="h-5 w-5 text-primary" />
+                <div className={`h-11 w-11 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
+                  <kpi.icon className={`h-5 w-5 ${kpi.iconColor}`} />
                 </div>
               </div>
             </CardContent>
