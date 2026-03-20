@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, StickyNote } from "lucide-react";
 import { cidadesData, liderancasData as initialData } from "@/lib/mock-data";
-import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
+import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore, type LiderancaBase } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
 import LiderancaDetailDialog from "@/components/liderancas/LiderancaDetailDialog";
+import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import { toast } from "sonner";
 
 const CURRENT_ROLE: UserRole = "deputado";
@@ -23,6 +24,7 @@ export default function Liderancas() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
   const [localData, setLocalData] = useState(initialData);
+  const [novaOpen, setNovaOpen] = useState(false);
 
   const cidadesMap = useMemo(() => {
     const map = new Map<string, CidadeBase>();
@@ -75,7 +77,7 @@ export default function Liderancas() {
           <h1 className="text-2xl font-bold text-foreground">Lideranças</h1>
           <p className="text-sm text-muted-foreground">CRM político — gestão de lideranças territoriais</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setNovaOpen(true)}>
           <Plus className="h-4 w-4" /> Nova Liderança
         </Button>
       </div>
@@ -145,6 +147,15 @@ export default function Liderancas() {
         onSave={handleSave}
         onDelete={handleDelete}
         showScore={showScore}
+      />
+
+      <NovaLiderancaDialog
+        open={novaOpen}
+        onOpenChange={setNovaOpen}
+        onAdd={(l) => {
+          setLocalData((prev) => [...prev, l]);
+          toast.success("Liderança cadastrada");
+        }}
       />
     </div>
   );
