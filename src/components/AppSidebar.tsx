@@ -52,8 +52,6 @@ export function AppSidebar() {
   const { profile } = useDeputyProfile();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-  const isActive = (path: string) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   return (
     <Sidebar collapsible="icon">
