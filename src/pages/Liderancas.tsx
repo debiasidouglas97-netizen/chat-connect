@@ -46,6 +46,15 @@ export default function Liderancas() {
     [cidadesMap, rawData]
   );
 
+  const filteredLiderancas = useMemo(() => {
+    if (!searchQuery.trim()) return liderancas;
+    const q = searchQuery.toLowerCase();
+    return liderancas.filter((l) =>
+      l.name.toLowerCase().includes(q) ||
+      l.cidadePrincipal.toLowerCase().includes(q)
+    );
+  }, [liderancas, searchQuery]);
+
   const showScore = canViewScore(CURRENT_ROLE);
 
   const openNotes = (e: React.MouseEvent, name: string) => {
