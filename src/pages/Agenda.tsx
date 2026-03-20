@@ -1,14 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Users, FileText, Clock } from "lucide-react";
-
-const eventos = [
-  { data: "20 Mar", hora: "09:00", titulo: "Reunião com prefeito de Uberlândia", cidade: "Uberlândia", tipo: "Reunião", liderancas: 2, demandas: 3 },
-  { data: "20 Mar", hora: "14:00", titulo: "Visita ao posto de saúde", cidade: "Uberaba", tipo: "Visita", liderancas: 1, demandas: 1 },
-  { data: "21 Mar", hora: "10:00", titulo: "Inauguração de escola", cidade: "Araguari", tipo: "Evento", liderancas: 4, demandas: 2 },
-  { data: "22 Mar", hora: "08:30", titulo: "Audiência pública — saneamento", cidade: "Patrocínio", tipo: "Audiência", liderancas: 6, demandas: 5 },
-  { data: "23 Mar", hora: "15:00", titulo: "Entrega de equipamentos", cidade: "Ituiutaba", tipo: "Entrega", liderancas: 2, demandas: 1 },
-];
+import { CalendarDays, MapPin, Users, FileText } from "lucide-react";
+import { eventosData } from "@/lib/mock-data";
 
 export default function Agenda() {
   return (
@@ -19,7 +12,7 @@ export default function Agenda() {
       </div>
 
       <div className="space-y-3">
-        {eventos.map((ev, i) => (
+        {eventosData.map((ev, i) => (
           <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-start gap-4">
               <div className="text-center shrink-0 bg-primary/10 rounded-lg p-3 min-w-[70px]">
