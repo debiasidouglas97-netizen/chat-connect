@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      telegram_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_contacts: {
+        Row: {
+          chat_id: number
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          lideranca_name: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          lideranca_name?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          lideranca_name?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          direction: string
+          id: string
+          is_read: boolean
+          raw_update: Json | null
+          text: string | null
+          update_id: number | null
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          direction?: string
+          id?: string
+          is_read?: boolean
+          raw_update?: Json | null
+          text?: string | null
+          update_id?: number | null
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          direction?: string
+          id?: string
+          is_read?: boolean
+          raw_update?: Json | null
+          text?: string | null
+          update_id?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
