@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileUploadZone, type AttachedFile } from "./FileUploadZone";
 import { MapPin, User, Download, Trash2, Eye, FileText, Image, File, Clock, Pencil } from "lucide-react";
-import { cidadesData } from "@/lib/mock-data";
+import { useCidades } from "@/hooks/use-cidades";
 import type { Demanda, HistoryEntry } from "./types";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

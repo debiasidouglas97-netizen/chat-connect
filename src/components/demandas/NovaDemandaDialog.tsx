@@ -16,6 +16,7 @@ interface NovaDemandaDialogProps {
 }
 
 export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDialogProps) {
+  const { cidades: cidadesData } = useCidades();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");
