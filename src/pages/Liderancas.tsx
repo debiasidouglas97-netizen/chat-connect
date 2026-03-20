@@ -24,6 +24,7 @@ export default function Liderancas() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
   const [localData, setLocalData] = useState(initialData);
+  const [novaOpen, setNovaOpen] = useState(false);
 
   const cidadesMap = useMemo(() => {
     const map = new Map<string, CidadeBase>();
