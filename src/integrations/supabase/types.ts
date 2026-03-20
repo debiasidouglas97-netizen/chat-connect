@@ -16,55 +16,94 @@ export type Database = {
     Tables: {
       deputy_profile: {
         Row: {
+          address_cep: string | null
+          address_city: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
+          email: string | null
+          facebook: string | null
           focus_areas: string[] | null
           full_name: string
           id: string
+          instagram: string | null
           institutional_message: string | null
           logo_url: string | null
           party: string
+          phone: string | null
           primary_color: string | null
           priority_cities: string[] | null
           public_name: string | null
           regions: string[] | null
           state: string
+          telegram_username: string | null
           updated_at: string
+          whatsapp: string | null
+          youtube: string | null
         }
         Insert: {
+          address_cep?: string | null
+          address_city?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          email?: string | null
+          facebook?: string | null
           focus_areas?: string[] | null
           full_name: string
           id?: string
+          instagram?: string | null
           institutional_message?: string | null
           logo_url?: string | null
           party: string
+          phone?: string | null
           primary_color?: string | null
           priority_cities?: string[] | null
           public_name?: string | null
           regions?: string[] | null
           state: string
+          telegram_username?: string | null
           updated_at?: string
+          whatsapp?: string | null
+          youtube?: string | null
         }
         Update: {
+          address_cep?: string | null
+          address_city?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          email?: string | null
+          facebook?: string | null
           focus_areas?: string[] | null
           full_name?: string
           id?: string
+          instagram?: string | null
           institutional_message?: string | null
           logo_url?: string | null
           party?: string
+          phone?: string | null
           primary_color?: string | null
           priority_cities?: string[] | null
           public_name?: string | null
           regions?: string[] | null
           state?: string
+          telegram_username?: string | null
           updated_at?: string
+          whatsapp?: string | null
+          youtube?: string | null
         }
         Relationships: []
       }
