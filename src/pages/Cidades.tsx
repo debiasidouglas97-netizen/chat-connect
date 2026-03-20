@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,50 @@ const statusConfig = {
 
 const REGIOES = ["Baixada Santista", "Região de Bauru", "Interior de SP", "Grande São Paulo", "Litoral Norte"];
 
+interface IBGEMunicipio {
+  id: number;
+  nome: string;
+  microrregiao: {
+    mesorregiao: {
+      UF: { sigla: string; nome: string };
+    };
+  };
+}
+
+function useIBGEMunicipios() {
+  const [municipios, setMunicipios] = useState<IBGEMunicipio[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (loaded) return;
+    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome")
+      .then((r) => r.json())
+      .then((data) => { setMunicipios(data); setLoaded(true); })
+      .catch(() => {});
+  }, [loaded]);
+
+  return municipios;
+}
+
+async function fetchPopulacao(municipioId: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/-6/variaveis/9324?localidades=N6[${municipioId}]`
+    );
+    const data = await res.json();
+    const series = data?.[0]?.resultados?.[0]?.series?.[0]?.serie;
+    if (series) {
+      const years = Object.keys(series).sort().reverse();
+      for (const y of years) {
+        if (series[y] && series[y] !== "-" && series[y] !== "...") {
+          return Number(series[y]).toLocaleString("pt-BR");
+        }
+      }
+    }
+  } catch {}
+  return "";
+}
+
 function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   onSave: (c: CidadeBase) => void; initial?: CidadeBase;
@@ -33,6 +77,39 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
   const [population, setPopulation] = useState(initial?.population || "");
   const [peso, setPeso] = useState(initial?.peso?.toString() || "5");
   const [regiao, setRegiao] = useState(initial?.regiao || REGIOES[0]);
+  const [query, setQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingPop, setLoadingPop] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const municipios = useIBGEMunicipios();
+
+  const filtered = useMemo(() => {
+    if (query.length < 2) return [];
+    const q = query.toLowerCase();
+    return municipios.filter((m) => m.nome.toLowerCase().includes(q)).slice(0, 8);
+  }, [query, municipios]);
+
+  useEffect(() => {
+    if (open) {
+      setName(initial?.name || "");
+      setPopulation(initial?.population || "");
+      setPeso(initial?.peso?.toString() || "5");
+      setRegiao(initial?.regiao || REGIOES[0]);
+      setQuery(initial?.name || "");
+    }
+  }, [open, initial]);
+
+  const selectMunicipio = async (m: IBGEMunicipio) => {
+    const label = `${m.nome}/${m.microrregiao.mesorregiao.UF.sigla}`;
+    setName(label);
+    setQuery(label);
+    setShowSuggestions(false);
+    setLoadingPop(true);
+    const pop = await fetchPopulacao(m.id);
+    if (pop) setPopulation(pop);
+    setLoadingPop(false);
+  };
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -50,8 +127,36 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>{initial ? "Editar Cidade" : "Nova Cidade"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label className="text-xs">Nome *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da cidade" /></div>
-          <div><Label className="text-xs">População</Label><Input value={population} onChange={(e) => setPopulation(e.target.value)} placeholder="Ex: 433.311" /></div>
+          <div className="relative">
+            <Label className="text-xs">Nome *</Label>
+            <Input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setName(e.target.value); setShowSuggestions(true); }}
+              onFocus={() => query.length >= 2 && setShowSuggestions(true)}
+              placeholder="Digite o nome da cidade"
+              autoComplete="off"
+            />
+            {showSuggestions && filtered.length > 0 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                {filtered.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => selectMunicipio(m)}
+                  >
+                    {m.nome}/{m.microrregiao.mesorregiao.UF.sigla}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs">População</Label>
+            <Input value={loadingPop ? "Buscando..." : population} onChange={(e) => setPopulation(e.target.value)} placeholder="Ex: 433.311" disabled={loadingPop} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs">Peso estratégico (1-10)</Label><Input type="number" min={1} max={10} value={peso} onChange={(e) => setPeso(e.target.value)} /></div>
             <div>
