@@ -2,7 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, MapPin, Star, StickyNote, X } from "lucide-react";
+import { Plus, MapPin, Star, StickyNote, X, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
@@ -27,6 +28,7 @@ export default function Liderancas() {
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
   const [novaOpen, setNovaOpen] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { cidades: cidadesRaw } = useCidades();
@@ -43,6 +45,15 @@ export default function Liderancas() {
       .sort((a, b) => b.score - a.score),
     [cidadesMap, rawData]
   );
+
+  const filteredLiderancas = useMemo(() => {
+    if (!searchQuery.trim()) return liderancas;
+    const q = searchQuery.toLowerCase();
+    return liderancas.filter((l) =>
+      l.name.toLowerCase().includes(q) ||
+      l.cidadePrincipal.toLowerCase().includes(q)
+    );
+  }, [liderancas, searchQuery]);
 
   const showScore = canViewScore(CURRENT_ROLE);
 
@@ -102,14 +113,24 @@ export default function Liderancas() {
         </Button>
       </div>
 
-      {liderancas.length === 0 ? (
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar por nome ou cidade..."
+          className="pl-9"
+        />
+      </div>
+
+      {filteredLiderancas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg">Nenhuma liderança cadastrada</p>
-          <p className="text-sm">Clique em "Nova Liderança" para começar</p>
+          <p className="text-lg">{searchQuery ? "Nenhuma liderança encontrada" : "Nenhuma liderança cadastrada"}</p>
+          <p className="text-sm">{searchQuery ? "Tente outro termo de busca" : 'Clique em "Nova Liderança" para começar'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {liderancas.map((l) => (
+          {filteredLiderancas.map((l) => (
             <Card
               key={(l as any).id || l.name}
               className="hover:shadow-md transition-shadow cursor-pointer"
