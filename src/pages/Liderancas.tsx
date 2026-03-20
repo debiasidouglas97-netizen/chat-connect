@@ -2,10 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, StickyNote } from "lucide-react";
-import { cidadesData, liderancasData } from "@/lib/mock-data";
-import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
+import { cidadesData, liderancasData as initialData } from "@/lib/mock-data";
+import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
+import LiderancaDetailDialog from "@/components/liderancas/LiderancaDetailDialog";
+import { toast } from "sonner";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
@@ -18,6 +20,9 @@ const influenciaColors: Record<string, string> = {
 export default function Liderancas() {
   const [notesOpen, setNotesOpen] = useState(false);
   const [selectedLider, setSelectedLider] = useState("");
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
+  const [localData, setLocalData] = useState(initialData);
 
   const cidadesMap = useMemo(() => {
     const map = new Map<string, CidadeBase>();
@@ -26,17 +31,41 @@ export default function Liderancas() {
   }, []);
 
   const liderancas = useMemo(
-    () => liderancasData
+    () => localData
       .map((l) => calcularScoreLideranca(l, cidadesMap))
       .sort((a, b) => b.score - a.score),
-    [cidadesMap]
+    [cidadesMap, localData]
   );
 
   const showScore = canViewScore(CURRENT_ROLE);
 
-  const openNotes = (name: string) => {
+  const openNotes = (e: React.MouseEvent, name: string) => {
+    e.stopPropagation();
     setSelectedLider(name);
     setNotesOpen(true);
+  };
+
+  const openDetail = (l: LiderancaComScore) => {
+    setDetailLider(l);
+    setDetailOpen(true);
+  };
+
+  const handleSave = (original: LiderancaComScore, updated: Partial<LiderancaComScore>) => {
+    setLocalData((prev) =>
+      prev.map((l) =>
+        l.name === original.name
+          ? { ...l, ...updated, img: updated.name ? updated.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : l.img }
+          : l
+      )
+    );
+    // Update detail reference
+    setDetailLider((prev) => prev ? { ...prev, ...updated } : prev);
+    toast.success("Liderança atualizada");
+  };
+
+  const handleDelete = (name: string) => {
+    setLocalData((prev) => prev.filter((l) => l.name !== name));
+    toast.success("Liderança excluída");
   };
 
   return (
@@ -53,7 +82,11 @@ export default function Liderancas() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {liderancas.map((l) => (
-          <Card key={l.name} className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card
+            key={l.name}
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => openDetail(l)}
+          >
             <CardContent className="p-5">
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -89,7 +122,7 @@ export default function Liderancas() {
                   size="sm"
                   variant="ghost"
                   className="ml-auto h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => openNotes(l.name)}
+                  onClick={(e) => openNotes(e, l.name)}
                 >
                   <StickyNote className="h-3.5 w-3.5" /> Notas
                 </Button>
@@ -103,6 +136,15 @@ export default function Liderancas() {
         open={notesOpen}
         onOpenChange={setNotesOpen}
         liderancaName={selectedLider}
+      />
+
+      <LiderancaDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        lideranca={detailLider}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        showScore={showScore}
       />
     </div>
   );
