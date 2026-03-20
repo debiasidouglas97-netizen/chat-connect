@@ -101,7 +101,8 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
   }, [open, initial]);
 
   const selectMunicipio = async (m: IBGEMunicipio) => {
-    const label = `${m.nome}/${m.microrregiao.mesorregiao.UF.sigla}`;
+    const uf = m.microrregiao?.mesorregiao?.UF?.sigla || "";
+    const label = uf ? `${m.nome}/${uf}` : m.nome;
     setName(label);
     setQuery(label);
     setShowSuggestions(false);
