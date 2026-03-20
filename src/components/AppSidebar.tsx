@@ -6,6 +6,7 @@ import {
   Landmark,
   CalendarDays,
   FileText,
+  MessageCircle,
   Search,
   Settings,
   Shield,
