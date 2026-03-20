@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2 } from "lucide-react";
-import { cidadesData as initialCidades } from "@/lib/mock-data";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useCidades } from "@/hooks/use-cidades";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
@@ -72,33 +72,41 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
 }
 
 export default function Cidades() {
-  const [localCidades, setLocalCidades] = useState(initialCidades);
+  const { cidades: cidadesRaw, insert, update, remove } = useCidades();
   const [formOpen, setFormOpen] = useState(false);
-  const [editingCity, setEditingCity] = useState<CidadeBase | undefined>();
-  const [deleteCity, setDeleteCity] = useState<string | null>(null);
+  const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
+  const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
 
   const cidades = useMemo(
-    () => localCidades.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
-    [localCidades]
+    () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })).sort((a, b) => b.score - a.score),
+    [cidadesRaw]
   );
   const showScore = canViewScore(CURRENT_ROLE);
 
-  const handleSave = (c: CidadeBase) => {
-    if (editingCity) {
-      setLocalCidades((prev) => prev.map((p) => p.name === editingCity.name ? c : p));
-      toast.success("Cidade atualizada");
-    } else {
-      setLocalCidades((prev) => [...prev, c]);
-      toast.success("Cidade cadastrada");
+  const handleSave = async (c: CidadeBase) => {
+    try {
+      if (editingCity) {
+        await update({ id: editingCity.id, data: c });
+        toast.success("Cidade atualizada");
+      } else {
+        await insert(c);
+        toast.success("Cidade cadastrada");
+      }
+      setEditingCity(undefined);
+    } catch {
+      toast.error("Erro ao salvar");
     }
-    setEditingCity(undefined);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteCity) return;
-    setLocalCidades((prev) => prev.filter((c) => c.name !== deleteCity));
-    setDeleteCity(null);
-    toast.success("Cidade excluída");
+    try {
+      await remove(deleteCity.id);
+      setDeleteCity(null);
+      toast.success("Cidade excluída");
+    } catch {
+      toast.error("Erro ao excluir");
+    }
   };
 
   return (
@@ -106,57 +114,64 @@ export default function Cidades() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Gestão de Cidades</h1>
-          <p className="text-sm text-muted-foreground">Monitoramento territorial — Baixada Santista e Região de Bauru</p>
+          <p className="text-sm text-muted-foreground">Monitoramento territorial</p>
         </div>
         <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
           <Plus className="h-4 w-4" /> Nova Cidade
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {cidades.map((c) => {
-          const cfg = statusConfig[c.status];
-          return (
-            <Card key={c.name} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-base">{c.name}</CardTitle>
+      {cidades.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="text-lg">Nenhuma cidade cadastrada</p>
+          <p className="text-sm">Clique em "Nova Cidade" para começar</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {cidades.map((c) => {
+            const cfg = statusConfig[c.status];
+            return (
+              <Card key={c.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">{c.name}</CardTitle>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
+                      <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
-                    <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {showScore && (
-                  <div className="flex items-center gap-2">
-                    <Progress value={c.score} className="h-2 flex-1" />
-                    <span className="text-sm font-bold text-foreground w-8 text-right">{c.score}</span>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {showScore && (
+                    <div className="flex items-center gap-2">
+                      <Progress value={c.score} className="h-2 flex-1" />
+                      <span className="text-sm font-bold text-foreground w-8 text-right">{c.score}</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <span>Pop: {c.population}</span>
+                    <span>Peso: {c.peso}/10</span>
+                    <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
+                    <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                    <span>{c.regiao}</span>
                   </div>
-                )}
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  <span>Pop: {c.population}</span>
-                  <span>Peso: {c.peso}/10</span>
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
-                  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                  <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
-                  <span>{c.regiao}</span>
-                </div>
-                <div className="flex gap-1 pt-1">
-                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
-                    <Pencil className="h-3 w-3" /> Editar
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c.name)}>
-                    <Trash2 className="h-3 w-3" /> Excluir
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  <div className="flex gap-1 pt-1">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
+                      <Pencil className="h-3 w-3" /> Editar
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
+                      <Trash2 className="h-3 w-3" /> Excluir
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <CidadeFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} initial={editingCity} />
 
@@ -164,7 +179,7 @@ export default function Cidades() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cidade</AlertDialogTitle>
-            <AlertDialogDescription>Tem certeza que deseja excluir <strong>{deleteCity}</strong>?</AlertDialogDescription>
+            <AlertDialogDescription>Tem certeza que deseja excluir <strong>{deleteCity?.name}</strong>?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

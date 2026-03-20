@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cidadesData } from "@/lib/mock-data";
+import { useCidades } from "@/hooks/use-cidades";
 import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube } from "lucide-react";
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props) {
+  const { cidades: cidadesData } = useCidades();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [cargo, setCargo] = useState("");

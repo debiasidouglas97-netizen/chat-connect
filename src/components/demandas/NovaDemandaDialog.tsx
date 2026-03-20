@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploadZone, type AttachedFile } from "./FileUploadZone";
-import { cidadesData } from "@/lib/mock-data";
+import { useCidades } from "@/hooks/use-cidades";
 import type { Demanda } from "./types";
 
 interface NovaDemandaDialogProps {
@@ -16,6 +16,7 @@ interface NovaDemandaDialogProps {
 }
 
 export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDialogProps) {
+  const { cidades: cidadesData } = useCidades();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");

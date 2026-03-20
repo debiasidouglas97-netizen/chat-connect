@@ -2,15 +2,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Plus, MapPin, Star, StickyNote, X } from "lucide-react";
-import { cidadesData, liderancasData as initialData } from "@/lib/mock-data";
-import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore, type LiderancaBase } from "@/lib/scoring";
+import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
 import LiderancaDetailDialog from "@/components/liderancas/LiderancaDetailDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import { toast } from "sonner";
+import { useLiderancas } from "@/hooks/use-liderancas";
+import { useCidades } from "@/hooks/use-cidades";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
@@ -25,21 +25,23 @@ export default function Liderancas() {
   const [selectedLider, setSelectedLider] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
-  const [localData, setLocalData] = useState(initialData);
   const [novaOpen, setNovaOpen] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
 
+  const { liderancas: rawData, insert, update, remove } = useLiderancas();
+  const { cidades: cidadesRaw } = useCidades();
+
   const cidadesMap = useMemo(() => {
     const map = new Map<string, CidadeBase>();
-    cidadesData.forEach((c) => map.set(c.name, c));
+    cidadesRaw.forEach((c) => map.set(c.name, c));
     return map;
-  }, []);
+  }, [cidadesRaw]);
 
   const liderancas = useMemo(
-    () => localData
-      .map((l) => calcularScoreLideranca(l, cidadesMap))
+    () => rawData
+      .map((l) => ({ ...calcularScoreLideranca(l, cidadesMap), id: (l as any).id }))
       .sort((a, b) => b.score - a.score),
-    [cidadesMap, localData]
+    [cidadesMap, rawData]
   );
 
   const showScore = canViewScore(CURRENT_ROLE);
@@ -55,22 +57,37 @@ export default function Liderancas() {
     setDetailOpen(true);
   };
 
-  const handleSave = (original: LiderancaComScore, updated: Partial<LiderancaComScore>) => {
-    setLocalData((prev) =>
-      prev.map((l) =>
-        l.name === original.name
-          ? { ...l, ...updated, img: updated.name ? updated.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : l.img }
-          : l
-      )
-    );
-    // Update detail reference
-    setDetailLider((prev) => prev ? { ...prev, ...updated } : prev);
-    toast.success("Liderança atualizada");
+  const handleSave = async (original: LiderancaComScore, updated: Record<string, any>) => {
+    try {
+      const id = (original as any).id;
+      if (updated.name && updated.name !== original.name) {
+        updated.img = updated.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+      }
+      await update({ id, data: updated });
+      setDetailLider((prev) => prev ? { ...prev, ...updated } : prev);
+      toast.success("Liderança atualizada");
+    } catch {
+      toast.error("Erro ao atualizar");
+    }
   };
 
-  const handleDelete = (name: string) => {
-    setLocalData((prev) => prev.filter((l) => l.name !== name));
-    toast.success("Liderança excluída");
+  const handleDelete = async (name: string) => {
+    try {
+      const l = liderancas.find((x) => x.name === name);
+      if (l) await remove((l as any).id);
+      toast.success("Liderança excluída");
+    } catch {
+      toast.error("Erro ao excluir");
+    }
+  };
+
+  const handleAdd = async (l: any) => {
+    try {
+      await insert(l);
+      toast.success("Liderança cadastrada");
+    } catch {
+      toast.error("Erro ao cadastrar");
+    }
   };
 
   return (
@@ -85,110 +102,86 @@ export default function Liderancas() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {liderancas.map((l) => (
-          <Card
-            key={l.name}
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => openDetail(l)}
-          >
-            <CardContent className="p-5">
-              <div className="flex items-start gap-4">
-                <button
-                  className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (l.avatar_url) setPhotoLightbox({ url: l.avatar_url, name: l.name });
-                  }}
-                  title={l.avatar_url ? "Ver foto em tela cheia" : undefined}
-                >
-                  <Avatar className={`h-12 w-12 border border-primary/20 ${l.avatar_url ? "cursor-zoom-in" : ""}`}>
-                    {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
-                  </Avatar>
-                </button>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground">{l.name}</h3>
-                  <p className="text-xs text-muted-foreground">{l.cargo}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{l.cidadePrincipal}</span>
+      {liderancas.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="text-lg">Nenhuma liderança cadastrada</p>
+          <p className="text-sm">Clique em "Nova Liderança" para começar</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {liderancas.map((l) => (
+            <Card
+              key={(l as any).id || l.name}
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => openDetail(l)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start gap-4">
+                  <button
+                    className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (l.avatar_url) setPhotoLightbox({ url: l.avatar_url, name: l.name });
+                    }}
+                    title={l.avatar_url ? "Ver foto em tela cheia" : undefined}
+                  >
+                    <Avatar className={`h-12 w-12 border border-primary/20 ${l.avatar_url ? "cursor-zoom-in" : ""}`}>
+                      {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground">{l.name}</h3>
+                    <p className="text-xs text-muted-foreground">{l.cargo}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{l.cidadePrincipal}</span>
+                    </div>
                   </div>
+                  {showScore && (
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-foreground">{l.score}</div>
+                      <p className="text-[10px] text-muted-foreground">Score</p>
+                    </div>
+                  )}
                 </div>
-                {showScore && (
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-foreground">{l.score}</div>
-                    <p className="text-[10px] text-muted-foreground">Score</p>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-4 flex-wrap">
-                <Badge variant="outline" className={`text-[10px] ${influenciaColors[l.influencia]}`}>
-                  <Star className="h-3 w-3 mr-1" /> {l.influencia}
-                </Badge>
-                <Badge variant="outline" className="text-[10px]">{l.tipo}</Badge>
-                <Badge variant="outline" className="text-[10px]">
-                  {l.classificacao.icon} {l.classificacao.label}
-                </Badge>
-                <Badge variant="secondary" className="text-[10px]">
-                  <MapPin className="h-3 w-3 mr-1" /> {l.atuacao.length} cidades
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="ml-auto h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={(e) => openNotes(e, l.name)}
-                >
-                  <StickyNote className="h-3.5 w-3.5" /> Notas
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className="flex items-center gap-2 mt-4 flex-wrap">
+                  <Badge variant="outline" className={`text-[10px] ${influenciaColors[l.influencia]}`}>
+                    <Star className="h-3 w-3 mr-1" /> {l.influencia}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">{l.tipo}</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {l.classificacao.icon} {l.classificacao.label}
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
+                    <MapPin className="h-3 w-3 mr-1" /> {l.atuacao.length} cidades
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={(e) => openNotes(e, l.name)}
+                  >
+                    <StickyNote className="h-3.5 w-3.5" /> Notas
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      <LiderancaNotesDialog
-        open={notesOpen}
-        onOpenChange={setNotesOpen}
-        liderancaName={selectedLider}
-      />
+      <LiderancaNotesDialog open={notesOpen} onOpenChange={setNotesOpen} liderancaName={selectedLider} />
+      <LiderancaDetailDialog open={detailOpen} onOpenChange={setDetailOpen} lideranca={detailLider} onSave={handleSave} onDelete={handleDelete} showScore={showScore} />
+      <NovaLiderancaDialog open={novaOpen} onOpenChange={setNovaOpen} onAdd={handleAdd} />
 
-      <LiderancaDetailDialog
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        lideranca={detailLider}
-        onSave={handleSave}
-        onDelete={handleDelete}
-        showScore={showScore}
-      />
-
-      <NovaLiderancaDialog
-        open={novaOpen}
-        onOpenChange={setNovaOpen}
-        onAdd={(l) => {
-          setLocalData((prev) => [...prev, l]);
-          toast.success("Liderança cadastrada");
-        }}
-      />
-
-      {/* Photo lightbox */}
       {photoLightbox && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
-          onClick={() => setPhotoLightbox(null)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
-            onClick={() => setPhotoLightbox(null)}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out" onClick={() => setPhotoLightbox(null)}>
+          <button className="absolute top-4 right-4 text-white/80 hover:text-white" onClick={() => setPhotoLightbox(null)}>
             <X className="h-6 w-6" />
           </button>
           <div className="text-center" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={photoLightbox.url}
-              alt={photoLightbox.name}
-              className="max-h-[80vh] max-w-[90vw] rounded-lg shadow-2xl object-contain cursor-default"
-            />
+            <img src={photoLightbox.url} alt={photoLightbox.name} className="max-h-[80vh] max-w-[90vw] rounded-lg shadow-2xl object-contain cursor-default" />
             <p className="text-white text-lg font-semibold mt-4">{photoLightbox.name}</p>
           </div>
         </div>
