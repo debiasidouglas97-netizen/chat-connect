@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette } from "lucide-react";
+import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign } from "lucide-react";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { toast } from "sonner";
 
@@ -55,6 +55,19 @@ export default function Configuracoes() {
     institutional_message: "",
     avatar_url: "",
     primary_color: "#2d5a3d",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    telegram_username: "",
+    instagram: "",
+    facebook: "",
+    youtube: "",
+    address_cep: "",
+    address_street: "",
+    address_number: "",
+    address_neighborhood: "",
+    address_city: "",
+    address_state: "",
   });
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -74,6 +87,19 @@ export default function Configuracoes() {
         institutional_message: profile.institutional_message || "",
         avatar_url: profile.avatar_url || "",
         primary_color: profile.primary_color || "#2d5a3d",
+        phone: (profile as any).phone || "",
+        whatsapp: (profile as any).whatsapp || "",
+        email: (profile as any).email || "",
+        telegram_username: (profile as any).telegram_username || "",
+        instagram: (profile as any).instagram || "",
+        facebook: (profile as any).facebook || "",
+        youtube: (profile as any).youtube || "",
+        address_cep: (profile as any).address_cep || "",
+        address_street: (profile as any).address_street || "",
+        address_number: (profile as any).address_number || "",
+        address_neighborhood: (profile as any).address_neighborhood || "",
+        address_city: (profile as any).address_city || "",
+        address_state: (profile as any).address_state || "",
       });
       if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
     }
@@ -109,6 +135,26 @@ export default function Configuracoes() {
     }
   };
 
+  const handleCepLookup = async () => {
+    const cep = form.address_cep.replace(/\D/g, "");
+    if (cep.length !== 8) { toast.error("CEP inválido"); return; }
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) { toast.error("CEP não encontrado"); return; }
+      setForm((f) => ({
+        ...f,
+        address_street: data.logradouro || f.address_street,
+        address_neighborhood: data.bairro || f.address_neighborhood,
+        address_city: data.localidade || f.address_city,
+        address_state: data.uf || f.address_state,
+      }));
+      toast.success("Endereço preenchido!");
+    } catch {
+      toast.error("Erro ao buscar CEP");
+    }
+  };
+
   const handleSave = () => {
     if (!form.full_name.trim()) { toast.error("Nome completo é obrigatório."); return; }
     if (!form.party.trim()) { toast.error("Partido é obrigatório."); return; }
@@ -126,6 +172,19 @@ export default function Configuracoes() {
       institutional_message: form.institutional_message.trim() || null,
       avatar_url: form.avatar_url || null,
       primary_color: form.primary_color,
+      phone: form.phone.trim() || null,
+      whatsapp: form.whatsapp.trim() || null,
+      email: form.email.trim() || null,
+      telegram_username: form.telegram_username.trim() || null,
+      instagram: form.instagram.trim() || null,
+      facebook: form.facebook.trim() || null,
+      youtube: form.youtube.trim() || null,
+      address_cep: form.address_cep.trim() || null,
+      address_street: form.address_street.trim() || null,
+      address_number: form.address_number.trim() || null,
+      address_neighborhood: form.address_neighborhood.trim() || null,
+      address_city: form.address_city.trim() || null,
+      address_state: form.address_state.trim() || null,
     } as any);
   };
 
@@ -194,47 +253,24 @@ export default function Configuracoes() {
                 JPG ou PNG, recomendado 512×512 px. A imagem será exibida como avatar circular.
               </p>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                >
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                   {uploading ? "Enviando..." : "Escolher foto"}
                 </Button>
                 {avatarPreview && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setAvatarPreview(null);
-                      setForm((f) => ({ ...f, avatar_url: "" }));
-                    }}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => { setAvatarPreview(null); setForm((f) => ({ ...f, avatar_url: "" })); }}>
                     <X className="h-4 w-4 mr-1" /> Remover
                   </Button>
                 )}
               </div>
             </div>
           </div>
-
           <Separator className="my-4" />
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Cor principal do mandato</Label>
               <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="color"
-                  value={form.primary_color}
-                  onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))}
-                  className="h-9 w-12 rounded border border-input cursor-pointer"
-                />
-                <Input
-                  value={form.primary_color}
-                  onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))}
-                  className="w-28 font-mono text-xs"
-                />
+                <input type="color" value={form.primary_color} onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))} className="h-9 w-12 rounded border border-input cursor-pointer" />
+                <Input value={form.primary_color} onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))} className="w-28 font-mono text-xs" />
               </div>
             </div>
           </div>
@@ -253,43 +289,118 @@ export default function Configuracoes() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="full_name">Nome completo *</Label>
-              <Input
-                id="full_name"
-                value={form.full_name}
-                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                placeholder="Antonio Carlos Rodrigues"
-              />
+              <Input id="full_name" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} placeholder="Antonio Carlos Rodrigues" />
             </div>
             <div>
               <Label htmlFor="public_name">Nome público</Label>
-              <Input
-                id="public_name"
-                value={form.public_name}
-                onChange={(e) => setForm((f) => ({ ...f, public_name: e.target.value }))}
-                placeholder='Dep. Antonio Carlos Rodrigues'
-              />
+              <Input id="public_name" value={form.public_name} onChange={(e) => setForm((f) => ({ ...f, public_name: e.target.value }))} placeholder='Dep. Antonio Carlos Rodrigues' />
             </div>
             <div>
               <Label htmlFor="party">Partido *</Label>
-              <Input
-                id="party"
-                value={form.party}
-                onChange={(e) => setForm((f) => ({ ...f, party: e.target.value }))}
-                placeholder="PL"
-              />
+              <Input id="party" value={form.party} onChange={(e) => setForm((f) => ({ ...f, party: e.target.value }))} placeholder="PL" />
             </div>
             <div>
               <Label htmlFor="state">Estado *</Label>
-              <select
-                id="state"
-                value={form.state}
-                onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {STATES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+              <select id="state" value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contacts */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Phone className="h-5 w-5 text-primary" />
+            Contatos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</Label>
+              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="(11) 99999-9999" />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> WhatsApp</Label>
+              <Input value={form.whatsapp} onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="deputado@email.com" />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1"><AtSign className="h-3 w-3" /> Telegram</Label>
+              <Input value={form.telegram_username} onChange={(e) => setForm((f) => ({ ...f, telegram_username: e.target.value }))} placeholder="@username" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Media */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            Redes Sociais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="flex items-center gap-1"><Instagram className="h-3 w-3" /> Instagram</Label>
+              <Input value={form.instagram} onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))} placeholder="@perfil" />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1"><Facebook className="h-3 w-3" /> Facebook</Label>
+              <Input value={form.facebook} onChange={(e) => setForm((f) => ({ ...f, facebook: e.target.value }))} placeholder="facebook.com/perfil" />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1"><Youtube className="h-3 w-3" /> YouTube</Label>
+              <Input value={form.youtube} onChange={(e) => setForm((f) => ({ ...f, youtube: e.target.value }))} placeholder="youtube.com/@canal" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Address */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            Endereço
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label>CEP</Label>
+              <Input value={form.address_cep} onChange={(e) => setForm((f) => ({ ...f, address_cep: e.target.value }))} placeholder="01001-000" />
+            </div>
+            <Button variant="outline" onClick={handleCepLookup}>Buscar</Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <Label>Rua</Label>
+              <Input value={form.address_street} onChange={(e) => setForm((f) => ({ ...f, address_street: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Número</Label>
+              <Input value={form.address_number} onChange={(e) => setForm((f) => ({ ...f, address_number: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Bairro</Label>
+              <Input value={form.address_neighborhood} onChange={(e) => setForm((f) => ({ ...f, address_neighborhood: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Cidade</Label>
+              <Input value={form.address_city} onChange={(e) => setForm((f) => ({ ...f, address_city: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Estado</Label>
+              <Input value={form.address_state} onChange={(e) => setForm((f) => ({ ...f, address_state: e.target.value }))} />
             </div>
           </div>
         </CardContent>
@@ -308,39 +419,22 @@ export default function Configuracoes() {
             <Label>Regiões de atuação</Label>
             <div className="flex flex-wrap gap-2 mt-2">
               {REGIONS_OPTIONS.map((r) => (
-                <Badge
-                  key={r}
-                  variant={form.regions.includes(r) ? "default" : "outline"}
-                  className="cursor-pointer transition-colors"
-                  onClick={() => setForm((f) => ({ ...f, regions: toggleArrayItem(f.regions, r) }))}
-                >
+                <Badge key={r} variant={form.regions.includes(r) ? "default" : "outline"} className="cursor-pointer transition-colors" onClick={() => setForm((f) => ({ ...f, regions: toggleArrayItem(f.regions, r) }))}>
                   {r}
                 </Badge>
               ))}
             </div>
           </div>
-
           <div>
             <Label htmlFor="priority_cities">Cidades prioritárias</Label>
-            <Input
-              id="priority_cities"
-              value={form.priority_cities}
-              onChange={(e) => setForm((f) => ({ ...f, priority_cities: e.target.value }))}
-              placeholder="Santos, Guarujá, Bauru (separadas por vírgula)"
-            />
+            <Input id="priority_cities" value={form.priority_cities} onChange={(e) => setForm((f) => ({ ...f, priority_cities: e.target.value }))} placeholder="Santos, Guarujá, Bauru (separadas por vírgula)" />
             <p className="text-xs text-muted-foreground mt-1">Separe por vírgula</p>
           </div>
-
           <div>
             <Label>Áreas de foco</Label>
             <div className="flex flex-wrap gap-2 mt-2">
               {FOCUS_AREAS_OPTIONS.map((a) => (
-                <Badge
-                  key={a}
-                  variant={form.focus_areas.includes(a) ? "default" : "outline"}
-                  className="cursor-pointer transition-colors"
-                  onClick={() => setForm((f) => ({ ...f, focus_areas: toggleArrayItem(f.focus_areas, a) }))}
-                >
+                <Badge key={a} variant={form.focus_areas.includes(a) ? "default" : "outline"} className="cursor-pointer transition-colors" onClick={() => setForm((f) => ({ ...f, focus_areas: toggleArrayItem(f.focus_areas, a) }))}>
                   {a}
                 </Badge>
               ))}
@@ -360,27 +454,12 @@ export default function Configuracoes() {
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="bio">Biografia curta (máx. 300 caracteres)</Label>
-            <Textarea
-              id="bio"
-              value={form.bio}
-              onChange={(e) => {
-                if (e.target.value.length <= 300)
-                  setForm((f) => ({ ...f, bio: e.target.value }));
-              }}
-              placeholder="Atuante na Baixada Santista e Região de Bauru, com foco em saúde, educação e infraestrutura."
-              rows={3}
-            />
+            <Textarea id="bio" value={form.bio} onChange={(e) => { if (e.target.value.length <= 300) setForm((f) => ({ ...f, bio: e.target.value })); }} placeholder="Atuante na Baixada Santista e Região de Bauru, com foco em saúde, educação e infraestrutura." rows={3} />
             <p className="text-xs text-muted-foreground mt-1">{form.bio.length}/300</p>
           </div>
-
           <div>
             <Label htmlFor="institutional_message">Frase institucional (opcional)</Label>
-            <Input
-              id="institutional_message"
-              value={form.institutional_message}
-              onChange={(e) => setForm((f) => ({ ...f, institutional_message: e.target.value }))}
-              placeholder="Trabalhando por um estado mais justo e eficiente"
-            />
+            <Input id="institutional_message" value={form.institutional_message} onChange={(e) => setForm((f) => ({ ...f, institutional_message: e.target.value }))} placeholder="Trabalhando por um estado mais justo e eficiente" />
           </div>
         </CardContent>
       </Card>
