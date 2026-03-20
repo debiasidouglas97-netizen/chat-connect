@@ -148,6 +148,15 @@ export default function Liderancas() {
         onDelete={handleDelete}
         showScore={showScore}
       />
+
+      <NovaLiderancaDialog
+        open={novaOpen}
+        onOpenChange={setNovaOpen}
+        onAdd={(l) => {
+          setLocalData((prev) => [...prev, l]);
+          toast.success("Liderança cadastrada");
+        }}
+      />
     </div>
   );
 }
