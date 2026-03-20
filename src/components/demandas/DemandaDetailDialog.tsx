@@ -55,6 +55,7 @@ interface DemandaDetailDialogProps {
 }
 
 export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onDelete }: DemandaDetailDialogProps) {
+  const { cidades: cidadesData } = useCidades();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
