@@ -87,7 +87,7 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
   const filtered = useMemo(() => {
     if (query.length < 2) return [];
     const q = query.toLowerCase();
-    return municipios.filter((m) => m.nome.toLowerCase().includes(q)).slice(0, 8);
+    return municipios.filter((m) => m.nome.toLowerCase().includes(q) && m.microrregiao?.mesorregiao?.UF?.sigla).slice(0, 8);
   }, [query, municipios]);
 
   useEffect(() => {
