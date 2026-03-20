@@ -1,8 +1,12 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical, Paperclip, MapPin, User } from "lucide-react";
-import { demandasData } from "@/lib/mock-data";
+import { demandasData as rawDemandas } from "@/lib/mock-data";
+import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
+import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
+import type { Demanda } from "@/components/demandas/types";
 
 const columns = [
   { id: "nova", title: "Nova", color: "bg-info" },
@@ -19,7 +23,26 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
+// Convert legacy mock data to new Demanda type
+const initialDemandas: Demanda[] = rawDemandas.map((d) => ({
+  ...d,
+  description: "",
+  attachments: [],
+  history: [{ id: crypto.randomUUID(), action: "Demanda criada", user: "Sistema", date: new Date("2025-01-15") }],
+}));
+
 export default function Demandas() {
+  const [demandas, setDemandas] = useState<Demanda[]>(initialDemandas);
+  const [newOpen, setNewOpen] = useState(false);
+  const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
+
+  const handleCreate = (d: Demanda) => setDemandas((prev) => [...prev, d]);
+
+  const handleUpdate = (updated: Demanda) => {
+    setDemandas((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+    setSelectedDemanda(updated);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -27,14 +50,14 @@ export default function Demandas() {
           <h1 className="text-2xl font-bold text-foreground">Demandas</h1>
           <p className="text-sm text-muted-foreground">Kanban de gestão de demandas parlamentares</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setNewOpen(true)}>
           <Plus className="h-4 w-4" /> Nova Demanda
         </Button>
       </div>
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((col) => {
-          const items = demandasData.filter((d) => d.col === col.id);
+          const items = demandas.filter((d) => d.col === col.id);
           return (
             <div key={col.id} className="min-w-[280px] flex-1">
               <div className="flex items-center gap-2 mb-3">
@@ -44,7 +67,11 @@ export default function Demandas() {
               </div>
               <div className="space-y-3">
                 {items.map((item) => (
-                  <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <Card
+                    key={item.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setSelectedDemanda(item)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-2">
                         <GripVertical className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -62,9 +89,9 @@ export default function Demandas() {
                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <User className="h-3 w-3" /> {item.responsible}
                             </span>
-                            {item.attachments > 0 && (
+                            {item.attachments.length > 0 && (
                               <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <Paperclip className="h-3 w-3" /> {item.attachments}
+                                <Paperclip className="h-3 w-3" /> {item.attachments.length}
                               </span>
                             )}
                           </div>
@@ -78,6 +105,14 @@ export default function Demandas() {
           );
         })}
       </div>
+
+      <NovaDemandaDialog open={newOpen} onOpenChange={setNewOpen} onSave={handleCreate} />
+      <DemandaDetailDialog
+        demanda={selectedDemanda}
+        open={!!selectedDemanda}
+        onOpenChange={(v) => { if (!v) setSelectedDemanda(null); }}
+        onUpdate={handleUpdate}
+      />
     </div>
   );
 }
