@@ -113,14 +113,27 @@ export default function Liderancas() {
         </Button>
       </div>
 
-      {liderancas.length === 0 ? (
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar por nome ou cidade..."
+          className="pl-9"
+        />
+      </div>
+
+      {filteredLiderancas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg">Nenhuma liderança cadastrada</p>
-          <p className="text-sm">Clique em "Nova Liderança" para começar</p>
+          <p className="text-lg">{searchQuery ? "Nenhuma liderança encontrada" : "Nenhuma liderança cadastrada"}</p>
+          <p className="text-sm">{searchQuery ? "Tente outro termo de busca" : 'Clique em "Nova Liderança" para começar'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {liderancas.map((l) => (
+          {filteredLiderancas.map((l) => (
+            <Card
+              key={(l as any).id || l.name}
+              className="hover:shadow-md transition-shadow cursor-pointer"
             <Card
               key={(l as any).id || l.name}
               className="hover:shadow-md transition-shadow cursor-pointer"
