@@ -77,7 +77,7 @@ export default function Liderancas() {
           <h1 className="text-2xl font-bold text-foreground">Lideranças</h1>
           <p className="text-sm text-muted-foreground">CRM político — gestão de lideranças territoriais</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setNovaOpen(true)}>
           <Plus className="h-4 w-4" /> Nova Liderança
         </Button>
       </div>
