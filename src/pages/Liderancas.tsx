@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, StickyNote } from "lucide-react";
 import { cidadesData, liderancasData as initialData } from "@/lib/mock-data";
-import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
+import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore, type LiderancaBase } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
 import LiderancaDetailDialog from "@/components/liderancas/LiderancaDetailDialog";
+import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import { toast } from "sonner";
 
 const CURRENT_ROLE: UserRole = "deputado";
