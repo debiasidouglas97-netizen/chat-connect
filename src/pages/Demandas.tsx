@@ -43,6 +43,11 @@ export default function Demandas() {
     setSelectedDemanda(updated);
   };
 
+  const handleDelete = (id: number) => {
+    setDemandas((prev) => prev.filter((d) => d.id !== id));
+    setSelectedDemanda(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
