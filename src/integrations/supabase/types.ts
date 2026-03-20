@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      leadership_notes: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          lideranca_name: string
+          tag: Database["public"]["Enums"]["note_tag"] | null
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          lideranca_name: string
+          tag?: Database["public"]["Enums"]["note_tag"] | null
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          lideranca_name?: string
+          tag?: Database["public"]["Enums"]["note_tag"] | null
+          text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_bot_state: {
         Row: {
           id: number
@@ -160,7 +193,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      note_tag:
+        | "relacionamento"
+        | "politico"
+        | "conflito"
+        | "apoio"
+        | "alerta"
+        | "estrategico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -287,6 +326,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      note_tag: [
+        "relacionamento",
+        "politico",
+        "conflito",
+        "apoio",
+        "alerta",
+        "estrategico",
+      ],
+    },
   },
 } as const

@@ -1,12 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, MapPin, Star } from "lucide-react";
+import { Plus, MapPin, Star, StickyNote } from "lucide-react";
 import { cidadesData, liderancasData } from "@/lib/mock-data";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
 
-// Simulated current role
 const CURRENT_ROLE: UserRole = "deputado";
 
 const influenciaColors: Record<string, string> = {
@@ -16,6 +16,9 @@ const influenciaColors: Record<string, string> = {
 };
 
 export default function Liderancas() {
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [selectedLider, setSelectedLider] = useState("");
+
   const cidadesMap = useMemo(() => {
     const map = new Map<string, CidadeBase>();
     cidadesData.forEach((c) => map.set(c.name, c));
@@ -30,6 +33,11 @@ export default function Liderancas() {
   );
 
   const showScore = canViewScore(CURRENT_ROLE);
+
+  const openNotes = (name: string) => {
+    setSelectedLider(name);
+    setNotesOpen(true);
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -74,14 +82,28 @@ export default function Liderancas() {
                 <Badge variant="outline" className="text-[10px]">
                   {l.classificacao.icon} {l.classificacao.label}
                 </Badge>
-                <Badge variant="secondary" className="text-[10px] ml-auto">
+                <Badge variant="secondary" className="text-[10px]">
                   <MapPin className="h-3 w-3 mr-1" /> {l.atuacao.length} cidades
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => openNotes(l.name)}
+                >
+                  <StickyNote className="h-3.5 w-3.5" /> Notas
+                </Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <LiderancaNotesDialog
+        open={notesOpen}
+        onOpenChange={setNotesOpen}
+        liderancaName={selectedLider}
+      />
     </div>
   );
 }
