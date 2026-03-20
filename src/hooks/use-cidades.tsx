@@ -1,0 +1,108 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { CidadeBase } from "@/lib/scoring";
+
+interface CidadeRow {
+  id: string;
+  name: string;
+  population: string;
+  peso: number;
+  regiao: string;
+  demandas: number;
+  demandas_resolvidas: number;
+  comunicacao_recente: boolean;
+  presenca_deputado: boolean;
+  engajamento: number;
+  liderancas: number;
+  emendas: number;
+}
+
+function rowToBase(r: CidadeRow): CidadeBase & { id: string } {
+  return {
+    id: r.id,
+    name: r.name,
+    population: r.population,
+    peso: r.peso,
+    regiao: r.regiao,
+    demandas: r.demandas,
+    demandasResolvidas: r.demandas_resolvidas,
+    comunicacaoRecente: r.comunicacao_recente,
+    presencaDeputado: r.presenca_deputado,
+    engajamento: r.engajamento,
+    liderancas: r.liderancas,
+    emendas: r.emendas,
+  };
+}
+
+export function useCidades() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["cidades"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cidades")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return (data as unknown as CidadeRow[]).map(rowToBase);
+    },
+  });
+
+  const insertMutation = useMutation({
+    mutationFn: async (c: CidadeBase) => {
+      const { error } = await supabase.from("cidades").insert({
+        name: c.name,
+        population: c.population,
+        peso: c.peso,
+        regiao: c.regiao,
+        demandas: c.demandas,
+        demandas_resolvidas: c.demandasResolvidas,
+        comunicacao_recente: c.comunicacaoRecente,
+        presenca_deputado: c.presencaDeputado,
+        engajamento: c.engajamento,
+        liderancas: c.liderancas,
+        emendas: c.emendas,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cidades"] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data: c }: { id: string; data: CidadeBase }) => {
+      const { error } = await supabase.from("cidades").update({
+        name: c.name,
+        population: c.population,
+        peso: c.peso,
+        regiao: c.regiao,
+        demandas: c.demandas,
+        demandas_resolvidas: c.demandasResolvidas,
+        comunicacao_recente: c.comunicacaoRecente,
+        presenca_deputado: c.presencaDeputado,
+        engajamento: c.engajamento,
+        liderancas: c.liderancas,
+        emendas: c.emendas,
+        updated_at: new Date().toISOString(),
+      } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cidades"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("cidades").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cidades"] }),
+  });
+
+  return {
+    cidades: query.data || [],
+    isLoading: query.isLoading,
+    insert: insertMutation.mutateAsync,
+    update: updateMutation.mutateAsync,
+    remove: deleteMutation.mutateAsync,
+  };
+}
