@@ -35,6 +35,7 @@ const mainItems = [
   { title: "Emendas", url: "/emendas", icon: Landmark },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "Documentos", url: "/documentos", icon: FileText },
+  { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
 ];
 
 const systemItems = [
