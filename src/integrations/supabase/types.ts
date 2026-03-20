@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      deputy_profile: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          focus_areas: string[] | null
+          full_name: string
+          id: string
+          institutional_message: string | null
+          logo_url: string | null
+          party: string
+          primary_color: string | null
+          priority_cities: string[] | null
+          public_name: string | null
+          regions: string[] | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          focus_areas?: string[] | null
+          full_name: string
+          id?: string
+          institutional_message?: string | null
+          logo_url?: string | null
+          party: string
+          primary_color?: string | null
+          priority_cities?: string[] | null
+          public_name?: string | null
+          regions?: string[] | null
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          focus_areas?: string[] | null
+          full_name?: string
+          id?: string
+          institutional_message?: string | null
+          logo_url?: string | null
+          party?: string
+          primary_color?: string | null
+          priority_cities?: string[] | null
+          public_name?: string | null
+          regions?: string[] | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_bot_state: {
         Row: {
           id: number
