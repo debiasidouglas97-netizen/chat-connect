@@ -31,6 +31,7 @@ export interface AtuacaoCidade {
 export interface LiderancaBase {
   name: string;
   img: string;
+  avatar_url?: string | null;
   cidadePrincipal: string;
   cargo: string;
   influencia: "Alta" | "Média" | "Baixa";

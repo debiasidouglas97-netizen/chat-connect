@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, MapPin, Star, StickyNote } from "lucide-react";
 import { cidadesData, liderancasData as initialData } from "@/lib/mock-data";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore, type LiderancaBase } from "@/lib/scoring";
@@ -91,9 +92,10 @@ export default function Liderancas() {
           >
             <CardContent className="p-5">
               <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{l.img}</span>
-                </div>
+                <Avatar className="h-12 w-12 border border-primary/20 shrink-0">
+                  {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground">{l.name}</h3>
                   <p className="text-xs text-muted-foreground">{l.cargo}</p>
