@@ -11,6 +11,7 @@ import Cidades from "./pages/Cidades";
 import Emendas from "./pages/Emendas";
 import Agenda from "./pages/Agenda";
 import Documentos from "./pages/Documentos";
+import Mensagens from "./pages/Mensagens";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
