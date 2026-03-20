@@ -94,10 +94,19 @@ export default function Liderancas() {
           >
             <CardContent className="p-5">
               <div className="flex items-start gap-4">
-                <Avatar className="h-12 w-12 border border-primary/20 shrink-0">
-                  {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
-                </Avatar>
+                <button
+                  className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (l.avatar_url) setPhotoLightbox({ url: l.avatar_url, name: l.name });
+                  }}
+                  title={l.avatar_url ? "Ver foto em tela cheia" : undefined}
+                >
+                  <Avatar className={`h-12 w-12 border border-primary/20 ${l.avatar_url ? "cursor-zoom-in" : ""}`}>
+                    {l.avatar_url && <AvatarImage src={l.avatar_url} className="object-cover" />}
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">{l.img}</AvatarFallback>
+                  </Avatar>
+                </button>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground">{l.name}</h3>
                   <p className="text-xs text-muted-foreground">{l.cargo}</p>
