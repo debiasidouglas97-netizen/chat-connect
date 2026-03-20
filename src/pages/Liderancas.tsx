@@ -134,9 +134,6 @@ export default function Liderancas() {
             <Card
               key={(l as any).id || l.name}
               className="hover:shadow-md transition-shadow cursor-pointer"
-            <Card
-              key={(l as any).id || l.name}
-              className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => openDetail(l)}
             >
               <CardContent className="p-5">
