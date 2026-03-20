@@ -148,7 +148,7 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => selectMunicipio(m)}
                   >
-                    {m.nome}/{m.microrregiao.mesorregiao.UF.sigla}
+                    {m.nome}/{m.microrregiao?.mesorregiao?.UF?.sigla || ""}
                   </button>
                 ))}
               </div>
