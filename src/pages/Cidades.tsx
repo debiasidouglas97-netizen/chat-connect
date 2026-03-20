@@ -28,11 +28,11 @@ const REGIOES = ["Baixada Santista", "Região de Bauru", "Interior de SP", "Gran
 interface IBGEMunicipio {
   id: number;
   nome: string;
-  microrregiao: {
-    mesorregiao: {
-      UF: { sigla: string; nome: string };
+  microrregiao?: {
+    mesorregiao?: {
+      UF?: { sigla?: string; nome?: string };
     };
-  };
+  } | null;
 }
 
 function useIBGEMunicipios() {
@@ -87,7 +87,7 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
   const filtered = useMemo(() => {
     if (query.length < 2) return [];
     const q = query.toLowerCase();
-    return municipios.filter((m) => m.nome.toLowerCase().includes(q)).slice(0, 8);
+    return municipios.filter((m) => m.nome.toLowerCase().includes(q) && m.microrregiao?.mesorregiao?.UF?.sigla).slice(0, 8);
   }, [query, municipios]);
 
   useEffect(() => {
@@ -101,7 +101,8 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
   }, [open, initial]);
 
   const selectMunicipio = async (m: IBGEMunicipio) => {
-    const label = `${m.nome}/${m.microrregiao.mesorregiao.UF.sigla}`;
+    const uf = m.microrregiao?.mesorregiao?.UF?.sigla || "";
+    const label = uf ? `${m.nome}/${uf}` : m.nome;
     setName(label);
     setQuery(label);
     setShowSuggestions(false);
@@ -147,7 +148,7 @@ function CidadeFormDialog({ open, onOpenChange, onSave, initial }: {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => selectMunicipio(m)}
                   >
-                    {m.nome}/{m.microrregiao.mesorregiao.UF.sigla}
+                    {m.nome}/{m.microrregiao?.mesorregiao?.UF?.sigla || ""}
                   </button>
                 ))}
               </div>
