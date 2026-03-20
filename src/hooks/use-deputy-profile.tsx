@@ -51,7 +51,7 @@ export function useDeputyProfile() {
       } else {
         const { data, error } = await supabase
           .from("deputy_profile")
-          .insert(profile)
+          .insert([profile as any])
           .select()
           .single();
         if (error) throw error;
