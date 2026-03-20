@@ -38,6 +38,7 @@ const statusConfig = {
 };
 
 export default function Index() {
+  const { profile } = useDeputyProfile();
   const cidadesComScore = useMemo(
     () => cidadesData.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
     []
@@ -45,22 +46,37 @@ export default function Index() {
 
   const showRanking = canViewRanking(CURRENT_ROLE);
 
+  const displayName = profile?.public_name || profile?.full_name || "Dep. Antonio Carlos Rodrigues";
+  const party = profile?.party || "PL";
+  const state = profile?.state || "São Paulo";
+  const bio = profile?.bio || "Atuante na Baixada Santista e Região de Bauru — saúde, educação e infraestrutura";
+  const initials = (profile?.full_name || "AC")
+    .split(" ")
+    .filter((w) => w.length > 2)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Deputy Profile */}
       <div className="flex items-center gap-5">
-        <div className="h-16 w-16 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
-          <span className="text-xl font-bold text-primary">AC</span>
-        </div>
+        <Avatar className="h-16 w-16 border-2 border-primary">
+          {profile?.avatar_url ? (
+            <AvatarImage src={profile.avatar_url} alt={displayName} className="object-cover" />
+          ) : null}
+          <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dep. Antonio Carlos Rodrigues</h1>
+          <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
           <div className="flex items-center gap-3 mt-1">
-            <Badge variant="outline" className="text-xs">PL</Badge>
-            <span className="text-sm text-muted-foreground">Deputado Federal — São Paulo</span>
+            <Badge variant="outline" className="text-xs">{party}</Badge>
+            <span className="text-sm text-muted-foreground">Deputado Federal — {state}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Atuante na Baixada Santista e Região de Bauru — saúde, educação e infraestrutura
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{bio}</p>
         </div>
       </div>
 
