@@ -320,8 +320,12 @@ export default function Mensagens() {
         {selectedContact ? (
           <>
             <div className="p-4 border-b flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <span className="text-xs font-bold text-primary">{getInitials(selectedContact.liderancaName)}</span>
+              <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
+                {selectedContact.liderancaAvatarUrl ? (
+                  <img src={selectedContact.liderancaAvatarUrl} alt={selectedContact.liderancaName} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs font-bold text-primary">{getInitials(selectedContact.liderancaName)}</span>
+                )}
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">{selectedContact.liderancaName}</h3>
