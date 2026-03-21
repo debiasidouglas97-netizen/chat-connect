@@ -154,6 +154,21 @@ export default function Mensagens() {
     );
   }, [mergedContacts, searchTerm]);
 
+  useEffect(() => {
+    if (!selectedContactKey?.startsWith("pending-")) return;
+
+    const normalizedPendingUsername = selectedContactKey.replace("pending-", "");
+    const activeMatch = mergedContacts.find(
+      (contact) =>
+        contact.type === "telegram" &&
+        normalizeUsername(contact.liderancaUsername) === normalizedPendingUsername
+    );
+
+    if (activeMatch) {
+      setSelectedContactKey(getContactKey(activeMatch));
+    }
+  }, [selectedContactKey, mergedContacts]);
+
   // Load messages for selected contact
   useEffect(() => {
     if (!selectedContact?.chatId) {
