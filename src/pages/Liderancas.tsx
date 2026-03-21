@@ -30,7 +30,7 @@ export default function Liderancas() {
   const [novaOpen, setNovaOpen] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { cidades: cidadesRaw } = useCidades();
 
