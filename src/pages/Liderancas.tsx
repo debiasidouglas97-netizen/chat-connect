@@ -51,10 +51,11 @@ export default function Liderancas() {
     if (!searchQuery.trim()) return liderancas;
     const q = searchQuery.toLowerCase();
     return liderancas.filter((l) =>
-      l.name.toLowerCase().includes(q) ||
-      l.cidadePrincipal.toLowerCase().includes(q)
+      searchField === "nome"
+        ? l.name.toLowerCase().includes(q)
+        : l.cidadePrincipal.toLowerCase().includes(q)
     );
-  }, [liderancas, searchQuery]);
+  }, [liderancas, searchQuery, searchField]);
 
   const showScore = canViewScore(CURRENT_ROLE);
 
