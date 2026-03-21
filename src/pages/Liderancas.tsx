@@ -115,14 +115,25 @@ export default function Liderancas() {
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar por nome ou cidade..."
-          className="pl-9"
-        />
+      <div className="flex items-center gap-2 max-w-md">
+        <Select value={searchField} onValueChange={(v) => setSearchField(v as "nome" | "cidade")}>
+          <SelectTrigger className="w-[140px] shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nome">Nome</SelectItem>
+            <SelectItem value="cidade">Cidade</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={searchField === "nome" ? "Buscar por nome..." : "Buscar por cidade..."}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       {filteredLiderancas.length === 0 ? (
