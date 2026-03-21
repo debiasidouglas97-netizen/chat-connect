@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, MapPin, Star, StickyNote, X, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
