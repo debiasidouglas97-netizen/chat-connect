@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, MapPin, Star, StickyNote, X, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
 import { useMemo, useState } from "react";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
@@ -29,7 +30,7 @@ export default function Liderancas() {
   const [novaOpen, setNovaOpen] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { cidades: cidadesRaw } = useCidades();
 
@@ -50,10 +51,11 @@ export default function Liderancas() {
     if (!searchQuery.trim()) return liderancas;
     const q = searchQuery.toLowerCase();
     return liderancas.filter((l) =>
-      l.name.toLowerCase().includes(q) ||
-      l.cidadePrincipal.toLowerCase().includes(q)
+      searchField === "nome"
+        ? l.name.toLowerCase().includes(q)
+        : l.cidadePrincipal.toLowerCase().includes(q)
     );
-  }, [liderancas, searchQuery]);
+  }, [liderancas, searchQuery, searchField]);
 
   const showScore = canViewScore(CURRENT_ROLE);
 
@@ -113,14 +115,25 @@ export default function Liderancas() {
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar por nome ou cidade..."
-          className="pl-9"
-        />
+      <div className="flex items-center gap-2 max-w-md">
+        <Select value={searchField} onValueChange={(v) => setSearchField(v as "nome" | "cidade")}>
+          <SelectTrigger className="w-[140px] shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nome">Nome</SelectItem>
+            <SelectItem value="cidade">Cidade</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={searchField === "nome" ? "Buscar por nome..." : "Buscar por cidade..."}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       {filteredLiderancas.length === 0 ? (
