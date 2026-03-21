@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, MessageCircle, User, Search } from "lucide-react";
+import { Send, MessageCircle, User, Search, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,17 +27,27 @@ interface TelegramMessage {
   created_at: string;
 }
 
+interface MergedContact {
+  type: "telegram" | "lideranca_pending";
+  telegramContact?: TelegramContact;
+  liderancaName: string;
+  liderancaUsername?: string;
+  liderancaAvatarUrl?: string | null;
+  chatId?: number;
+}
+
 export default function Mensagens() {
   const [contacts, setContacts] = useState<TelegramContact[]>([]);
+  const [liderancas, setLiderancas] = useState<any[]>([]);
   const [messages, setMessages] = useState<TelegramMessage[]>([]);
-  const [selectedContact, setSelectedContact] = useState<TelegramContact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<MergedContact | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Load contacts
+  // Load contacts and liderancas with telegram
   useEffect(() => {
     const fetchContacts = async () => {
       const { data } = await supabase
@@ -46,18 +56,72 @@ export default function Mensagens() {
         .order("updated_at", { ascending: false });
       if (data) setContacts(data as TelegramContact[]);
     };
+    const fetchLiderancas = async () => {
+      const { data } = await supabase
+        .from("liderancas")
+        .select("name, telegram_username, avatar_url")
+        .not("telegram_username", "is", null);
+      if (data) setLiderancas(data);
+    };
     fetchContacts();
+    fetchLiderancas();
   }, []);
+
+  // Merge contacts: telegram_contacts + liderancas with telegram that aren't yet linked
+  const mergedContacts = useMemo<MergedContact[]>(() => {
+    const result: MergedContact[] = [];
+    const linkedUsernames = new Set<string>();
+
+    // First: add all telegram contacts
+    contacts.forEach((c) => {
+      if (c.username) linkedUsernames.add(c.username.toLowerCase());
+      result.push({
+        type: "telegram",
+        telegramContact: c,
+        liderancaName: c.lideranca_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.username || `Chat ${c.chat_id}`,
+        liderancaUsername: c.username || undefined,
+        chatId: c.chat_id,
+      });
+    });
+
+    // Then: add liderancas with telegram that aren't already linked
+    liderancas.forEach((l) => {
+      const username = l.telegram_username?.replace("@", "").toLowerCase();
+      if (username && !linkedUsernames.has(username)) {
+        result.push({
+          type: "lideranca_pending",
+          liderancaName: l.name,
+          liderancaUsername: l.telegram_username?.replace("@", ""),
+          liderancaAvatarUrl: l.avatar_url,
+        });
+      }
+    });
+
+    return result;
+  }, [contacts, liderancas]);
+
+  const filteredContacts = useMemo(() => {
+    if (!searchTerm) return mergedContacts;
+    const term = searchTerm.toLowerCase();
+    return mergedContacts.filter(
+      (c) =>
+        c.liderancaName.toLowerCase().includes(term) ||
+        c.liderancaUsername?.toLowerCase().includes(term)
+    );
+  }, [mergedContacts, searchTerm]);
 
   // Load messages for selected contact
   useEffect(() => {
-    if (!selectedContact) return;
+    if (!selectedContact?.chatId) {
+      setMessages([]);
+      return;
+    }
 
     const fetchMessages = async () => {
       const { data } = await supabase
         .from("telegram_messages")
         .select("*")
-        .eq("chat_id", selectedContact.chat_id)
+        .eq("chat_id", selectedContact.chatId!)
         .order("created_at", { ascending: true });
       if (data) setMessages(data as TelegramMessage[]);
     };
@@ -67,20 +131,20 @@ export default function Mensagens() {
     supabase
       .from("telegram_messages")
       .update({ is_read: true })
-      .eq("chat_id", selectedContact.chat_id)
+      .eq("chat_id", selectedContact.chatId!)
       .eq("is_read", false)
       .then();
 
     // Subscribe to realtime
     const channel = supabase
-      .channel(`messages-${selectedContact.chat_id}`)
+      .channel(`messages-${selectedContact.chatId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "telegram_messages",
-          filter: `chat_id=eq.${selectedContact.chat_id}`,
+          filter: `chat_id=eq.${selectedContact.chatId}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as TelegramMessage]);
@@ -99,12 +163,12 @@ export default function Mensagens() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedContact || sending) return;
+    if (!newMessage.trim() || !selectedContact?.chatId || sending) return;
     setSending(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("telegram-send", {
-        body: { chat_id: selectedContact.chat_id, text: newMessage },
+        body: { chat_id: selectedContact.chatId, text: newMessage },
       });
 
       if (error) throw error;
@@ -120,30 +184,13 @@ export default function Mensagens() {
     }
   };
 
-  const filteredContacts = useMemo(() => {
-    if (!searchTerm) return contacts;
-    const term = searchTerm.toLowerCase();
-    return contacts.filter(
-      (c) =>
-        c.first_name?.toLowerCase().includes(term) ||
-        c.last_name?.toLowerCase().includes(term) ||
-        c.username?.toLowerCase().includes(term) ||
-        c.lideranca_name?.toLowerCase().includes(term)
-    );
-  }, [contacts, searchTerm]);
-
-  const getContactName = (c: TelegramContact) =>
-    c.lideranca_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.username || `Chat ${c.chat_id}`;
-
-  const getInitials = (c: TelegramContact) => {
-    const name = getContactName(c);
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(" ")
       .map((w) => w[0])
       .join("")
       .slice(0, 2)
       .toUpperCase();
-  };
 
   return (
     <div className="flex h-[calc(100vh-5rem)] max-w-7xl mx-auto gap-4">
@@ -166,24 +213,32 @@ export default function Mensagens() {
             <div className="p-6 text-center text-muted-foreground text-sm">
               <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />
               <p>Nenhum contato ainda.</p>
-              <p className="text-xs mt-1">Quando alguém enviar uma mensagem ao bot, aparecerá aqui.</p>
+              <p className="text-xs mt-1">Cadastre lideranças com Telegram ou aguarde mensagens ao bot.</p>
             </div>
           ) : (
-            filteredContacts.map((c) => (
+            filteredContacts.map((c, i) => (
               <button
-                key={c.id}
+                key={c.telegramContact?.id || `pending-${i}`}
                 onClick={() => setSelectedContact(c)}
                 className={`w-full flex items-center gap-3 p-3 text-left hover:bg-accent/50 transition-colors border-b border-border/50 ${
-                  selectedContact?.id === c.id ? "bg-accent" : ""
+                  selectedContact === c ? "bg-accent" : ""
                 }`}
               >
                 <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-primary">{getInitials(c)}</span>
+                  <span className="text-xs font-bold text-primary">{getInitials(c.liderancaName)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{getContactName(c)}</p>
-                  {c.username && (
-                    <p className="text-[10px] text-muted-foreground">@{c.username}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-foreground truncate">{c.liderancaName}</p>
+                    {c.type === "lideranca_pending" && (
+                      <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    )}
+                  </div>
+                  {c.liderancaUsername && (
+                    <p className="text-[10px] text-muted-foreground">@{c.liderancaUsername}</p>
+                  )}
+                  {c.type === "lideranca_pending" && (
+                    <p className="text-[10px] text-warning">Aguardando iniciar conversa</p>
                   )}
                 </div>
               </button>
@@ -198,62 +253,89 @@ export default function Mensagens() {
           <>
             <div className="p-4 border-b flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <span className="text-xs font-bold text-primary">{getInitials(selectedContact)}</span>
+                <span className="text-xs font-bold text-primary">{getInitials(selectedContact.liderancaName)}</span>
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">{getContactName(selectedContact)}</h3>
-                {selectedContact.username && (
-                  <p className="text-xs text-muted-foreground">@{selectedContact.username} · Telegram</p>
+                <h3 className="font-semibold text-foreground">{selectedContact.liderancaName}</h3>
+                {selectedContact.liderancaUsername && (
+                  <p className="text-xs text-muted-foreground">@{selectedContact.liderancaUsername} · Telegram</p>
                 )}
               </div>
-              {selectedContact.lideranca_name && (
+              {selectedContact.type === "telegram" && selectedContact.telegramContact?.lideranca_name && (
                 <Badge variant="outline" className="ml-auto text-[10px]">
                   <User className="h-3 w-3 mr-1" /> Liderança
                 </Badge>
               )}
+              {selectedContact.type === "lideranca_pending" && (
+                <Badge variant="outline" className="ml-auto text-[10px] border-warning/30 text-warning">
+                  <AlertCircle className="h-3 w-3 mr-1" /> Pendente
+                </Badge>
+              )}
             </div>
 
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-3">
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`flex ${m.direction === "outgoing" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${
-                        m.direction === "outgoing"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted text-foreground rounded-bl-md"
-                      }`}
-                    >
-                      <p>{m.text}</p>
-                      <p
-                        className={`text-[10px] mt-1 ${
-                          m.direction === "outgoing" ? "text-primary-foreground/60" : "text-muted-foreground"
-                        }`}
-                      >
-                        {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <div ref={scrollRef} />
+            {selectedContact.type === "lideranca_pending" ? (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                <div className="text-center max-w-sm px-4">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-3 text-warning opacity-60" />
+                  <p className="text-sm font-medium text-foreground">Conversa ainda não iniciada</p>
+                  <p className="text-xs mt-2">
+                    Para enviar mensagens, <strong>{selectedContact.liderancaName}</strong> precisa enviar uma mensagem ao bot do Telegram primeiro.
+                  </p>
+                  <p className="text-xs mt-2">
+                    Peça para enviar <code className="bg-muted px-1.5 py-0.5 rounded text-[11px]">/start</code> ao bot no Telegram.
+                  </p>
+                  {selectedContact.liderancaUsername && (
+                    <p className="text-xs mt-3 text-muted-foreground">
+                      Username: <span className="font-medium">@{selectedContact.liderancaUsername}</span>
+                    </p>
+                  )}
+                </div>
               </div>
-            </ScrollArea>
+            ) : (
+              <>
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-3">
+                    {messages.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`flex ${m.direction === "outgoing" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${
+                            m.direction === "outgoing"
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-muted text-foreground rounded-bl-md"
+                          }`}
+                        >
+                          <p>{m.text}</p>
+                          <p
+                            className={`text-[10px] mt-1 ${
+                              m.direction === "outgoing" ? "text-primary-foreground/60" : "text-muted-foreground"
+                            }`}
+                          >
+                            {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={scrollRef} />
+                  </div>
+                </ScrollArea>
 
-            <div className="p-3 border-t flex gap-2">
-              <Input
-                placeholder="Digite sua mensagem..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                disabled={sending}
-              />
-              <Button onClick={handleSend} disabled={!newMessage.trim() || sending} size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+                <div className="p-3 border-t flex gap-2">
+                  <Input
+                    placeholder="Digite sua mensagem..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                    disabled={sending}
+                  />
+                  <Button onClick={handleSend} disabled={!newMessage.trim() || sending} size="icon">
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
