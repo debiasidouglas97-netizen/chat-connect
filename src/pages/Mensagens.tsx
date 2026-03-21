@@ -287,8 +287,12 @@ export default function Mensagens() {
                     selectedContactKey === key ? "bg-accent" : ""
                   }`}
                 >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary">{getInitials(c.liderancaName)}</span>
+                  <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                    {c.liderancaAvatarUrl ? (
+                      <img src={c.liderancaAvatarUrl} alt={c.liderancaName} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-primary">{getInitials(c.liderancaName)}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
