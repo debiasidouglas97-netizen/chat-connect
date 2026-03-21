@@ -83,7 +83,7 @@ Deno.serve(async () => {
         return new Response(JSON.stringify({ error: insertErr.message }), { status: 500 });
       }
 
-      // Auto-create contacts for new chat_ids
+      // Auto-create contacts for new chat_ids and auto-link to liderancas
       const uniqueChats = new Map<number, any>();
       for (const u of updates) {
         if (u.message?.chat) {
@@ -100,9 +100,59 @@ Deno.serve(async () => {
       }
 
       if (uniqueChats.size > 0) {
-        await supabase
-          .from('telegram_contacts')
-          .upsert([...uniqueChats.values()], { onConflict: 'chat_id', ignoreDuplicates: true });
+        for (const contact of uniqueChats.values()) {
+          // Check if contact already exists
+          const { data: existing } = await supabase
+            .from('telegram_contacts')
+            .select('id, lideranca_name')
+            .eq('chat_id', contact.chat_id)
+            .single();
+
+          if (existing) {
+            // Update names if changed, and try to link if not linked yet
+            if (!existing.lideranca_name && contact.username) {
+              const linkedName = await tryLinkLideranca(supabase, contact.username);
+              if (linkedName) {
+                await supabase
+                  .from('telegram_contacts')
+                  .update({ lideranca_name: linkedName, first_name: contact.first_name, last_name: contact.last_name, username: contact.username })
+                  .eq('chat_id', contact.chat_id);
+              }
+            }
+          } else {
+            // New contact — try to link to lideranca
+            let liderancaName: string | null = null;
+            if (contact.username) {
+              liderancaName = await tryLinkLideranca(supabase, contact.username);
+            }
+
+            await supabase
+              .from('telegram_contacts')
+              .insert({ ...contact, lideranca_name: liderancaName });
+
+            // Send welcome message for new contacts
+            try {
+              const welcomeText = liderancaName
+                ? `✅ Olá, ${liderancaName}! Sua conversa com o gabinete foi ativada. Você pode enviar mensagens por aqui.`
+                : `✅ Conversa ativada! O gabinete já pode se comunicar com você por aqui.`;
+
+              await fetch(`${GATEWAY_URL}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                  'X-Connection-Api-Key': TELEGRAM_API_KEY,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  chat_id: contact.chat_id,
+                  text: welcomeText,
+                }),
+              });
+            } catch (e) {
+              console.error('Failed to send welcome message:', e);
+            }
+          }
+        }
       }
 
       totalProcessed += rows.length;
@@ -124,3 +174,24 @@ Deno.serve(async () => {
 
   return new Response(JSON.stringify({ ok: true, processed: totalProcessed, finalOffset: currentOffset }));
 });
+
+async function tryLinkLideranca(supabase: any, username: string): Promise<string | null> {
+  const normalizedUsername = username.replace(/^@/, '').toLowerCase().trim();
+  if (!normalizedUsername) return null;
+
+  const { data: liderancas } = await supabase
+    .from('liderancas')
+    .select('name, telegram_username')
+    .not('telegram_username', 'is', null);
+
+  if (!liderancas) return null;
+
+  for (const l of liderancas) {
+    const lUsername = (l.telegram_username ?? '').replace(/^@/, '').toLowerCase().trim();
+    if (lUsername === normalizedUsername) {
+      return l.name;
+    }
+  }
+
+  return null;
+}

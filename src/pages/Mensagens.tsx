@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ interface TelegramMessage {
   created_at: string;
 }
 
+interface Lideranca {
+  name: string;
+  telegram_username: string | null;
+  avatar_url: string | null;
+}
+
 interface MergedContact {
   type: "telegram" | "lideranca_pending";
   telegramContact?: TelegramContact;
@@ -36,18 +42,23 @@ interface MergedContact {
   chatId?: number;
 }
 
+function normalizeUsername(raw?: string | null): string {
+  if (!raw) return "";
+  return raw.replace(/^@/, "").toLowerCase().trim();
+}
+
 export default function Mensagens() {
   const [contacts, setContacts] = useState<TelegramContact[]>([]);
-  const [liderancas, setLiderancas] = useState<any[]>([]);
+  const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
   const [messages, setMessages] = useState<TelegramMessage[]>([]);
-  const [selectedContact, setSelectedContact] = useState<MergedContact | null>(null);
+  const [selectedContactKey, setSelectedContactKey] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Load contacts and liderancas with telegram
+  // Load contacts and liderancas
   useEffect(() => {
     const fetchContacts = async () => {
       const { data } = await supabase
@@ -61,33 +72,60 @@ export default function Mensagens() {
         .from("liderancas")
         .select("name, telegram_username, avatar_url")
         .not("telegram_username", "is", null);
-      if (data) setLiderancas(data);
+      if (data) setLiderancas(data as Lideranca[]);
     };
     fetchContacts();
     fetchLiderancas();
+
+    // Realtime for telegram_contacts
+    const contactsChannel = supabase
+      .channel("contacts-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "telegram_contacts" },
+        () => {
+          fetchContacts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(contactsChannel);
+    };
   }, []);
 
-  // Merge contacts: telegram_contacts + liderancas with telegram that aren't yet linked
+  // Merge contacts
   const mergedContacts = useMemo<MergedContact[]>(() => {
     const result: MergedContact[] = [];
     const linkedUsernames = new Set<string>();
 
-    // First: add all telegram contacts
     contacts.forEach((c) => {
-      if (c.username) linkedUsernames.add(c.username.toLowerCase());
+      const norm = normalizeUsername(c.username);
+      if (norm) linkedUsernames.add(norm);
+
+      // Try to find matching lideranca for avatar
+      const matchedLideranca = liderancas.find(
+        (l) => normalizeUsername(l.telegram_username) === norm && norm !== ""
+      );
+
       result.push({
         type: "telegram",
         telegramContact: c,
-        liderancaName: c.lideranca_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.username || `Chat ${c.chat_id}`,
+        liderancaName:
+          c.lideranca_name ||
+          matchedLideranca?.name ||
+          [c.first_name, c.last_name].filter(Boolean).join(" ") ||
+          c.username ||
+          `Chat ${c.chat_id}`,
         liderancaUsername: c.username || undefined,
+        liderancaAvatarUrl: matchedLideranca?.avatar_url,
         chatId: c.chat_id,
       });
     });
 
-    // Then: add liderancas with telegram that aren't already linked
     liderancas.forEach((l) => {
-      const username = l.telegram_username?.replace("@", "").toLowerCase();
-      if (username && !linkedUsernames.has(username)) {
+      const norm = normalizeUsername(l.telegram_username);
+      if (norm && !linkedUsernames.has(norm)) {
         result.push({
           type: "lideranca_pending",
           liderancaName: l.name,
@@ -99,6 +137,12 @@ export default function Mensagens() {
 
     return result;
   }, [contacts, liderancas]);
+
+  // Derive selected contact from key
+  const selectedContact = useMemo(() => {
+    if (!selectedContactKey) return null;
+    return mergedContacts.find((c) => getContactKey(c) === selectedContactKey) ?? null;
+  }, [selectedContactKey, mergedContacts]);
 
   const filteredContacts = useMemo(() => {
     if (!searchTerm) return mergedContacts;
@@ -117,11 +161,13 @@ export default function Mensagens() {
       return;
     }
 
+    const chatId = selectedContact.chatId;
+
     const fetchMessages = async () => {
       const { data } = await supabase
         .from("telegram_messages")
         .select("*")
-        .eq("chat_id", selectedContact.chatId!)
+        .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
       if (data) setMessages(data as TelegramMessage[]);
     };
@@ -131,20 +177,20 @@ export default function Mensagens() {
     supabase
       .from("telegram_messages")
       .update({ is_read: true })
-      .eq("chat_id", selectedContact.chatId!)
+      .eq("chat_id", chatId)
       .eq("is_read", false)
       .then();
 
-    // Subscribe to realtime
+    // Subscribe to realtime messages
     const channel = supabase
-      .channel(`messages-${selectedContact.chatId}`)
+      .channel(`messages-${chatId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "telegram_messages",
-          filter: `chat_id=eq.${selectedContact.chatId}`,
+          filter: `chat_id=eq.${chatId}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as TelegramMessage]);
@@ -155,7 +201,7 @@ export default function Mensagens() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedContact]);
+  }, [selectedContact?.chatId]);
 
   // Auto-scroll
   useEffect(() => {
@@ -216,33 +262,36 @@ export default function Mensagens() {
               <p className="text-xs mt-1">Cadastre lideranças com Telegram ou aguarde mensagens ao bot.</p>
             </div>
           ) : (
-            filteredContacts.map((c, i) => (
-              <button
-                key={c.telegramContact?.id || `pending-${i}`}
-                onClick={() => setSelectedContact(c)}
-                className={`w-full flex items-center gap-3 p-3 text-left hover:bg-accent/50 transition-colors border-b border-border/50 ${
-                  selectedContact === c ? "bg-accent" : ""
-                }`}
-              >
-                <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-primary">{getInitials(c.liderancaName)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-foreground truncate">{c.liderancaName}</p>
+            filteredContacts.map((c) => {
+              const key = getContactKey(c);
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedContactKey(key)}
+                  className={`w-full flex items-center gap-3 p-3 text-left hover:bg-accent/50 transition-colors border-b border-border/50 ${
+                    selectedContactKey === key ? "bg-accent" : ""
+                  }`}
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-primary">{getInitials(c.liderancaName)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-foreground truncate">{c.liderancaName}</p>
+                      {c.type === "lideranca_pending" && (
+                        <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                      )}
+                    </div>
+                    {c.liderancaUsername && (
+                      <p className="text-[10px] text-muted-foreground">@{c.liderancaUsername}</p>
+                    )}
                     {c.type === "lideranca_pending" && (
-                      <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                      <p className="text-[10px] text-warning">Aguardando iniciar conversa</p>
                     )}
                   </div>
-                  {c.liderancaUsername && (
-                    <p className="text-[10px] text-muted-foreground">@{c.liderancaUsername}</p>
-                  )}
-                  {c.type === "lideranca_pending" && (
-                    <p className="text-[10px] text-warning">Aguardando iniciar conversa</p>
-                  )}
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </ScrollArea>
       </Card>
@@ -349,4 +398,11 @@ export default function Mensagens() {
       </Card>
     </div>
   );
+}
+
+function getContactKey(c: MergedContact): string {
+  if (c.type === "telegram" && c.telegramContact) {
+    return `tg-${c.telegramContact.chat_id}`;
+  }
+  return `pending-${normalizeUsername(c.liderancaUsername)}`;
 }
