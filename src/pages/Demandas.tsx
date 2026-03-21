@@ -32,7 +32,11 @@ export default function Demandas() {
   // Convert DB rows to Demanda type for UI
   const demandas: Demanda[] = useMemo(() => rawDemandas.map((d) => ({
     id: d.id as any,
-    col: d.col,
+    col: d.col
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, "_"),
     title: d.title,
     description: "",
     city: d.city,
