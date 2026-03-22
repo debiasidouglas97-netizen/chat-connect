@@ -4,7 +4,7 @@ const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
 const MAX_RUNTIME_MS = 55_000;
 const MIN_REMAINING_MS = 5_000;
 
-const STEPS = ['title', 'description', 'city', 'priority', 'confirm'] as const;
+const STEPS = ['title', 'description', 'city', 'priority', 'attachments', 'confirm'] as const;
 
 const priorityKeywords: Record<string, string> = {
   urgente: 'Urgente', hospital: 'Alta', uti: 'Alta', emergencia: 'Alta', emergência: 'Alta',
@@ -106,7 +106,6 @@ Deno.serve(async () => {
       const { data } = await supabase.from('cidades').select('name').limit(10);
       return data?.map(c => c.name) || [];
     }
-    // Get the lideranca's main city plus other cities
     const { data: lideranca } = await supabase
       .from('liderancas')
       .select('cidade_principal')
@@ -120,6 +119,98 @@ Deno.serve(async () => {
       allCidades.unshift(lideranca.cidade_principal);
     }
     return allCidades;
+  }
+
+  // Download a file from Telegram and upload to Supabase Storage
+  async function downloadAndStoreFile(fileId: string, fileName: string, demandaId: string): Promise<{ storagePath: string; fileSize: number } | null> {
+    try {
+      // Get file info from Telegram
+      const fileInfoRes = await fetch(`${GATEWAY_URL}/getFile`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY!}`,
+          'X-Connection-Api-Key': TELEGRAM_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ file_id: fileId }),
+      });
+      const fileInfo = await fileInfoRes.json();
+      if (!fileInfo.ok || !fileInfo.result?.file_path) return null;
+
+      // Download file content via Telegram gateway
+      const fileUrl = `${GATEWAY_URL}/file/${fileInfo.result.file_path}`;
+      const fileRes = await fetch(fileUrl, {
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY!}`,
+          'X-Connection-Api-Key': TELEGRAM_API_KEY!,
+        },
+      });
+      if (!fileRes.ok) return null;
+
+      const fileBuffer = await fileRes.arrayBuffer();
+      const storagePath = `${demandaId}/${crypto.randomUUID()}_${fileName}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('demanda-attachments')
+        .upload(storagePath, fileBuffer, {
+          contentType: fileRes.headers.get('content-type') || 'application/octet-stream',
+          upsert: false,
+        });
+
+      if (uploadErr) {
+        console.error('Storage upload error:', uploadErr);
+        return null;
+      }
+
+      return { storagePath, fileSize: fileBuffer.byteLength };
+    } catch (e) {
+      console.error('File download/upload error:', e);
+      return null;
+    }
+  }
+
+  async function handleFileMessage(chatId: number, message: any): Promise<boolean> {
+    const convState = await getConversationState(chatId);
+    if (!convState || convState.step !== 'attachments') return false;
+
+    const data = convState.data || {};
+    const pendingFiles = data.pending_files || [];
+
+    // Handle photo
+    if (message.photo && message.photo.length > 0) {
+      const largest = message.photo[message.photo.length - 1];
+      pendingFiles.push({
+        file_id: largest.file_id,
+        file_name: `foto_${pendingFiles.length + 1}.jpg`,
+        file_type: 'image/jpeg',
+      });
+    }
+
+    // Handle document
+    if (message.document) {
+      pendingFiles.push({
+        file_id: message.document.file_id,
+        file_name: message.document.file_name || `documento_${pendingFiles.length + 1}`,
+        file_type: message.document.mime_type || 'application/octet-stream',
+      });
+    }
+
+    // Handle video
+    if (message.video) {
+      pendingFiles.push({
+        file_id: message.video.file_id,
+        file_name: message.video.file_name || `video_${pendingFiles.length + 1}.mp4`,
+        file_type: message.video.mime_type || 'video/mp4',
+      });
+    }
+
+    data.pending_files = pendingFiles;
+    await setConversationState(chatId, 'attachments', data);
+
+    await sendMessage(chatId,
+      `📎 Arquivo recebido! (${pendingFiles.length} arquivo${pendingFiles.length > 1 ? 's' : ''} no total)\n\nEnvie mais arquivos ou digite *pronto* para finalizar.`
+    );
+    return true;
   }
 
   async function handleMessage(chatId: number, text: string, messageFrom: any) {
@@ -231,11 +322,40 @@ Deno.serve(async () => {
         }
 
         data.priority = normalized;
-        await setConversationState(chatId, 'confirm', data);
+        data.pending_files = [];
+        await setConversationState(chatId, 'attachments', data);
+
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: '⏭ Pular anexos', callback_data: 'skip_attachments' }],
+          ],
+        };
 
         await sendMessage(chatId,
-          `📋 *Confirme sua demanda:*\n\n📌 Título: ${data.title}\n📝 Descrição: ${data.description}\n📍 Cidade: ${data.city}\n📊 Prioridade: ${data.priority}\n\nDigite *sim* para confirmar ou *não* para cancelar.`
+          '📎 *Anexos*\n\nEnvie fotos, vídeos, PDFs ou documentos para anexar à demanda.\n\nQuando terminar, digite *pronto* ou clique no botão abaixo para pular.',
+          keyboard
         );
+        break;
+      }
+
+      case 'attachments': {
+        const lower = trimmed.toLowerCase();
+        if (lower === 'pronto' || lower === 'skip_attachments' || lower === 'pular') {
+          const fileCount = (data.pending_files || []).length;
+          await setConversationState(chatId, 'confirm', data);
+
+          let summary = `📋 *Confirme sua demanda:*\n\n📌 Título: ${data.title}\n📝 Descrição: ${data.description}\n📍 Cidade: ${data.city}\n📊 Prioridade: ${data.priority}`;
+          if (fileCount > 0) {
+            summary += `\n📎 Anexos: ${fileCount} arquivo${fileCount > 1 ? 's' : ''}`;
+          }
+          summary += '\n\nDigite *sim* para confirmar ou *não* para cancelar.';
+
+          await sendMessage(chatId, summary);
+        } else {
+          await sendMessage(chatId,
+            '📎 Envie arquivos (fotos, vídeos, PDFs, documentos) ou digite *pronto* para finalizar.'
+          );
+        }
         break;
       }
 
@@ -253,12 +373,37 @@ Deno.serve(async () => {
             creator_chat_id: chatId,
             creator_name: data.lideranca_name || 'Via Telegram',
             responsible: data.lideranca_name || null,
+            attachments: (data.pending_files || []).length,
           } as any).select().single();
 
           if (error) {
             console.error('Failed to create demanda:', error);
             await sendMessage(chatId, '❌ Erro ao criar demanda. Tente novamente.');
           } else {
+            // Upload pending files to storage
+            const pendingFiles = data.pending_files || [];
+            let uploadedCount = 0;
+            for (const pf of pendingFiles) {
+              const result = await downloadAndStoreFile(pf.file_id, pf.file_name, newDemanda.id);
+              if (result) {
+                await supabase.from('demanda_attachments').insert({
+                  demanda_id: newDemanda.id,
+                  file_name: pf.file_name,
+                  file_type: pf.file_type,
+                  file_size: result.fileSize,
+                  storage_path: result.storagePath,
+                  uploaded_by: data.lideranca_name || 'Via Telegram',
+                  source: 'telegram',
+                } as any);
+                uploadedCount++;
+              }
+            }
+
+            // Update attachment count
+            if (uploadedCount > 0) {
+              await supabase.from('demandas').update({ attachments: uploadedCount } as any).eq('id', newDemanda.id);
+            }
+
             // Add history
             await supabase.from('demanda_history').insert({
               demanda_id: newDemanda.id,
@@ -267,9 +412,13 @@ Deno.serve(async () => {
               new_status: 'nova',
             } as any);
 
-            await sendMessage(chatId,
-              `✅ Sua demanda foi registrada com sucesso!\n\n📌 Título: ${data.title}\n📍 Cidade: ${data.city}\n📊 Prioridade: ${data.priority}\n\nNossa equipe irá analisar em breve.`
-            );
+            let confirmMsg = `✅ Sua demanda foi registrada com sucesso!\n\n📌 Título: ${data.title}\n📍 Cidade: ${data.city}\n📊 Prioridade: ${data.priority}`;
+            if (uploadedCount > 0) {
+              confirmMsg += `\n📎 ${uploadedCount} arquivo${uploadedCount > 1 ? 's' : ''} anexado${uploadedCount > 1 ? 's' : ''}`;
+            }
+            confirmMsg += '\n\nNossa equipe irá analisar em breve.';
+
+            await sendMessage(chatId, confirmMsg);
           }
 
           await clearConversationState(chatId);
@@ -307,22 +456,22 @@ Deno.serve(async () => {
       }),
     });
 
-    const data = await response.json();
+    const respData = await response.json();
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data }), { status: 502 });
+      return new Response(JSON.stringify({ error: respData }), { status: 502 });
     }
 
-    const updates = data.result ?? [];
+    const updates = respData.result ?? [];
     if (updates.length === 0) continue;
 
-    // Store messages
+    // Store text messages
     const rows = updates
       .filter((u: any) => u.message)
       .map((u: any) => ({
         update_id: u.update_id,
         chat_id: u.message.chat.id,
         direction: 'incoming',
-        text: u.message.text ?? null,
+        text: u.message.text ?? (u.message.caption ?? null),
         raw_update: u,
       }));
 
@@ -335,7 +484,7 @@ Deno.serve(async () => {
         return new Response(JSON.stringify({ error: insertErr.message }), { status: 500 });
       }
 
-      // Auto-create contacts for new chat_ids and auto-link to liderancas
+      // Auto-create contacts
       const uniqueChats = new Map<number, any>();
       for (const u of updates) {
         if (u.message?.chat) {
@@ -392,16 +541,38 @@ Deno.serve(async () => {
         }
       }
 
-      // Process messages for /demanda flow
+      // Process messages
       for (const u of updates) {
-        if (u.message?.text) {
-          try {
-            await handleMessage(u.message.chat.id, u.message.text, u.message.from);
-          } catch (e) {
-            console.error('Error handling message:', e);
+        const msg = u.message;
+        if (msg) {
+          const chatId = msg.chat.id;
+
+          // Check if this is a file message (photo, document, video) during attachments step
+          if (msg.photo || msg.document || msg.video) {
+            const handled = await handleFileMessage(chatId, msg);
+            if (handled) continue;
+          }
+
+          // Handle text messages
+          if (msg.text) {
+            try {
+              await handleMessage(chatId, msg.text, msg.from);
+            } catch (e) {
+              console.error('Error handling message:', e);
+            }
+          }
+
+          // Handle caption on files as text too (if not in attachments step)
+          if (!msg.text && msg.caption && !(msg.photo || msg.document || msg.video)) {
+            try {
+              await handleMessage(chatId, msg.caption, msg.from);
+            } catch (e) {
+              console.error('Error handling caption:', e);
+            }
           }
         }
-        // Handle callback queries (inline keyboard buttons)
+
+        // Handle callback queries
         if (u.callback_query) {
           try {
             const chatId = u.callback_query.message.chat.id;
