@@ -31,7 +31,7 @@ export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDia
   const handleSave = () => {
     if (!title.trim() || !city) return;
     const demanda: Demanda = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       col: "nova",
       title: title.trim(),
       description: description.trim(),
