@@ -65,6 +65,50 @@ export type Database = {
         }
         Relationships: []
       }
+      demanda_attachments: {
+        Row: {
+          created_at: string
+          demanda_id: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          source: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          demanda_id: string
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          source?: string
+          storage_path: string
+          uploaded_by?: string
+        }
+        Update: {
+          created_at?: string
+          demanda_id?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          source?: string
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_attachments_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demanda_comments: {
         Row: {
           author: string
