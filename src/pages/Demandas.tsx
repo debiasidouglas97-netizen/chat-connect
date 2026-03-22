@@ -17,6 +17,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
@@ -157,6 +158,8 @@ function DroppableColumn({
   onCardClick: (d: Demanda) => void;
   isOver: boolean;
 }) {
+  const { setNodeRef } = useDroppable({ id: col.id });
+
   return (
     <div className="min-w-[280px] flex-1">
       <div className="flex items-center gap-2 mb-3">
@@ -167,6 +170,7 @@ function DroppableColumn({
         </Badge>
       </div>
       <div
+        ref={setNodeRef}
         className={`space-y-3 min-h-[100px] p-2 rounded-lg transition-colors duration-200 ${
           isOver ? "bg-primary/10 ring-2 ring-primary/20" : "bg-transparent"
         }`}
