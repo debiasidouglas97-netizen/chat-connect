@@ -40,6 +40,7 @@ export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDia
       responsible: responsible.trim() || "Não atribuído",
       origin: "manual",
       order_index: 0,
+      attachments_count: files.length,
       attachments: files,
       history: [
         { id: crypto.randomUUID(), action: "Demanda criada", user: "Usuário atual", date: new Date() },

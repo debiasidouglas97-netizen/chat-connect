@@ -231,6 +231,7 @@ export default function Demandas() {
         creator_chat_id: d.creator_chat_id,
         creator_name: d.creator_name,
         order_index: d.order_index || 0,
+        attachments_count: d.attachments || 0,
         attachments: [],
         history: [],
       })),
