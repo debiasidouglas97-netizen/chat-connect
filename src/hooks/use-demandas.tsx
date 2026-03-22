@@ -5,10 +5,15 @@ export interface DemandaRow {
   id: string;
   col: string;
   title: string;
+  description: string | null;
   city: string;
   priority: string;
   responsible: string | null;
   attachments: number;
+  origin: string;
+  creator_chat_id: number | null;
+  creator_name: string | null;
+  order_index: number;
   created_at: string;
 }
 
@@ -21,6 +26,7 @@ export function useDemandas() {
       const { data, error } = await supabase
         .from("demandas")
         .select("*")
+        .order("order_index", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as DemandaRow[];
@@ -28,15 +34,30 @@ export function useDemandas() {
   });
 
   const insertMutation = useMutation({
-    mutationFn: async (d: { col: string; title: string; city: string; priority: string; responsible: string }) => {
-      const { error } = await supabase.from("demandas").insert({
+    mutationFn: async (d: {
+      col: string;
+      title: string;
+      city: string;
+      priority: string;
+      responsible: string;
+      description?: string;
+      origin?: string;
+      creator_chat_id?: number | null;
+      creator_name?: string | null;
+    }) => {
+      const { data, error } = await supabase.from("demandas").insert({
         col: d.col,
         title: d.title,
         city: d.city,
         priority: d.priority,
         responsible: d.responsible,
-      } as any);
+        description: d.description || null,
+        origin: d.origin || "manual",
+        creator_chat_id: d.creator_chat_id || null,
+        creator_name: d.creator_name || null,
+      } as any).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["demandas"] }),
   });
@@ -60,11 +81,40 @@ export function useDemandas() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["demandas"] }),
   });
 
+  const addHistory = async (demandaId: string, action: string, actor: string, oldStatus?: string, newStatus?: string) => {
+    await supabase.from("demanda_history").insert({
+      demanda_id: demandaId,
+      action,
+      actor,
+      old_status: oldStatus || null,
+      new_status: newStatus || null,
+    } as any);
+  };
+
+  const notifyStatusChange = async (demandaId: string, newStatus: string) => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      await fetch(`${supabaseUrl}/functions/v1/telegram-notify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ demanda_id: demandaId, new_status: newStatus }),
+      });
+    } catch (e) {
+      console.error("Failed to send notification:", e);
+    }
+  };
+
   return {
     demandas: query.data || [],
     isLoading: query.isLoading,
     insert: insertMutation.mutateAsync,
     update: updateMutation.mutateAsync,
     remove: deleteMutation.mutateAsync,
+    addHistory,
+    notifyStatusChange,
   };
 }
