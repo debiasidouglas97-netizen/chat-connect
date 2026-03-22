@@ -38,6 +38,8 @@ export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDia
       city,
       priority,
       responsible: responsible.trim() || "Não atribuído",
+      origin: "manual",
+      order_index: 0,
       attachments: files,
       history: [
         { id: crypto.randomUUID(), action: "Demanda criada", user: "Usuário atual", date: new Date() },
