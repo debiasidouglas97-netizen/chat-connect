@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileUploadZone, type AttachedFile } from "./FileUploadZone";
-import { MapPin, User, Download, Trash2, Eye, FileText, Image, File, Clock, Pencil } from "lucide-react";
+import { MapPin, User, Download, Trash2, Eye, FileText, Image, File, Clock, Pencil, Send } from "lucide-react";
 import { useCidades } from "@/hooks/use-cidades";
 import type { Demanda, HistoryEntry } from "./types";
 import {
@@ -51,7 +51,7 @@ interface DemandaDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: (demanda: Demanda) => void;
-  onDelete?: (id: number) => void;
+  onDelete?: (id: number | string) => void;
 }
 
 export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onDelete }: DemandaDetailDialogProps) {
@@ -60,7 +60,6 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Edit state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");
@@ -81,37 +80,20 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
   };
 
   const handleSaveEdit = () => {
-    const changes: string[] = [];
-    if (title !== demanda.title) changes.push(`Título alterado para "${title}"`);
-    if (col !== demanda.col) changes.push(`Status alterado para "${COLUMNS.find((c) => c.id === col)?.title}"`);
-    if (priority !== demanda.priority) changes.push(`Prioridade alterada para "${priority}"`);
-    if (responsible !== demanda.responsible) changes.push(`Responsável alterado para "${responsible}"`);
-
-    const newHistory: HistoryEntry[] = changes.map((action) => ({
-      id: crypto.randomUUID(), action, user: "Usuário atual", date: new Date(),
-    }));
-
     onUpdate({
       ...demanda, title: title.trim(), description: description.trim(),
       city, priority, responsible: responsible.trim(), col,
-      history: [...demanda.history, ...newHistory],
     });
     setEditing(false);
   };
 
   const handleAddFiles = (newFiles: AttachedFile[]) => {
-    const newHistory: HistoryEntry[] = newFiles
-      .filter((f) => !demanda.attachments.find((a) => a.id === f.id))
-      .map((f) => ({ id: crypto.randomUUID(), action: `Arquivo "${f.name}" anexado`, user: "Usuário atual", date: new Date() }));
-    onUpdate({ ...demanda, attachments: newFiles, history: [...demanda.history, ...newHistory] });
+    onUpdate({ ...demanda, attachments: newFiles });
   };
 
   const handleDeleteFile = (fileId: string) => {
-    const file = demanda.attachments.find((f) => f.id === fileId);
-    if (!file) return;
     onUpdate({
       ...demanda, attachments: demanda.attachments.filter((f) => f.id !== fileId),
-      history: [...demanda.history, { id: crypto.randomUUID(), action: `Arquivo "${file.name}" removido`, user: "Usuário atual", date: new Date() }],
     });
   };
 
@@ -133,11 +115,14 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
             {!editing ? (
               <>
                 <DialogTitle className="text-lg">{demanda.title}</DialogTitle>
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 pt-1 flex-wrap">
                   <Badge variant="outline" className={priorityColors[demanda.priority]}>{demanda.priority}</Badge>
                   <Badge variant="secondary" className="text-xs">{COLUMNS.find((c) => c.id === demanda.col)?.title}</Badge>
+                  {demanda.origin === "telegram" && (
+                    <Badge variant="secondary" className="text-xs gap-0.5"><Send className="h-3 w-3" /> Telegram</Badge>
+                  )}
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {demanda.city}</span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> {demanda.responsible}</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> {demanda.creator_name || demanda.responsible}</span>
                 </div>
               </>
             ) : (

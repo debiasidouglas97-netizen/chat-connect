@@ -65,13 +65,126 @@ export type Database = {
         }
         Relationships: []
       }
+      demanda_comments: {
+        Row: {
+          author: string
+          chat_id: number | null
+          created_at: string
+          demanda_id: string
+          id: string
+          source: string
+          text: string
+        }
+        Insert: {
+          author: string
+          chat_id?: number | null
+          created_at?: string
+          demanda_id: string
+          id?: string
+          source?: string
+          text: string
+        }
+        Update: {
+          author?: string
+          chat_id?: number | null
+          created_at?: string
+          demanda_id?: string
+          id?: string
+          source?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_comments_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demanda_history: {
+        Row: {
+          action: string
+          actor: string
+          created_at: string
+          demanda_id: string
+          id: string
+          new_status: string | null
+          old_status: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string
+          created_at?: string
+          demanda_id: string
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string
+          created_at?: string
+          demanda_id?: string
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_history_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demanda_notifications: {
+        Row: {
+          chat_id: number
+          created_at: string
+          demanda_id: string
+          id: string
+          status_sent: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          demanda_id: string
+          id?: string
+          status_sent: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          demanda_id?: string
+          id?: string
+          status_sent?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_notifications_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demandas: {
         Row: {
           attachments: number
           city: string
           col: string
           created_at: string
+          creator_chat_id: number | null
+          creator_name: string | null
+          description: string | null
           id: string
+          order_index: number
+          origin: string
           priority: string
           responsible: string | null
           title: string
@@ -82,7 +195,12 @@ export type Database = {
           city: string
           col?: string
           created_at?: string
+          creator_chat_id?: number | null
+          creator_name?: string | null
+          description?: string | null
           id?: string
+          order_index?: number
+          origin?: string
           priority?: string
           responsible?: string | null
           title: string
@@ -93,7 +211,12 @@ export type Database = {
           city?: string
           col?: string
           created_at?: string
+          creator_chat_id?: number | null
+          creator_name?: string | null
+          description?: string | null
           id?: string
+          order_index?: number
+          origin?: string
           priority?: string
           responsible?: string | null
           title?: string
@@ -431,6 +554,27 @@ export type Database = {
           lideranca_name?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      telegram_conversation_state: {
+        Row: {
+          chat_id: number
+          data: Json
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          chat_id: number
+          data?: Json
+          step?: string
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: number
+          data?: Json
+          step?: string
+          updated_at?: string
         }
         Relationships: []
       }

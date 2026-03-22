@@ -31,13 +31,15 @@ export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDia
   const handleSave = () => {
     if (!title.trim() || !city) return;
     const demanda: Demanda = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       col: "nova",
       title: title.trim(),
       description: description.trim(),
       city,
       priority,
       responsible: responsible.trim() || "Não atribuído",
+      origin: "manual",
+      order_index: 0,
       attachments: files,
       history: [
         { id: crypto.randomUUID(), action: "Demanda criada", user: "Usuário atual", date: new Date() },
