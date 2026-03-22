@@ -132,9 +132,9 @@ function SortableCard({
                 {item.creator_name || item.responsible}
               </span>
               <div className="flex items-center gap-2">
-                {item.attachments.length > 0 && (
+                {item.attachments_count > 0 && (
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Paperclip className="h-3 w-3" /> {item.attachments.length}
+                    <Paperclip className="h-3 w-3" /> {item.attachments_count}
                   </span>
                 )}
               </div>
@@ -231,6 +231,7 @@ export default function Demandas() {
         creator_chat_id: d.creator_chat_id,
         creator_name: d.creator_name,
         order_index: d.order_index || 0,
+        attachments_count: d.attachments || 0,
         attachments: [],
         history: [],
       })),

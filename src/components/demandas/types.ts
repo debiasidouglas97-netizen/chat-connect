@@ -28,6 +28,7 @@ export interface Demanda {
   creator_chat_id?: number | null;
   creator_name?: string | null;
   order_index: number;
+  attachments_count: number;
   attachments: AttachedFile[];
   history: HistoryEntry[];
 }

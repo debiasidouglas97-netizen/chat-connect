@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileUploadZone, type AttachedFile } from "./FileUploadZone";
-import { MapPin, User, Download, Trash2, Eye, FileText, Image, File, Clock, Pencil, Send } from "lucide-react";
+import { MapPin, User, Download, Trash2, Eye, FileText, Image, File, Clock, Pencil, Send, Video } from "lucide-react";
 import { useCidades } from "@/hooks/use-cidades";
-import type { Demanda, HistoryEntry } from "./types";
+import { useDemandaDetails } from "@/hooks/use-demanda-details";
+import type { Demanda } from "./types";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -38,11 +39,12 @@ function formatFileSize(bytes: number) {
 
 function getFileIcon(type: string) {
   if (type.startsWith("image/")) return Image;
+  if (type.startsWith("video/")) return Video;
   if (type === "application/pdf") return FileText;
   return File;
 }
 
-function formatDate(date: Date) {
+function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
@@ -56,6 +58,7 @@ interface DemandaDetailDialogProps {
 
 export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onDelete }: DemandaDetailDialogProps) {
   const { cidades: cidadesData } = useCidades();
+  const { attachments: dbAttachments, history: dbHistory, isLoading: detailsLoading } = useDemandaDetails(open && demanda ? demanda.id : null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -91,14 +94,8 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
     onUpdate({ ...demanda, attachments: newFiles });
   };
 
-  const handleDeleteFile = (fileId: string) => {
-    onUpdate({
-      ...demanda, attachments: demanda.attachments.filter((f) => f.id !== fileId),
-    });
-  };
-
-  const handleDownload = (file: AttachedFile) => {
-    const a = document.createElement("a"); a.href = file.url; a.download = file.name; a.click();
+  const handleDownload = (url: string, name: string) => {
+    const a = document.createElement("a"); a.href = url; a.download = name; a.target = "_blank"; a.click();
   };
 
   const handleDelete = () => {
@@ -106,6 +103,8 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
     setConfirmDelete(false);
     onOpenChange(false);
   };
+
+  const totalAttachments = dbAttachments.length + demanda.attachments.length;
 
   return (
     <>
@@ -167,11 +166,51 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
 
               <Tabs defaultValue="arquivos" className="mt-2">
                 <TabsList className="w-full">
-                  <TabsTrigger value="arquivos" className="flex-1">📂 Arquivos ({demanda.attachments.length})</TabsTrigger>
-                  <TabsTrigger value="historico" className="flex-1">📋 Histórico ({demanda.history.length})</TabsTrigger>
+                  <TabsTrigger value="arquivos" className="flex-1">📂 Arquivos ({totalAttachments})</TabsTrigger>
+                  <TabsTrigger value="historico" className="flex-1">📋 Histórico ({dbHistory.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="arquivos" className="space-y-4">
                   <FileUploadZone files={demanda.attachments} onFilesChange={handleAddFiles} />
+                  
+                  {/* DB attachments (from Telegram etc.) */}
+                  {dbAttachments.length > 0 && (
+                    <ScrollArea className="max-h-[300px]">
+                      <div className="space-y-2">
+                        {dbAttachments.map((f) => {
+                          const Icon = getFileIcon(f.file_type);
+                          const isImage = f.file_type.startsWith("image/");
+                          const isVideo = f.file_type.startsWith("video/");
+                          return (
+                            <div key={f.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card group">
+                              {isImage ? (
+                                <img src={f.url} alt={f.file_name} className="h-12 w-12 rounded object-cover shrink-0" />
+                              ) : (
+                                <div className="h-12 w-12 rounded bg-muted flex items-center justify-center shrink-0"><Icon className="h-6 w-6 text-muted-foreground" /></div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{f.file_name}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {formatFileSize(f.file_size)} · {formatDate(f.created_at)} · {f.uploaded_by}
+                                  {f.source === "telegram" && " · via Telegram"}
+                                </p>
+                              </div>
+                              <div className="flex gap-1">
+                                {isImage && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewUrl(f.url)}><Eye className="h-4 w-4" /></Button>}
+                                {isVideo && (
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(f.url, "_blank")}>
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(f.url, f.file_name)}><Download className="h-4 w-4" /></Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  )}
+
+                  {/* Local attachments */}
                   {demanda.attachments.length > 0 && (
                     <ScrollArea className="max-h-[300px]">
                       <div className="space-y-2">
@@ -187,12 +226,11 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">{f.name}</p>
-                                <p className="text-[10px] text-muted-foreground">{formatFileSize(f.size)} · {formatDate(f.uploadedAt)} · {f.uploadedBy}</p>
+                                <p className="text-[10px] text-muted-foreground">{formatFileSize(f.size)} · {formatDate(f.uploadedAt)}</p>
                               </div>
                               <div className="flex gap-1">
                                 {isImage && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewUrl(f.url)}><Eye className="h-4 w-4" /></Button>}
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(f)}><Download className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteFile(f.id)}><Trash2 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(f.url, f.name)}><Download className="h-4 w-4" /></Button>
                               </div>
                             </div>
                           );
@@ -200,19 +238,26 @@ export function DemandaDetailDialog({ demanda, open, onOpenChange, onUpdate, onD
                       </div>
                     </ScrollArea>
                   )}
+
+                  {totalAttachments === 0 && !detailsLoading && (
+                    <p className="text-xs text-muted-foreground text-center py-2">Nenhum arquivo anexado</p>
+                  )}
                 </TabsContent>
                 <TabsContent value="historico">
                   <ScrollArea className="max-h-[400px]">
                     <div className="space-y-3">
-                      {[...demanda.history].reverse().map((entry) => (
+                      {dbHistory.map((entry) => (
                         <div key={entry.id} className="flex items-start gap-3 p-2">
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5"><Clock className="h-4 w-4 text-muted-foreground" /></div>
                           <div>
                             <p className="text-sm text-foreground">{entry.action}</p>
-                            <p className="text-[10px] text-muted-foreground">{entry.user} · {formatDate(entry.date)}</p>
+                            <p className="text-[10px] text-muted-foreground">{entry.actor} · {formatDate(entry.created_at)}</p>
                           </div>
                         </div>
                       ))}
+                      {dbHistory.length === 0 && !detailsLoading && (
+                        <p className="text-xs text-muted-foreground text-center py-4">Nenhum registro no histórico</p>
+                      )}
                     </div>
                   </ScrollArea>
                 </TabsContent>
