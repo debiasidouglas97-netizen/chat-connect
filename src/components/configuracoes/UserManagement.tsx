@@ -37,9 +37,6 @@ const ROLE_COLORS: Record<AppRole, string> = {
   lideranca: "bg-muted text-muted-foreground",
 };
 
-function getInitials(name: string) {
-  return name.split(" ").filter(w => w.length > 2).slice(0, 2).map(w => w[0]).join("").toUpperCase();
-}
 
 export default function UserManagement() {
   const [users, setUsers] = useState<Profile[]>([]);
