@@ -4,8 +4,12 @@ import { Outlet } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AppLayout() {
+  const { userAvatarUrl, userInitials } = useAuth();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -22,9 +26,14 @@ export function AppLayout() {
                   3
                 </Badge>
               </Button>
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-xs font-semibold text-primary-foreground">AC</span>
-              </div>
+              <Avatar className="h-8 w-8">
+                {userAvatarUrl ? (
+                  <AvatarImage src={userAvatarUrl} alt="Avatar" className="object-cover" />
+                ) : null}
+                <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
