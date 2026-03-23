@@ -108,10 +108,7 @@ export function DemandaDetailDialog({
   const nextStatus = NEXT_STATUS[demanda.col];
   const nextCol = nextStatus ? COLUMNS.find((c) => c.id === nextStatus) : null;
 
-  // Find created_at from raw demanda or history
-  const createdAt = dbHistory.length > 0
-    ? dbHistory[dbHistory.length - 1]?.created_at
-    : undefined;
+  const createdAt = demanda.created_at || undefined;
 
   const startEdit = () => {
     setTitle(demanda.title);
