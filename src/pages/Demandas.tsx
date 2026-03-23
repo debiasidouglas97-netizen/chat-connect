@@ -39,6 +39,15 @@ const columns = [
   { id: "resolvida", title: "Resolvida", color: "bg-muted-foreground" },
 ];
 
+const statusLabels: Record<string, string> = {
+  nova: "Nova",
+  analise: "Em Análise",
+  encaminhada: "Encaminhada",
+  execucao: "Em Execução",
+  resolvida: "Resolvida",
+  arquivada: "Arquivada",
+};
+
 const priorityColors: Record<string, string> = {
   Urgente: "bg-destructive/10 text-destructive border-destructive/20",
   Alta: "bg-warning/10 text-warning border-warning/20",
