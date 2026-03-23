@@ -17,10 +17,27 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface LinkedLideranca {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  img: string;
+  cidade_principal: string;
+  cargo: string;
+}
+
+export function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "U";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [linkedLideranca, setLinkedLideranca] = useState<LinkedLideranca | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -29,7 +46,20 @@ export function useAuth() {
       .select("*")
       .eq("id", userId)
       .single();
-    if (data) setProfile(data as unknown as Profile);
+    if (data) {
+      const p = data as unknown as Profile;
+      setProfile(p);
+      if (p.lideranca_id) {
+        const { data: lid } = await supabase
+          .from("liderancas")
+          .select("id, name, avatar_url, img, cidade_principal, cargo")
+          .eq("id", p.lideranca_id)
+          .single();
+        if (lid) setLinkedLideranca(lid);
+      } else {
+        setLinkedLideranca(null);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -41,6 +71,7 @@ export function useAuth() {
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
+          setLinkedLideranca(null);
         }
         setLoading(false);
       }
@@ -80,9 +111,18 @@ export function useAuth() {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setLinkedLideranca(null);
   };
 
   const isAdmin = profile?.role === "deputado" || profile?.role === "chefe_gabinete";
 
-  return { user, session, profile, loading, signIn, signUp, signOut, isAdmin, fetchProfile };
+  const userAvatarUrl = profile?.avatar_url || linkedLideranca?.avatar_url || linkedLideranca?.img || null;
+  const userDisplayName = profile?.full_name || "Usuário";
+  const userInitials = getInitials(userDisplayName);
+
+  return {
+    user, session, profile, linkedLideranca, loading,
+    signIn, signUp, signOut, isAdmin, fetchProfile,
+    userAvatarUrl, userDisplayName, userInitials,
+  };
 }
