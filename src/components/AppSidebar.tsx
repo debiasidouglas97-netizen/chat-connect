@@ -54,7 +54,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useDeputyProfile();
-  const { signOut, profile: authProfile } = useAuth();
+  const { signOut, profile: authProfile, userAvatarUrl, userDisplayName, userInitials } = useAuth();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
@@ -141,25 +141,21 @@ export function AppSidebar() {
       <SidebarFooter className="p-3 space-y-2">
         <div className="flex items-center gap-3 rounded-md bg-sidebar-accent/30 p-3">
           <Avatar className="h-8 w-8 shrink-0">
-            {profile?.avatar_url ? (
-              <AvatarImage src={profile.avatar_url} alt="Avatar" className="object-cover" />
+            {userAvatarUrl ? (
+              <AvatarImage src={userAvatarUrl} alt="Avatar" className="object-cover" />
             ) : null}
             <AvatarFallback className="text-xs font-bold bg-sidebar-primary/20 text-sidebar-foreground">
-              {(profile?.full_name || authProfile?.full_name || "U")
-                .split(" ")
-                .filter((w) => w.length > 2)
-                .slice(0, 2)
-                .map((w) => w[0])
-                .join("")
-                .toUpperCase()}
+              {userInitials}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-sidebar-foreground truncate">
-                {profile?.public_name || profile?.full_name || authProfile?.full_name || "Usuário"}
+                {userDisplayName}
               </p>
-              <p className="text-[10px] text-sidebar-foreground/50">{profile?.party || authProfile?.email || ""}</p>
+              <p className="text-[10px] text-sidebar-foreground/50">
+                {authProfile?.email || profile?.party || ""}
+              </p>
             </div>
           )}
         </div>
