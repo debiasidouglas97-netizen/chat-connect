@@ -109,6 +109,24 @@ export default function Index() {
             </CardContent>
           </Card>
         ))}
+        {/* Cidades Atendidas — dynamic & clickable */}
+        <Card
+          className="hover:shadow-md transition-shadow border-0 bg-[hsl(145_50%_92%)] cursor-pointer"
+          onClick={() => navigate("/cidades")}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cidades Atendidas</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{totalCidades}</p>
+                <p className="text-xs text-muted-foreground mt-1">{totalPopulacao}</p>
+              </div>
+              <div className="h-11 w-11 rounded-lg bg-[hsl(145_50%_85%)] flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-[hsl(145_50%_35%)]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
