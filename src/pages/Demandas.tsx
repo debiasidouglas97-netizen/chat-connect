@@ -39,6 +39,15 @@ const columns = [
   { id: "resolvida", title: "Resolvida", color: "bg-muted-foreground" },
 ];
 
+const statusLabels: Record<string, string> = {
+  nova: "Nova",
+  analise: "Em Análise",
+  encaminhada: "Encaminhada",
+  execucao: "Em Execução",
+  resolvida: "Resolvida",
+  arquivada: "Arquivada",
+};
+
 const priorityColors: Record<string, string> = {
   Urgente: "bg-destructive/10 text-destructive border-destructive/20",
   Alta: "bg-warning/10 text-warning border-warning/20",
@@ -46,13 +55,6 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
-const statusLabels: Record<string, string> = {
-  nova: "Nova",
-  analise: "Em Análise",
-  encaminhada: "Encaminhada",
-  execucao: "Em Execução",
-  resolvida: "Resolvida",
-};
 
 function fireConfetti() {
   confetti({
@@ -234,6 +236,7 @@ export default function Demandas() {
         attachments_count: d.attachments || 0,
         attachments: [],
         history: [],
+        created_at: d.created_at,
       })),
     [rawDemandas]
   );
@@ -302,13 +305,38 @@ export default function Demandas() {
     }
   };
 
-  const handleDelete = async (id: number | string) => {
+  const handleArchive = async (id: string) => {
     try {
-      await remove(String(id));
+      await update({ id, data: { col: "arquivada" } });
+      await addHistory(id, "Demanda arquivada", "Usuário atual");
       setSelectedDemanda(null);
-      toast.success("Demanda excluída");
+      toast.success("Demanda arquivada");
     } catch {
-      toast.error("Erro ao excluir");
+      toast.error("Erro ao arquivar");
+    }
+  };
+
+  const handleMoveNext = async (demanda: Demanda, nextStatus: string) => {
+    try {
+      const oldCol = demanda.col;
+      await update({ id: demanda.id, data: { col: nextStatus } });
+      await addHistory(
+        demanda.id,
+        `Status alterado de "${statusLabels[oldCol]}" para "${statusLabels[nextStatus]}"`,
+        "Usuário atual",
+        oldCol,
+        nextStatus
+      );
+      await notifyStatusChange(demanda.id, nextStatus);
+      if (nextStatus === "resolvida") {
+        fireConfetti();
+        toast.success("🎉 Demanda concluída com sucesso!");
+      } else {
+        toast.success(`Movida para "${statusLabels[nextStatus]}"`);
+      }
+      setSelectedDemanda(null);
+    } catch {
+      toast.error("Erro ao mover demanda");
     }
   };
 
@@ -491,7 +519,8 @@ export default function Demandas() {
           if (!v) setSelectedDemanda(null);
         }}
         onUpdate={handleUpdate}
-        onDelete={handleDelete}
+        onArchive={handleArchive}
+        onMoveNext={handleMoveNext}
       />
     </div>
   );

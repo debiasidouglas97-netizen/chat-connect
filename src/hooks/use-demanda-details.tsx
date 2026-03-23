@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface DbAttachment {
@@ -11,6 +11,7 @@ export interface DbAttachment {
   uploaded_by: string;
   source: string;
   created_at: string;
+  url: string;
 }
 
 export interface DbHistoryEntry {
@@ -20,6 +21,15 @@ export interface DbHistoryEntry {
   actor: string;
   old_status: string | null;
   new_status: string | null;
+  created_at: string;
+}
+
+export interface DbComment {
+  id: string;
+  demanda_id: string;
+  author: string;
+  text: string;
+  source: string;
   created_at: string;
 }
 
@@ -43,7 +53,7 @@ export function useDemandaDetails(demandaId: string | null) {
         .eq("demanda_id", demandaId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data as unknown as DbAttachment[]).map((a) => ({
+      return (data as unknown as Omit<DbAttachment, "url">[]).map((a) => ({
         ...a,
         url: getPublicUrl(a.storage_path),
       }));
@@ -66,15 +76,50 @@ export function useDemandaDetails(demandaId: string | null) {
     enabled: !!demandaId,
   });
 
+  const commentsQuery = useQuery({
+    queryKey: ["demanda-comments", demandaId],
+    queryFn: async () => {
+      if (!demandaId) return [];
+      const { data, error } = await supabase
+        .from("demanda_comments")
+        .select("*")
+        .eq("demanda_id", demandaId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as unknown as DbComment[];
+    },
+    enabled: !!demandaId,
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: async ({ text, author }: { text: string; author: string }) => {
+      if (!demandaId) throw new Error("No demanda");
+      const { error } = await supabase.from("demanda_comments").insert({
+        demanda_id: demandaId,
+        author,
+        text,
+        source: "manual",
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["demanda-comments", demandaId] });
+    },
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["demanda-attachments", demandaId] });
     queryClient.invalidateQueries({ queryKey: ["demanda-history", demandaId] });
+    queryClient.invalidateQueries({ queryKey: ["demanda-comments", demandaId] });
   };
 
   return {
     attachments: attachmentsQuery.data || [],
     history: historyQuery.data || [],
-    isLoading: attachmentsQuery.isLoading || historyQuery.isLoading,
+    comments: commentsQuery.data || [],
+    isLoading: attachmentsQuery.isLoading || historyQuery.isLoading || commentsQuery.isLoading,
+    addComment: addCommentMutation.mutateAsync,
+    isAddingComment: addCommentMutation.isPending,
     invalidate,
   };
 }
