@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign, Users } from "lucide-react";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
+import UserManagement from "@/components/configuracoes/UserManagement";
 import { toast } from "sonner";
 
 const REGIONS_OPTIONS = [
