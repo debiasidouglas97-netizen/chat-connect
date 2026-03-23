@@ -40,12 +40,22 @@ const statusConfig = {
 export default function Index() {
   const { profile } = useDeputyProfile();
   const { cidades: cidadesRaw } = useCidades();
+  const navigate = useNavigate();
   const cidadesComScore = useMemo(
     () => cidadesRaw.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
     [cidadesRaw]
   );
 
-  const showRanking = canViewRanking(CURRENT_ROLE);
+  const totalCidades = cidadesRaw.length;
+  const totalPopulacao = useMemo(() => {
+    const total = cidadesRaw.reduce((sum, c) => {
+      const num = parseInt(c.population.replace(/\D/g, ""), 10);
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+    if (total >= 1_000_000) return `${(total / 1_000_000).toFixed(1).replace(".", ",")}M hab.`;
+    if (total >= 1_000) return `${(total / 1_000).toFixed(0)}mil hab.`;
+    return `${total} hab.`;
+  }, [cidadesRaw]);
 
   const displayName = profile?.public_name || profile?.full_name || "Dep. Antonio Carlos Rodrigues";
   const party = profile?.party || "PL";
