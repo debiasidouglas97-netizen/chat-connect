@@ -12,6 +12,7 @@ import { Users, Plus, Search, UserCheck, AlertTriangle, Link2, Eye, EyeOff } fro
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AppRole, Profile } from "@/hooks/use-auth";
+import { getInitials } from "@/hooks/use-auth";
 
 interface Lideranca {
   id: string;
