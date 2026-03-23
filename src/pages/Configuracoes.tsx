@@ -489,6 +489,8 @@ export default function Configuracoes() {
           {upsert.isPending ? "Salvando..." : "Salvar alterações"}
         </Button>
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
