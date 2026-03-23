@@ -54,7 +54,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useDeputyProfile();
-  const { signOut, profile: authProfile } = useAuth();
+  const { signOut, profile: authProfile, userAvatarUrl, userDisplayName, userInitials } = useAuth();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
