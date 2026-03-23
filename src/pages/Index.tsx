@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { calcularScoreCidade, canViewRanking, type UserRole } from "@/lib/scoring";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { useCidades } from "@/hooks/use-cidades";
 
