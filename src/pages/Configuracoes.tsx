@@ -200,16 +200,32 @@ export default function Configuracoes() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Settings className="h-6 w-6 text-primary" />
-            Configurações
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie os dados do deputado e identidade do mandato
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <Settings className="h-6 w-6 text-primary" />
+          Configurações
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Gerencie dados do mandato e usuários do sistema
+        </p>
+      </div>
+
+      <Tabs defaultValue="perfil">
+        <TabsList>
+          <TabsTrigger value="perfil" className="gap-1.5">
+            <User className="h-4 w-4" /> Perfil do Mandato
+          </TabsTrigger>
+          <TabsTrigger value="usuarios" className="gap-1.5">
+            <Users className="h-4 w-4" /> Usuários
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="usuarios" className="mt-4">
+          <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="perfil" className="mt-4 space-y-6">
+      <div className="flex justify-end">
         <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2">
           <Save className="h-4 w-4" />
           {upsert.isPending ? "Salvando..." : "Salvar"}
