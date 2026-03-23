@@ -57,6 +57,8 @@ export default function Index() {
     return `${total} hab.`;
   }, [cidadesRaw]);
 
+  const showRanking = canViewRanking(CURRENT_ROLE);
+
   const displayName = profile?.public_name || profile?.full_name || "Dep. Antonio Carlos Rodrigues";
   const party = profile?.party || "PL";
   const state = profile?.state || "São Paulo";
