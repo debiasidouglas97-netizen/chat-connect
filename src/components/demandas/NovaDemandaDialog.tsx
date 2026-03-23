@@ -42,6 +42,7 @@ export function NovaDemandaDialog({ open, onOpenChange, onSave }: NovaDemandaDia
       order_index: 0,
       attachments_count: files.length,
       attachments: files,
+      created_at: new Date().toISOString(),
       history: [
         { id: crypto.randomUUID(), action: "Demanda criada", user: "Usuário atual", date: new Date() },
         ...files.map((f) => ({
