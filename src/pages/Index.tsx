@@ -21,7 +21,6 @@ const kpis = [
   { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
   { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
   { label: "Emendas Cadastradas", value: 9, icon: Landmark, change: "R$ 10,0M total", bg: "bg-[hsl(210_60%_92%)]", iconBg: "bg-[hsl(210_60%_85%)]", iconColor: "text-[hsl(210_60%_35%)]" },
-  { label: "Cidades Atendidas", value: 12, icon: MapPin, change: "2 regiões de foco", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
 ];
 
 const opportunities = [
