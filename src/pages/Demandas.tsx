@@ -525,7 +525,8 @@ export default function Demandas() {
           if (!v) setSelectedDemanda(null);
         }}
         onUpdate={handleUpdate}
-        onDelete={handleDelete}
+        onArchive={handleArchive}
+        onMoveNext={handleMoveNext}
       />
     </div>
   );
