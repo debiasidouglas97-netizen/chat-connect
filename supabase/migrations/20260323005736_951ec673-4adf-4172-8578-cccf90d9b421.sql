@@ -1,0 +1,1 @@
+UPDATE public.profiles SET role = 'deputado' WHERE id = '8832e1bf-027f-4a2d-ad45-fda2853f728c' AND role != 'deputado';
