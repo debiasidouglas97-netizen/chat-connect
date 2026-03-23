@@ -236,6 +236,7 @@ export default function Demandas() {
         attachments_count: d.attachments || 0,
         attachments: [],
         history: [],
+        created_at: d.created_at,
       })),
     [rawDemandas]
   );

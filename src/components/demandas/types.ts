@@ -31,4 +31,5 @@ export interface Demanda {
   attachments_count: number;
   attachments: AttachedFile[];
   history: HistoryEntry[];
+  created_at?: string;
 }
