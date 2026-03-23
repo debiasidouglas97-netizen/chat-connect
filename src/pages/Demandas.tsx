@@ -55,13 +55,6 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
-const statusLabels: Record<string, string> = {
-  nova: "Nova",
-  analise: "Em Análise",
-  encaminhada: "Encaminhada",
-  execucao: "Em Execução",
-  resolvida: "Resolvida",
-};
 
 function fireConfetti() {
   confetti({
