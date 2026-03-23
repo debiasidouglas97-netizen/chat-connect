@@ -10,11 +10,14 @@ import {
   Search,
   Settings,
   Shield,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Sidebar,
   SidebarContent,
@@ -49,7 +52,9 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile } = useDeputyProfile();
+  const { signOut, profile: authProfile } = useAuth();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
@@ -133,14 +138,14 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
         <div className="flex items-center gap-3 rounded-md bg-sidebar-accent/30 p-3">
           <Avatar className="h-8 w-8 shrink-0">
             {profile?.avatar_url ? (
               <AvatarImage src={profile.avatar_url} alt="Avatar" className="object-cover" />
             ) : null}
             <AvatarFallback className="text-xs font-bold bg-sidebar-primary/20 text-sidebar-foreground">
-              {(profile?.full_name || "AC")
+              {(profile?.full_name || authProfile?.full_name || "U")
                 .split(" ")
                 .filter((w) => w.length > 2)
                 .slice(0, 2)
@@ -152,12 +157,22 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-sidebar-foreground truncate">
-                {profile?.public_name || profile?.full_name || "Deputado"}
+                {profile?.public_name || profile?.full_name || authProfile?.full_name || "Usuário"}
               </p>
-              <p className="text-[10px] text-sidebar-foreground/50">{profile?.party || "PL"}</p>
+              <p className="text-[10px] text-sidebar-foreground/50">{profile?.party || authProfile?.email || ""}</p>
             </div>
           )}
         </div>
+        {!collapsed && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 gap-2"
+            onClick={async () => { await signOut(); navigate("/login"); }}
+          >
+            <LogOut className="h-4 w-4" /> Sair
+          </Button>
+        )}
       </SidebarFooter>
     </Sidebar>
   );
