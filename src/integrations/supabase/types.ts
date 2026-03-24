@@ -394,44 +394,145 @@ export type Database = {
         }
         Relationships: []
       }
+      evento_notifications: {
+        Row: {
+          chat_id: number
+          created_at: string
+          evento_id: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          evento_id: string
+          id?: string
+          tipo?: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          evento_id?: string
+          id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evento_notifications_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eventos: {
         Row: {
+          cep: string | null
           cidade: string
+          convidados: string | null
           created_at: string
           data: string
+          demanda_id: string | null
           demandas: number
+          description: string | null
+          dia_inteiro: boolean
+          emenda_id: string | null
+          endereco: string | null
+          estado: string | null
           hora: string
+          hora_fim: string | null
           id: string
+          impacto_politico: string
+          lembrete_enviado: boolean
           liderancas: number
+          local_nome: string | null
+          notas: string | null
+          notificado: boolean
+          participantes_liderancas: string[] | null
+          prioridade: string
+          secretario_responsavel: string | null
+          status: string
           tipo: string
           titulo: string
           updated_at: string
         }
         Insert: {
+          cep?: string | null
           cidade: string
+          convidados?: string | null
           created_at?: string
           data: string
+          demanda_id?: string | null
           demandas?: number
+          description?: string | null
+          dia_inteiro?: boolean
+          emenda_id?: string | null
+          endereco?: string | null
+          estado?: string | null
           hora: string
+          hora_fim?: string | null
           id?: string
+          impacto_politico?: string
+          lembrete_enviado?: boolean
           liderancas?: number
+          local_nome?: string | null
+          notas?: string | null
+          notificado?: boolean
+          participantes_liderancas?: string[] | null
+          prioridade?: string
+          secretario_responsavel?: string | null
+          status?: string
           tipo?: string
           titulo: string
           updated_at?: string
         }
         Update: {
+          cep?: string | null
           cidade?: string
+          convidados?: string | null
           created_at?: string
           data?: string
+          demanda_id?: string | null
           demandas?: number
+          description?: string | null
+          dia_inteiro?: boolean
+          emenda_id?: string | null
+          endereco?: string | null
+          estado?: string | null
           hora?: string
+          hora_fim?: string | null
           id?: string
+          impacto_politico?: string
+          lembrete_enviado?: boolean
           liderancas?: number
+          local_nome?: string | null
+          notas?: string | null
+          notificado?: boolean
+          participantes_liderancas?: string[] | null
+          prioridade?: string
+          secretario_responsavel?: string | null
+          status?: string
           tipo?: string
           titulo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "eventos_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_emenda_id_fkey"
+            columns: ["emenda_id"]
+            isOneToOne: false
+            referencedRelation: "emendas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leadership_notes: {
         Row: {
