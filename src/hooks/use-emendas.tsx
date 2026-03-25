@@ -8,6 +8,26 @@ export interface EmendaRow {
   status: string;
   tipo: string;
   ano: number;
+  titulo: string | null;
+  descricao: string | null;
+  objetivo_politico: string | null;
+  prioridade: string;
+  regiao: string | null;
+  liderancas_relacionadas: string[];
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmendaAttachment {
+  id: string;
+  emenda_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  uploaded_by: string;
+  created_at: string;
 }
 
 export function useEmendas() {
@@ -26,9 +46,23 @@ export function useEmendas() {
   });
 
   const insertMutation = useMutation({
-    mutationFn: async (e: { cidade: string; valor: string; status: string; tipo: string; ano: number }) => {
-      const { error } = await supabase.from("emendas").insert(e as any);
+    mutationFn: async (e: Omit<EmendaRow, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase.from("emendas").insert({
+        cidade: e.cidade,
+        valor: e.valor,
+        status: e.status,
+        tipo: e.tipo,
+        ano: e.ano,
+        titulo: e.titulo,
+        descricao: e.descricao,
+        objetivo_politico: e.objetivo_politico,
+        prioridade: e.prioridade,
+        regiao: e.regiao,
+        liderancas_relacionadas: e.liderancas_relacionadas,
+        notas: e.notas,
+      } as any).select().single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["emendas"] }),
   });
@@ -58,5 +92,59 @@ export function useEmendas() {
     insert: insertMutation.mutateAsync,
     update: updateMutation.mutateAsync,
     remove: deleteMutation.mutateAsync,
+  };
+}
+
+export function useEmendaAttachments(emendaId: string | null) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["emenda-attachments", emendaId],
+    enabled: !!emendaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("emenda_attachments")
+        .select("*")
+        .eq("emenda_id", emendaId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as EmendaAttachment[];
+    },
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, emendaId: eid }: { file: File; emendaId: string }) => {
+      const path = `${eid}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("emenda-attachments")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { error: insertError } = await supabase.from("emenda_attachments").insert({
+        emenda_id: eid,
+        file_name: file.name,
+        file_type: file.type || "application/octet-stream",
+        file_size: file.size,
+        storage_path: path,
+      } as any);
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["emenda-attachments", emendaId] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (att: EmendaAttachment) => {
+      await supabase.storage.from("emenda-attachments").remove([att.storage_path]);
+      const { error } = await supabase.from("emenda_attachments").delete().eq("id", att.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["emenda-attachments", emendaId] }),
+  });
+
+  return {
+    attachments: query.data || [],
+    isLoading: query.isLoading,
+    upload: uploadMutation.mutateAsync,
+    removeAttachment: deleteMutation.mutateAsync,
   };
 }

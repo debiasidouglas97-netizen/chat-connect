@@ -361,14 +361,62 @@ export type Database = {
         }
         Relationships: []
       }
+      emenda_attachments: {
+        Row: {
+          created_at: string
+          emenda_id: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          emenda_id: string
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path: string
+          uploaded_by?: string
+        }
+        Update: {
+          created_at?: string
+          emenda_id?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emenda_attachments_emenda_id_fkey"
+            columns: ["emenda_id"]
+            isOneToOne: false
+            referencedRelation: "emendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emendas: {
         Row: {
           ano: number
           cidade: string
           created_at: string
+          descricao: string | null
           id: string
+          liderancas_relacionadas: string[] | null
+          notas: string | null
+          objetivo_politico: string | null
+          prioridade: string
+          regiao: string | null
           status: string
           tipo: string
+          titulo: string | null
           updated_at: string
           valor: string
         }
@@ -376,9 +424,16 @@ export type Database = {
           ano?: number
           cidade: string
           created_at?: string
+          descricao?: string | null
           id?: string
+          liderancas_relacionadas?: string[] | null
+          notas?: string | null
+          objetivo_politico?: string | null
+          prioridade?: string
+          regiao?: string | null
           status?: string
           tipo: string
+          titulo?: string | null
           updated_at?: string
           valor: string
         }
@@ -386,9 +441,16 @@ export type Database = {
           ano?: number
           cidade?: string
           created_at?: string
+          descricao?: string | null
           id?: string
+          liderancas_relacionadas?: string[] | null
+          notas?: string | null
+          objetivo_politico?: string | null
+          prioridade?: string
+          regiao?: string | null
           status?: string
           tipo?: string
+          titulo?: string | null
           updated_at?: string
           valor?: string
         }
