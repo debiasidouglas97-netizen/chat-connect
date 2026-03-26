@@ -55,6 +55,30 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
+type CardType = "demanda" | "emenda" | "agenda" | "comunicacao";
+
+const cardTypeConfig: Record<CardType, { label: string; badgeClass: string }> = {
+  demanda: { label: "DEMANDA", badgeClass: "bg-[hsl(var(--card-demanda-border))] text-white" },
+  emenda: { label: "EMENDA", badgeClass: "bg-[hsl(var(--card-emenda-border))] text-white" },
+  agenda: { label: "AGENDA", badgeClass: "bg-[hsl(var(--card-agenda-border))] text-white" },
+  comunicacao: { label: "COMUNICAÇÃO", badgeClass: "bg-[hsl(var(--card-comunicacao-border))] text-white" },
+};
+
+function getCardType(item: Demanda): CardType {
+  if (item.origin === "emenda") return "emenda";
+  if (item.origin === "agenda") return "agenda";
+  if (item.origin === "comunicacao") return "comunicacao";
+  return "demanda";
+}
+
+function getCardStyles(type: CardType) {
+  return {
+    bg: `bg-[hsl(var(--card-${type}))]`,
+    border: `border-l-[3px] border-l-[hsl(var(--card-${type}-border))]`,
+    text: `text-[hsl(var(--card-${type}-text))]`,
+  };
+}
+
 
 function fireConfetti() {
   confetti({
@@ -82,10 +106,14 @@ function SortableCard({
     isDragging,
   } = useSortable({ id: item.id });
 
+  const cardType = getCardType(item);
+  const styles = getCardStyles(cardType);
+  const typeConfig = cardTypeConfig[cardType];
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.8 : 1,
     zIndex: isDragging ? 50 : undefined,
   };
 
@@ -93,9 +121,9 @@ function SortableCard({
     <Card
       ref={setNodeRef}
       style={style}
-      className={`cursor-pointer hover:shadow-md transition-all duration-150 ${
-        isDragging ? "shadow-lg scale-[1.02] ring-2 ring-primary/30" : ""
-      } ${item.col === "resolvida" ? "border-success/30 bg-success/5" : ""}`}
+      className={`cursor-pointer hover:shadow-lg transition-all duration-150 rounded-xl ${styles.bg} ${styles.border} border ${
+        isDragging ? "shadow-xl scale-[1.02] ring-2 ring-primary/30" : "shadow-sm"
+      } ${item.col === "resolvida" ? "opacity-80" : ""}`}
       onClick={onClick}
     >
       <CardContent className="p-4">
@@ -109,7 +137,12 @@ function SortableCard({
             <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground leading-tight">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Badge className={`text-[9px] px-1.5 py-0 font-bold ${typeConfig.badgeClass}`}>
+                {typeConfig.label}
+              </Badge>
+            </div>
+            <p className={`text-sm font-medium leading-tight ${styles.text}`}>
               {item.title}
             </p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -173,8 +206,8 @@ function DroppableColumn({
       </div>
       <div
         ref={setNodeRef}
-        className={`space-y-3 min-h-[100px] p-2 rounded-lg transition-colors duration-200 ${
-          isOver ? "bg-primary/10 ring-2 ring-primary/20" : "bg-transparent"
+        className={`space-y-3 min-h-[100px] p-2 rounded-xl transition-colors duration-200 bg-muted/30 ${
+          isOver ? "bg-primary/10 ring-2 ring-primary/20" : ""
         }`}
       >
         <SortableContext
@@ -479,31 +512,36 @@ export default function Demandas() {
         </div>
 
         <DragOverlay>
-          {activeItem ? (
-            <Card className="shadow-2xl scale-[1.05] rotate-[2deg] ring-2 ring-primary/40 opacity-95 w-[280px]">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-2">
-                  <GripVertical className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground leading-tight">
-                      {activeItem.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${priorityColors[activeItem.priority]}`}
-                      >
-                        {activeItem.priority}
+          {activeItem ? (() => {
+            const dragType = getCardType(activeItem);
+            const dragStyles = getCardStyles(dragType);
+            const dragConfig = cardTypeConfig[dragType];
+            return (
+              <Card className={`shadow-2xl scale-[1.05] rotate-[2deg] ring-2 ring-primary/40 opacity-95 w-[280px] rounded-xl ${dragStyles.bg} ${dragStyles.border}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <Badge className={`text-[9px] px-1.5 py-0 font-bold mb-1.5 ${dragConfig.badgeClass}`}>
+                        {dragConfig.label}
                       </Badge>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {activeItem.city}
-                      </span>
+                      <p className={`text-sm font-medium leading-tight ${dragStyles.text}`}>
+                        {activeItem.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Badge variant="outline" className={`text-[10px] ${priorityColors[activeItem.priority]}`}>
+                          {activeItem.priority}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {activeItem.city}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+                </CardContent>
+              </Card>
+            );
+          })() : null}
         </DragOverlay>
       </DndContext>
 
