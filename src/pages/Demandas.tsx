@@ -56,6 +56,30 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
+type CardType = "demanda" | "emenda" | "agenda" | "comunicacao";
+
+const cardTypeConfig: Record<CardType, { label: string; badgeClass: string }> = {
+  demanda: { label: "DEMANDA", badgeClass: "bg-[hsl(var(--card-demanda-border))] text-white" },
+  emenda: { label: "EMENDA", badgeClass: "bg-[hsl(var(--card-emenda-border))] text-white" },
+  agenda: { label: "AGENDA", badgeClass: "bg-[hsl(var(--card-agenda-border))] text-white" },
+  comunicacao: { label: "COMUNICAÇÃO", badgeClass: "bg-[hsl(var(--card-comunicacao-border))] text-white" },
+};
+
+function getCardType(item: Demanda): CardType {
+  if (item.origin === "emenda") return "emenda";
+  if (item.origin === "agenda") return "agenda";
+  if (item.origin === "comunicacao") return "comunicacao";
+  return "demanda";
+}
+
+function getCardStyles(type: CardType) {
+  return {
+    bg: `bg-[hsl(var(--card-${type}))]`,
+    border: `border-l-[3px] border-l-[hsl(var(--card-${type}-border))]`,
+    text: `text-[hsl(var(--card-${type}-text))]`,
+  };
+}
+
 
 function fireConfetti() {
   confetti({
