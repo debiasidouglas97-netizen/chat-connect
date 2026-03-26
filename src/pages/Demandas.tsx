@@ -22,6 +22,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
+import type { Demanda } from "@/components/demandas/types";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
