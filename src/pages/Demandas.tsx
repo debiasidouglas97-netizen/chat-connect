@@ -512,31 +512,36 @@ export default function Demandas() {
         </div>
 
         <DragOverlay>
-          {activeItem ? (
-            <Card className="shadow-2xl scale-[1.05] rotate-[2deg] ring-2 ring-primary/40 opacity-95 w-[280px]">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-2">
-                  <GripVertical className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground leading-tight">
-                      {activeItem.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${priorityColors[activeItem.priority]}`}
-                      >
-                        {activeItem.priority}
+          {activeItem ? (() => {
+            const dragType = getCardType(activeItem);
+            const dragStyles = getCardStyles(dragType);
+            const dragConfig = cardTypeConfig[dragType];
+            return (
+              <Card className={`shadow-2xl scale-[1.05] rotate-[2deg] ring-2 ring-primary/40 opacity-95 w-[280px] rounded-xl ${dragStyles.bg} ${dragStyles.border}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <Badge className={`text-[9px] px-1.5 py-0 font-bold mb-1.5 ${dragConfig.badgeClass}`}>
+                        {dragConfig.label}
                       </Badge>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {activeItem.city}
-                      </span>
+                      <p className={`text-sm font-medium leading-tight ${dragStyles.text}`}>
+                        {activeItem.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Badge variant="outline" className={`text-[10px] ${priorityColors[activeItem.priority]}`}>
+                          {activeItem.priority}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {activeItem.city}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+                </CardContent>
+              </Card>
+            );
+          })() : null}
         </DragOverlay>
       </DndContext>
 
