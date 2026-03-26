@@ -52,18 +52,18 @@
     --info: 210 80% 55%;
     --info-foreground: 0 0% 100%;
 
-    --card-demanda: 120 52% 93%;
-    --card-demanda-border: 122 38% 63%;
-    --card-demanda-text: 125 54% 24%;
-    --card-emenda: 210 68% 94%;
-    --card-emenda-border: 213 68% 68%;
-    --card-emenda-text: 216 90% 34%;
-    --card-agenda: 291 47% 93%;
-    --card-agenda-border: 291 47% 60%;
-    --card-agenda-text: 291 100% 18%;
-    --card-comunicacao: 46 100% 94%;
-    --card-comunicacao-border: 45 100% 65%;
-    --card-comunicacao-text: 36 94% 52%;
+    --card-demanda: 130 30% 96%;
+    --card-demanda-border: 130 35% 72%;
+    --card-demanda-text: 130 40% 28%;
+    --card-emenda: 212 40% 96%;
+    --card-emenda-border: 212 45% 72%;
+    --card-emenda-text: 212 50% 30%;
+    --card-agenda: 280 30% 96%;
+    --card-agenda-border: 280 35% 72%;
+    --card-agenda-text: 280 40% 28%;
+    --card-comunicacao: 45 50% 96%;
+    --card-comunicacao-border: 45 50% 72%;
+    --card-comunicacao-text: 40 55% 35%;
   }
 
   .dark {
@@ -104,18 +104,18 @@
     --sidebar-border: 150 12% 14%;
     --sidebar-ring: 150 55% 40%;
 
-    --card-demanda: 120 30% 18%;
-    --card-demanda-border: 122 38% 45%;
-    --card-demanda-text: 120 40% 75%;
-    --card-emenda: 210 30% 18%;
-    --card-emenda-border: 213 50% 50%;
-    --card-emenda-text: 210 60% 75%;
-    --card-agenda: 291 25% 18%;
-    --card-agenda-border: 291 40% 50%;
-    --card-agenda-text: 291 40% 75%;
-    --card-comunicacao: 46 30% 16%;
-    --card-comunicacao-border: 45 60% 50%;
-    --card-comunicacao-text: 36 60% 70%;
+    --card-demanda: 130 20% 16%;
+    --card-demanda-border: 130 30% 42%;
+    --card-demanda-text: 130 30% 72%;
+    --card-emenda: 212 20% 16%;
+    --card-emenda-border: 212 35% 48%;
+    --card-emenda-text: 212 35% 72%;
+    --card-agenda: 280 18% 16%;
+    --card-agenda-border: 280 30% 48%;
+    --card-agenda-text: 280 30% 72%;
+    --card-comunicacao: 45 25% 15%;
+    --card-comunicacao-border: 45 40% 48%;
+    --card-comunicacao-text: 40 40% 68%;
   }
 }
 
