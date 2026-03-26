@@ -106,10 +106,14 @@ function SortableCard({
     isDragging,
   } = useSortable({ id: item.id });
 
+  const cardType = getCardType(item);
+  const styles = getCardStyles(cardType);
+  const typeConfig = cardTypeConfig[cardType];
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.8 : 1,
     zIndex: isDragging ? 50 : undefined,
   };
 
@@ -117,9 +121,9 @@ function SortableCard({
     <Card
       ref={setNodeRef}
       style={style}
-      className={`cursor-pointer hover:shadow-md transition-all duration-150 ${
-        isDragging ? "shadow-lg scale-[1.02] ring-2 ring-primary/30" : ""
-      } ${item.col === "resolvida" ? "border-success/30 bg-success/5" : ""}`}
+      className={`cursor-pointer hover:shadow-lg transition-all duration-150 rounded-xl ${styles.bg} ${styles.border} border ${
+        isDragging ? "shadow-xl scale-[1.02] ring-2 ring-primary/30" : "shadow-sm"
+      } ${item.col === "resolvida" ? "opacity-80" : ""}`}
       onClick={onClick}
     >
       <CardContent className="p-4">
@@ -133,7 +137,12 @@ function SortableCard({
             <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground leading-tight">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Badge className={`text-[9px] px-1.5 py-0 font-bold ${typeConfig.badgeClass}`}>
+                {typeConfig.label}
+              </Badge>
+            </div>
+            <p className={`text-sm font-medium leading-tight ${styles.text}`}>
               {item.title}
             </p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
