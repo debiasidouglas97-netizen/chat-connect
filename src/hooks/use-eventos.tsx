@@ -75,9 +75,23 @@ export function useEventos() {
         notas: ev.notas || null,
       } as any).select().single();
       if (error) throw error;
+
+      // Auto-create Kanban card for this evento
+      await supabase.from("demandas").insert({
+        title: ev.titulo,
+        city: ev.cidade,
+        priority: ev.prioridade || "Média",
+        col: "nova",
+        origin: "agenda",
+        description: `📅 ${ev.data} às ${ev.hora} | ${ev.tipo || "Reunião"}\n${ev.description || ""}`,
+      } as any);
+
       return data as unknown as EventoRow;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["eventos"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      queryClient.invalidateQueries({ queryKey: ["demandas"] });
+    },
   });
 
   const updateMutation = useMutation({
