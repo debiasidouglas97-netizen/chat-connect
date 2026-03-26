@@ -62,9 +62,32 @@ export function useEmendas() {
         notas: e.notas,
       } as any).select().single();
       if (error) throw error;
-      return data;
+
+      // Auto-create Kanban card for this emenda
+      const statusToCol: Record<string, string> = {
+        "Proposta": "nova",
+        "Aprovada": "analise",
+        "Liberada": "encaminhada",
+        "Em execução": "execucao",
+        "Paga": "resolvida",
+        "Concluída": "resolvida",
+      };
+      const emendaData = data as any;
+      await supabase.from("demandas").insert({
+        title: e.titulo || `Emenda ${e.tipo} – ${e.cidade}`,
+        city: e.cidade,
+        priority: e.prioridade,
+        col: statusToCol[e.status] || "nova",
+        origin: "emenda",
+        description: `💰 ${e.valor} | ${e.tipo}\n${e.descricao || ""}`,
+      } as any);
+
+      return emendaData;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["emendas"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["emendas"] });
+      queryClient.invalidateQueries({ queryKey: ["demandas"] });
+    },
   });
 
   const updateMutation = useMutation({
