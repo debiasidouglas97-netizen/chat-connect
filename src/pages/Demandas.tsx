@@ -58,10 +58,10 @@ const priorityColors: Record<string, string> = {
 type CardType = "demanda" | "emenda" | "agenda" | "comunicacao";
 
 const cardTypeConfig: Record<CardType, { label: string; badgeClass: string }> = {
-  demanda: { label: "DEMANDA", badgeClass: "bg-[hsl(var(--card-demanda-border))] text-white" },
-  emenda: { label: "EMENDA", badgeClass: "bg-[hsl(var(--card-emenda-border))] text-white" },
-  agenda: { label: "AGENDA", badgeClass: "bg-[hsl(var(--card-agenda-border))] text-white" },
-  comunicacao: { label: "COMUNICAÇÃO", badgeClass: "bg-[hsl(var(--card-comunicacao-border))] text-white" },
+  demanda: { label: "DEMANDA", badgeClass: "bg-[hsl(var(--card-demanda-border))] text-primary-foreground" },
+  emenda: { label: "EMENDA", badgeClass: "bg-[hsl(var(--card-emenda-border))] text-primary-foreground" },
+  agenda: { label: "AGENDA", badgeClass: "bg-[hsl(var(--card-agenda-border))] text-primary-foreground" },
+  comunicacao: { label: "COMUNICAÇÃO", badgeClass: "bg-[hsl(var(--card-comunicacao-border))] text-primary-foreground" },
 };
 
 function getCardType(item: Demanda): CardType {
@@ -72,11 +72,30 @@ function getCardType(item: Demanda): CardType {
 }
 
 function getCardStyles(type: CardType) {
-  return {
-    bg: `bg-[hsl(var(--card-${type}))]`,
-    border: `border-l-[3px] border-l-[hsl(var(--card-${type}-border))]`,
-    text: `text-[hsl(var(--card-${type}-text))]`,
+  const stylesByType: Record<CardType, { bg: string; border: string; text: string }> = {
+    demanda: {
+      bg: "bg-[hsl(var(--card-demanda))]",
+      border: "border-l-[3px] border-l-[hsl(var(--card-demanda-border))]",
+      text: "text-[hsl(var(--card-demanda-text))]",
+    },
+    emenda: {
+      bg: "bg-[hsl(var(--card-emenda))]",
+      border: "border-l-[3px] border-l-[hsl(var(--card-emenda-border))]",
+      text: "text-[hsl(var(--card-emenda-text))]",
+    },
+    agenda: {
+      bg: "bg-[hsl(var(--card-agenda))]",
+      border: "border-l-[3px] border-l-[hsl(var(--card-agenda-border))]",
+      text: "text-[hsl(var(--card-agenda-text))]",
+    },
+    comunicacao: {
+      bg: "bg-[hsl(var(--card-comunicacao))]",
+      border: "border-l-[3px] border-l-[hsl(var(--card-comunicacao-border))]",
+      text: "text-[hsl(var(--card-comunicacao-text))]",
+    },
   };
+
+  return stylesByType[type];
 }
 
 
