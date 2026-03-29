@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/hooks/use-tenant";
 
 export interface EmendaRow {
   id: string;
@@ -32,14 +33,14 @@ export interface EmendaAttachment {
 
 export function useEmendas() {
   const queryClient = useQueryClient();
+  const { tenantId } = useTenant();
 
   const query = useQuery({
-    queryKey: ["emendas"],
+    queryKey: ["emendas", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("emendas")
-        .select("*")
-        .order("ano", { ascending: false });
+      let q = supabase.from("emendas").select("*").order("ano", { ascending: false });
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as unknown as EmendaRow[];
     },
@@ -60,10 +61,11 @@ export function useEmendas() {
         regiao: e.regiao,
         liderancas_relacionadas: e.liderancas_relacionadas,
         notas: e.notas,
+        tenant_id: tenantId,
       } as any).select().single();
       if (error) throw error;
 
-      // Auto-create Kanban card for this emenda
+      // Auto-create Kanban card
       const statusToCol: Record<string, string> = {
         "Proposta": "nova",
         "Aprovada": "analise",
@@ -72,7 +74,6 @@ export function useEmendas() {
         "Paga": "resolvida",
         "Concluída": "resolvida",
       };
-      const emendaData = data as any;
       await supabase.from("demandas").insert({
         title: e.titulo || `Emenda ${e.tipo} – ${e.cidade}`,
         city: e.cidade,
@@ -80,9 +81,10 @@ export function useEmendas() {
         col: statusToCol[e.status] || "nova",
         origin: "emenda",
         description: `💰 ${e.valor} | ${e.tipo}\n${e.descricao || ""}`,
+        tenant_id: tenantId,
       } as any);
 
-      return emendaData;
+      return data as any;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emendas"] });

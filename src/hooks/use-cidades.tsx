@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CidadeBase } from "@/lib/scoring";
+import { useTenant } from "@/hooks/use-tenant";
 
 interface CidadeRow {
   id: string;
@@ -15,6 +16,7 @@ interface CidadeRow {
   engajamento: number;
   liderancas: number;
   emendas: number;
+  tenant_id: string | null;
 }
 
 function rowToBase(r: CidadeRow): CidadeBase & { id: string } {
@@ -36,14 +38,14 @@ function rowToBase(r: CidadeRow): CidadeBase & { id: string } {
 
 export function useCidades() {
   const queryClient = useQueryClient();
+  const { tenantId } = useTenant();
 
   const query = useQuery({
-    queryKey: ["cidades"],
+    queryKey: ["cidades", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cidades")
-        .select("*")
-        .order("name");
+      let q = supabase.from("cidades").select("*").order("name");
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as unknown as CidadeRow[]).map(rowToBase);
     },
@@ -63,6 +65,7 @@ export function useCidades() {
         engajamento: c.engajamento,
         liderancas: c.liderancas,
         emendas: c.emendas,
+        tenant_id: tenantId,
       } as any);
       if (error) throw error;
     },

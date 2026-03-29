@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTenant } from "@/hooks/use-tenant";
 
 export interface DeputyProfile {
   id: string;
@@ -22,15 +23,14 @@ export interface DeputyProfile {
 
 export function useDeputyProfile() {
   const queryClient = useQueryClient();
+  const { tenantId } = useTenant();
 
   const query = useQuery({
-    queryKey: ["deputy-profile"],
+    queryKey: ["deputy-profile", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("deputy_profile")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
+      let q = supabase.from("deputy_profile").select("*");
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q.limit(1).maybeSingle();
       if (error) throw error;
       return data as DeputyProfile | null;
     },
@@ -51,7 +51,7 @@ export function useDeputyProfile() {
       } else {
         const { data, error } = await supabase
           .from("deputy_profile")
-          .insert([profile as any])
+          .insert([{ ...profile, tenant_id: tenantId } as any])
           .select()
           .single();
         if (error) throw error;
