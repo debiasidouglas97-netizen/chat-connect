@@ -33,7 +33,15 @@ export default function Login() {
       }
     } else {
       toast.success("Login realizado!");
-      navigate("/");
+      // Check if super_admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+        const isSuperAdmin = (roles || []).some((r: any) => r.role === "super_admin");
+        navigate(isSuperAdmin ? "/admin" : "/");
+      } else {
+        navigate("/");
+      }
     }
   };
 
