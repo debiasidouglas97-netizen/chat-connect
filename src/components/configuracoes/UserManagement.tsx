@@ -24,6 +24,7 @@ interface Lideranca {
 }
 
 const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: "Super Admin",
   deputado: "Deputado",
   chefe_gabinete: "Chefe de Gabinete",
   secretario: "Secretário",
@@ -31,6 +32,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
 };
 
 const ROLE_COLORS: Record<AppRole, string> = {
+  super_admin: "bg-red-600 text-white",
   deputado: "bg-primary text-primary-foreground",
   chefe_gabinete: "bg-blue-600 text-white",
   secretario: "bg-amber-600 text-white",

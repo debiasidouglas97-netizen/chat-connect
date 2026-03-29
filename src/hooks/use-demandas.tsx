@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/hooks/use-tenant";
 
 export interface DemandaRow {
   id: string;
@@ -15,19 +16,23 @@ export interface DemandaRow {
   creator_name: string | null;
   order_index: number;
   created_at: string;
+  tenant_id: string | null;
 }
 
 export function useDemandas() {
   const queryClient = useQueryClient();
+  const { tenantId } = useTenant();
 
   const query = useQuery({
-    queryKey: ["demandas"],
+    queryKey: ["demandas", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("demandas")
         .select("*")
         .order("order_index", { ascending: true })
         .order("created_at", { ascending: false });
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as unknown as DemandaRow[];
     },
@@ -55,6 +60,7 @@ export function useDemandas() {
         origin: d.origin || "manual",
         creator_chat_id: d.creator_chat_id || null,
         creator_name: d.creator_name || null,
+        tenant_id: tenantId,
       } as any).select().single();
       if (error) throw error;
       return data;
@@ -88,6 +94,7 @@ export function useDemandas() {
       actor,
       old_status: oldStatus || null,
       new_status: newStatus || null,
+      tenant_id: tenantId,
     } as any);
   };
 

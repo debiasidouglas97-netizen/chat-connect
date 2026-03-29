@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
+import { useTenant } from "@/hooks/use-tenant";
 
 export interface LiderancaRow {
   id: string;
@@ -60,14 +61,14 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
 
 export function useLiderancas() {
   const queryClient = useQueryClient();
+  const { tenantId } = useTenant();
 
   const query = useQuery({
-    queryKey: ["liderancas"],
+    queryKey: ["liderancas", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("liderancas")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let q = supabase.from("liderancas").select("*").order("created_at", { ascending: false });
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as unknown as LiderancaRow[]).map(rowToBase);
     },
@@ -98,6 +99,7 @@ export function useLiderancas() {
         address_neighborhood: l.address_neighborhood || null,
         address_city: l.address_city || null,
         address_state: l.address_state || null,
+        tenant_id: tenantId,
       } as any);
       if (error) throw error;
     },

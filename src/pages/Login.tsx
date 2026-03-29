@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, User, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import bgLogin from "@/assets/background_login.png";
 
 export default function Login() {
@@ -32,7 +33,15 @@ export default function Login() {
       }
     } else {
       toast.success("Login realizado!");
-      navigate("/");
+      // Check if super_admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+        const isSuperAdmin = (roles || []).some((r: any) => r.role === "super_admin");
+        navigate(isSuperAdmin ? "/admin" : "/");
+      } else {
+        navigate("/");
+      }
     }
   };
 

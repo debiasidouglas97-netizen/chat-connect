@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/hooks/use-tenant";
 
 export interface EventoRow {
   id: string;
@@ -36,14 +37,14 @@ export type EventoInsert = Omit<EventoRow, "id" | "created_at" | "updated_at" | 
 
 export function useEventos() {
   const queryClient = useQueryClient();
+  const { tenantId } = useTenant();
 
   const query = useQuery({
-    queryKey: ["eventos"],
+    queryKey: ["eventos", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("eventos")
-        .select("*")
-        .order("data", { ascending: true });
+      let q = supabase.from("eventos").select("*").order("data", { ascending: true });
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as unknown as EventoRow[]);
     },
@@ -73,10 +74,11 @@ export function useEventos() {
         demanda_id: ev.demanda_id || null,
         emenda_id: ev.emenda_id || null,
         notas: ev.notas || null,
+        tenant_id: tenantId,
       } as any).select().single();
       if (error) throw error;
 
-      // Auto-create Kanban card for this evento
+      // Auto-create Kanban card
       await supabase.from("demandas").insert({
         title: ev.titulo,
         city: ev.cidade,
@@ -84,6 +86,7 @@ export function useEventos() {
         col: "nova",
         origin: "agenda",
         description: `📅 ${ev.data} às ${ev.hora} | ${ev.tipo || "Reunião"}\n${ev.description || ""}`,
+        tenant_id: tenantId,
       } as any);
 
       return data as unknown as EventoRow;

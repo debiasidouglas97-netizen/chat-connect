@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/hooks/use-tenant";
 
 export type NoteTag = "relacionamento" | "politico" | "conflito" | "apoio" | "alerta" | "estrategico";
 
@@ -16,17 +17,20 @@ export interface LeadershipNote {
 
 export function useLeadershipNotes(liderancaName: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["leadership-notes", liderancaName];
+  const { tenantId } = useTenant();
+  const queryKey = ["leadership-notes", liderancaName, tenantId];
 
   const { data: notes = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("leadership_notes")
         .select("*")
         .eq("lideranca_name", liderancaName)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as LeadershipNote[];
     },
@@ -40,6 +44,7 @@ export function useLeadershipNotes(liderancaName: string) {
         text: note.text,
         tag: note.tag || null,
         author: note.author || "Gabinete",
+        tenant_id: tenantId,
       });
       if (error) throw error;
     },
