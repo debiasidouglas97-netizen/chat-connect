@@ -897,7 +897,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "deputado" | "chefe_gabinete" | "secretario" | "lideranca"
+      app_role:
+        | "deputado"
+        | "chefe_gabinete"
+        | "secretario"
+        | "lideranca"
+        | "super_admin"
       note_tag:
         | "relacionamento"
         | "politico"
@@ -1032,7 +1037,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["deputado", "chefe_gabinete", "secretario", "lideranca"],
+      app_role: [
+        "deputado",
+        "chefe_gabinete",
+        "secretario",
+        "lideranca",
+        "super_admin",
+      ],
       note_tag: [
         "relacionamento",
         "politico",
