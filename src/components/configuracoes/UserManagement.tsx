@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AppRole, Profile } from "@/hooks/use-auth";
 import { getInitials } from "@/hooks/use-auth";
+import { useTenant } from "@/hooks/use-tenant";
 
 interface Lideranca {
   id: string;
@@ -41,6 +42,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
 
 
 export default function UserManagement() {
+  const { tenantId } = useTenant();
   const [users, setUsers] = useState<Profile[]>([]);
   const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,19 +70,31 @@ export default function UserManagement() {
   const [suggestedLideranca, setSuggestedLideranca] = useState<Lideranca | null>(null);
 
   useEffect(() => {
-    fetchUsers();
-    fetchLiderancas();
-  }, []);
+    if (tenantId) {
+      fetchUsers();
+      fetchLiderancas();
+    }
+  }, [tenantId]);
 
   const fetchUsers = async () => {
+    if (!tenantId) return;
     setLoading(true);
-    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .neq("role", "super_admin")
+      .order("created_at", { ascending: false });
     if (data) setUsers(data as unknown as Profile[]);
     setLoading(false);
   };
 
   const fetchLiderancas = async () => {
-    const { data } = await supabase.from("liderancas").select("id, name, avatar_url, img, cidade_principal, cargo");
+    if (!tenantId) return;
+    const { data } = await supabase
+      .from("liderancas")
+      .select("id, name, avatar_url, img, cidade_principal, cargo")
+      .eq("tenant_id", tenantId);
     if (data) setLiderancas(data);
   };
 
@@ -178,6 +192,7 @@ export default function UserManagement() {
         role: form.role,
         lideranca_id: form.lideranca_id,
         cities,
+        tenant_id: tenantId,
         updated_at: new Date().toISOString(),
       } as any).eq("id", editUser.id);
 
@@ -209,6 +224,7 @@ export default function UserManagement() {
           role: form.role,
           lideranca_id: form.lideranca_id,
           cities,
+          tenant_id: tenantId,
           avatar_url: linkedLideranca?.avatar_url || linkedLideranca?.img || null,
         } as any).eq("id", data.user.id);
 
