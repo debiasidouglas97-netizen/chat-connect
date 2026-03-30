@@ -192,6 +192,7 @@ export default function UserManagement() {
         role: form.role,
         lideranca_id: form.lideranca_id,
         cities,
+        tenant_id: tenantId,
         updated_at: new Date().toISOString(),
       } as any).eq("id", editUser.id);
 
