@@ -806,6 +806,12 @@ export default function Cidades() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CidadeDetailDialog
+        open={!!detailCity}
+        onOpenChange={(v) => !v && setDetailCity(null)}
+        cidade={detailCity}
+      />
     </div>
   );
 }
