@@ -480,7 +480,7 @@ export default function Cidades() {
           <p className="text-lg">Nenhuma cidade encontrada</p>
           <p className="text-sm">Tente ajustar os filtros ou a busca</p>
         </div>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {cidades.map((c) => {
             const cfg = statusConfig[c.status];
@@ -525,6 +525,69 @@ export default function Cidades() {
             );
           })}
         </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cidade</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>População</TableHead>
+                <TableHead>Peso</TableHead>
+                <TableHead>Status</TableHead>
+                {showScore && <TableHead>Score</TableHead>}
+                <TableHead>Demandas</TableHead>
+                <TableHead>Lideranças</TableHead>
+                <TableHead>Emendas</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cidades.map((c) => {
+                const cfg = statusConfig[c.status];
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        {c.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>{c.regiao}</TableCell>
+                    <TableCell>{c.population}</TableCell>
+                    <TableCell>{c.peso}/10</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
+                        <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
+                      </Badge>
+                    </TableCell>
+                    {showScore && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Progress value={c.score} className="h-2 w-16" />
+                          <span className="text-sm font-bold">{c.score}</span>
+                        </div>
+                      </TableCell>
+                    )}
+                    <TableCell>{c.demandas}</TableCell>
+                    <TableCell>{c.liderancas}</TableCell>
+                    <TableCell>{c.emendas}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
+                          <Trash2 className="h-3 w-3" /> Excluir
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <CidadeFormDialog
