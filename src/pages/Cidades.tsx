@@ -412,6 +412,54 @@ export default function Cidades() {
     }
   };
 
+  // Backfill populations for cities with "0" or empty population
+  const backfillRunRef = useRef(false);
+  useEffect(() => {
+    if (backfillRunRef.current || cidadesRaw.length === 0) return;
+    const missing = cidadesRaw.filter((c: any) => !c.population || c.population === "0");
+    if (missing.length === 0) return;
+    backfillRunRef.current = true;
+
+    (async () => {
+      const byUF = new Map<string, Array<{ id: string; name: string }>>();
+      for (const c of missing as any[]) {
+        const uf = c.regiao || "";
+        if (!uf || uf.length !== 2) continue;
+        if (!byUF.has(uf)) byUF.set(uf, []);
+        byUF.get(uf)!.push({ id: c.id, name: c.name.split("/")[0] });
+      }
+
+      for (const [uf, cities] of byUF) {
+        try {
+          const munis = await fetchMunicipiosByUF(uf);
+          const matchedIds: number[] = [];
+          const cityToMuniId = new Map<string, number>();
+
+          for (const city of cities) {
+            const found = munis.find((m: any) => m.nome.toLowerCase() === city.name.toLowerCase());
+            if (found) {
+              matchedIds.push(found.id);
+              cityToMuniId.set(city.id, found.id);
+            }
+          }
+
+          if (matchedIds.length === 0) continue;
+          const popMap = await fetchPopulacoesBulk(matchedIds);
+
+          for (const city of cities) {
+            const muniId = cityToMuniId.get(city.id);
+            if (muniId && popMap.has(muniId)) {
+              const raw = cidadesRaw.find((c: any) => c.id === city.id) as any;
+              if (raw) {
+                await update({ id: city.id, data: { ...raw, population: popMap.get(muniId)! } });
+              }
+            }
+          }
+        } catch {}
+      }
+    })();
+  }, [cidadesRaw, update]);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
