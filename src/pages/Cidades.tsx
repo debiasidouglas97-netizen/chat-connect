@@ -61,27 +61,18 @@ async function fetchPopulacaoIBGE(municipioId: number): Promise<string> {
 async function fetchPopulacoesBulk(ids: number[]): Promise<Map<number, string>> {
   const result = new Map<number, string>();
   if (ids.length === 0) return result;
-  try {
-    const idsStr = ids.join("|");
-    const res = await fetch(
-      `https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/-6/variaveis/9324?localidades=N6[${idsStr}]`
-    );
-    const data = await res.json();
-    const series = data?.[0]?.resultados?.[0]?.series || [];
-    for (const s of series) {
-      const locId = Number(s.localidade?.id);
-      const serie = s.serie;
-      if (serie) {
-        const years = Object.keys(serie).sort().reverse();
-        for (const y of years) {
-          if (serie[y] && serie[y] !== "-" && serie[y] !== "...") {
-            result.set(locId, Number(serie[y]).toLocaleString("pt-BR"));
-            break;
-          }
-        }
-      }
-    }
-  } catch {}
+  
+  // IBGE bulk endpoint with pipe separator returns 500, so we fetch in parallel individually
+  const promises = ids.map(async (id) => {
+    const pop = await fetchPopulacaoIBGE(id);
+    if (pop !== "0") result.set(id, pop);
+  });
+
+  // Process in batches of 5 to avoid overwhelming the API
+  for (let i = 0; i < promises.length; i += 5) {
+    await Promise.all(promises.slice(i, i + 5));
+  }
+  
   return result;
 }
 
