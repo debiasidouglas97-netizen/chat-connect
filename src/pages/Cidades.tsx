@@ -526,16 +526,41 @@ export default function Cidades() {
              <Tooltip>
                <TooltipTrigger asChild>
                  <Button
-                   variant={sortByPop !== "none" ? "default" : "outline"}
+                   variant={sortField === "pop" ? "default" : "outline"}
                    className="gap-2"
-                   onClick={() => setSortByPop(prev => prev === "none" ? "desc" : prev === "desc" ? "asc" : "none")}
+                   onClick={() => {
+                     if (sortField !== "pop") { setSortField("pop"); setSortDir("desc"); }
+                     else if (sortDir === "desc") { setSortDir("asc"); }
+                     else { setSortField("none"); }
+                   }}
                  >
-                   {sortByPop === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   {sortField === "pop" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
                    Pop.
                  </Button>
                </TooltipTrigger>
                <TooltipContent>
-                 {sortByPop === "none" ? "Ordenar por população (maior → menor)" : sortByPop === "desc" ? "Ordenar por população (menor → maior)" : "Ordenar por score"}
+                 {sortField !== "pop" ? "Ordenar por população (maior → menor)" : sortDir === "desc" ? "Ordenar por população (menor → maior)" : "Voltar ao score"}
+               </TooltipContent>
+             </Tooltip>
+           </TooltipProvider>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button
+                   variant={sortField === "liderancas" ? "default" : "outline"}
+                   className="gap-2"
+                   onClick={() => {
+                     if (sortField !== "liderancas") { setSortField("liderancas"); setSortDir("desc"); }
+                     else if (sortDir === "desc") { setSortDir("asc"); }
+                     else { setSortField("none"); }
+                   }}
+                 >
+                   {sortField === "liderancas" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   Lideranças
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent>
+                 {sortField !== "liderancas" ? "Ordenar por lideranças (maior → menor)" : sortDir === "desc" ? "Ordenar por lideranças (menor → maior)" : "Voltar ao score"}
                </TooltipContent>
              </Tooltip>
            </TooltipProvider>
