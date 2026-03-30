@@ -395,13 +395,17 @@ export default function Cidades() {
       return true;
     });
 
-    if (sortByPop === "desc") {
-      return [...filtered].sort((a, b) => parsePopulation(b.population) - parsePopulation(a.population));
-    } else if (sortByPop === "asc") {
-      return [...filtered].sort((a, b) => parsePopulation(a.population) - parsePopulation(b.population));
+    if (sortField === "pop") {
+      return [...filtered].sort((a, b) => sortDir === "desc" 
+        ? parsePopulation(b.population) - parsePopulation(a.population)
+        : parsePopulation(a.population) - parsePopulation(b.population));
+    } else if (sortField === "liderancas") {
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? b.liderancas - a.liderancas
+        : a.liderancas - b.liderancas);
     }
     return [...filtered].sort((a, b) => b.score - a.score);
-  }, [allCidades, searchQuery, filterEstado, filterStatus, sortByPop]);
+  }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
 
   const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
