@@ -376,7 +376,8 @@ export default function Cidades() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
 
-  const [sortByPop, setSortByPop] = useState<"desc" | "asc" | "none">("none");
+  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas">("none");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
   const allCidades = useMemo(
     () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })),
@@ -394,13 +395,17 @@ export default function Cidades() {
       return true;
     });
 
-    if (sortByPop === "desc") {
-      return [...filtered].sort((a, b) => parsePopulation(b.population) - parsePopulation(a.population));
-    } else if (sortByPop === "asc") {
-      return [...filtered].sort((a, b) => parsePopulation(a.population) - parsePopulation(b.population));
+    if (sortField === "pop") {
+      return [...filtered].sort((a, b) => sortDir === "desc" 
+        ? parsePopulation(b.population) - parsePopulation(a.population)
+        : parsePopulation(a.population) - parsePopulation(b.population));
+    } else if (sortField === "liderancas") {
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? b.liderancas - a.liderancas
+        : a.liderancas - b.liderancas);
     }
     return [...filtered].sort((a, b) => b.score - a.score);
-  }, [allCidades, searchQuery, filterEstado, filterStatus, sortByPop]);
+  }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
 
   const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
@@ -521,16 +526,41 @@ export default function Cidades() {
              <Tooltip>
                <TooltipTrigger asChild>
                  <Button
-                   variant={sortByPop !== "none" ? "default" : "outline"}
+                   variant={sortField === "pop" ? "default" : "outline"}
                    className="gap-2"
-                   onClick={() => setSortByPop(prev => prev === "none" ? "desc" : prev === "desc" ? "asc" : "none")}
+                   onClick={() => {
+                     if (sortField !== "pop") { setSortField("pop"); setSortDir("desc"); }
+                     else if (sortDir === "desc") { setSortDir("asc"); }
+                     else { setSortField("none"); }
+                   }}
                  >
-                   {sortByPop === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   {sortField === "pop" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
                    Pop.
                  </Button>
                </TooltipTrigger>
                <TooltipContent>
-                 {sortByPop === "none" ? "Ordenar por população (maior → menor)" : sortByPop === "desc" ? "Ordenar por população (menor → maior)" : "Ordenar por score"}
+                 {sortField !== "pop" ? "Ordenar por população (maior → menor)" : sortDir === "desc" ? "Ordenar por população (menor → maior)" : "Voltar ao score"}
+               </TooltipContent>
+             </Tooltip>
+           </TooltipProvider>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button
+                   variant={sortField === "liderancas" ? "default" : "outline"}
+                   className="gap-2"
+                   onClick={() => {
+                     if (sortField !== "liderancas") { setSortField("liderancas"); setSortDir("desc"); }
+                     else if (sortDir === "desc") { setSortDir("asc"); }
+                     else { setSortField("none"); }
+                   }}
+                 >
+                   {sortField === "liderancas" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   Lideranças
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent>
+                 {sortField !== "liderancas" ? "Ordenar por lideranças (maior → menor)" : sortDir === "desc" ? "Ordenar por lideranças (menor → maior)" : "Voltar ao score"}
                </TooltipContent>
              </Tooltip>
            </TooltipProvider>
