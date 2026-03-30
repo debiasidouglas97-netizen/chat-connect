@@ -13,10 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X } from "lucide-react";
+import { X, Sparkles, Send, RefreshCw, Smartphone } from "lucide-react";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import type { EventoRow } from "@/hooks/use-eventos";
 
 const TIPOS = ["Reunião", "Evento público", "Visita", "Entrega de emenda", "Audiência"];
