@@ -402,7 +402,7 @@ export default function Cidades() {
               className="pl-9"
             />
           </div>
-          <Button
+           <Button
             variant="outline"
             className="gap-2"
             onClick={() => setShowFilters(!showFilters)}
@@ -415,6 +415,24 @@ export default function Cidades() {
               </Badge>
             )}
           </Button>
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === "cards" ? "default" : "ghost"}
+              size="icon"
+              className="h-9 w-9 rounded-r-none"
+              onClick={() => setViewMode("cards")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="icon"
+              className="h-9 w-9 rounded-l-none"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {showFilters && (
