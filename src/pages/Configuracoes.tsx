@@ -321,6 +321,9 @@ export default function Configuracoes() {
           <TabsTrigger value="aparencia" className="gap-1.5">
             <Palette className="h-4 w-4" /> Aparência
           </TabsTrigger>
+          <TabsTrigger value="integracoes" className="gap-1.5">
+            <Bot className="h-4 w-4" /> Integrações
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
