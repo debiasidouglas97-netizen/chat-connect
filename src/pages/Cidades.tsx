@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCidades } from "@/hooks/use-cidades";
+import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
