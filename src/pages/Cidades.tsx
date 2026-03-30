@@ -724,7 +724,7 @@ export default function Cidades() {
                 const cfg = statusConfig[c.status];
                 const popClass = getPopulationClass(c.population);
                 return (
-                  <TableRow key={c.id} style={{ backgroundColor: `${popClass.bg}80` }}>
+                  <TableRow key={c.id} className="cursor-pointer" style={{ backgroundColor: `${popClass.bg}80` }} onClick={() => setDetailCity(c)}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" style={{ color: popClass.text }} />
