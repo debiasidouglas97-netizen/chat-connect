@@ -58,6 +58,33 @@ async function fetchPopulacaoIBGE(municipioId: number): Promise<string> {
   return "0";
 }
 
+async function fetchPopulacoesBulk(ids: number[]): Promise<Map<number, string>> {
+  const result = new Map<number, string>();
+  if (ids.length === 0) return result;
+  try {
+    const idsStr = ids.join("|");
+    const res = await fetch(
+      `https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/-6/variaveis/9324?localidades=N6[${idsStr}]`
+    );
+    const data = await res.json();
+    const series = data?.[0]?.resultados?.[0]?.series || [];
+    for (const s of series) {
+      const locId = Number(s.localidade?.id);
+      const serie = s.serie;
+      if (serie) {
+        const years = Object.keys(serie).sort().reverse();
+        for (const y of years) {
+          if (serie[y] && serie[y] !== "-" && serie[y] !== "...") {
+            result.set(locId, Number(serie[y]).toLocaleString("pt-BR"));
+            break;
+          }
+        }
+      }
+    }
+  } catch {}
+  return result;
+}
+
 async function fetchMunicipiosByUF(uf: string) {
   try {
     const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
@@ -151,15 +178,22 @@ function CidadeFormDialog({ open, onOpenChange, onSave, onBatchSave, initial }: 
     setBatchSaving(true);
     try {
       const munis = await fetchMunicipiosByUF(batchEstado);
-      const cities: CidadeBase[] = lines.map(line => {
+      const matched = lines.map(line => {
         const found = munis.find((m: any) => m.nome.toLowerCase() === line.toLowerCase());
-        return {
-          name: `${found?.nome || line}/${batchEstado}`,
-          population: "0", peso: 5, regiao: batchEstado,
-          demandas: 0, demandasResolvidas: 0, comunicacaoRecente: false,
-          presencaDeputado: false, engajamento: 0, liderancas: 0, emendas: 0,
-        };
+        return { line, found };
       });
+
+      // Fetch populations in bulk
+      const idsToFetch = matched.filter(m => m.found).map(m => m.found.id as number);
+      const popMap = await fetchPopulacoesBulk(idsToFetch);
+
+      const cities: CidadeBase[] = matched.map(({ line, found }) => ({
+        name: `${found?.nome || line}/${batchEstado}`,
+        population: found ? (popMap.get(found.id) || "0") : "0",
+        peso: 5, regiao: batchEstado,
+        demandas: 0, demandasResolvidas: 0, comunicacaoRecente: false,
+        presencaDeputado: false, engajamento: 0, liderancas: 0, emendas: 0,
+      }));
 
       let imported = 0;
       let skipped = 0;
@@ -377,6 +411,54 @@ export default function Cidades() {
       toast.error("Erro ao excluir");
     }
   };
+
+  // Backfill populations for cities with "0" or empty population
+  const backfillRunRef = useRef(false);
+  useEffect(() => {
+    if (backfillRunRef.current || cidadesRaw.length === 0) return;
+    const missing = cidadesRaw.filter((c: any) => !c.population || c.population === "0");
+    if (missing.length === 0) return;
+    backfillRunRef.current = true;
+
+    (async () => {
+      const byUF = new Map<string, Array<{ id: string; name: string }>>();
+      for (const c of missing as any[]) {
+        const uf = c.regiao || "";
+        if (!uf || uf.length !== 2) continue;
+        if (!byUF.has(uf)) byUF.set(uf, []);
+        byUF.get(uf)!.push({ id: c.id, name: c.name.split("/")[0] });
+      }
+
+      for (const [uf, cities] of byUF) {
+        try {
+          const munis = await fetchMunicipiosByUF(uf);
+          const matchedIds: number[] = [];
+          const cityToMuniId = new Map<string, number>();
+
+          for (const city of cities) {
+            const found = munis.find((m: any) => m.nome.toLowerCase() === city.name.toLowerCase());
+            if (found) {
+              matchedIds.push(found.id);
+              cityToMuniId.set(city.id, found.id);
+            }
+          }
+
+          if (matchedIds.length === 0) continue;
+          const popMap = await fetchPopulacoesBulk(matchedIds);
+
+          for (const city of cities) {
+            const muniId = cityToMuniId.get(city.id);
+            if (muniId && popMap.has(muniId)) {
+              const raw = cidadesRaw.find((c: any) => c.id === city.id) as any;
+              if (raw) {
+                await update({ id: city.id, data: { ...raw, population: popMap.get(muniId)! } });
+              }
+            }
+          }
+        } catch {}
+      }
+    })();
+  }, [cidadesRaw, update]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
