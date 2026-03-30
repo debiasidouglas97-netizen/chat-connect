@@ -466,6 +466,7 @@ export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDa
                                 text: telegramText,
                                 cidade,
                                 participantes_liderancas: selectedLiderancas,
+                                tenant_id: tenantId,
                               },
                             });
                             if (error) throw error;
