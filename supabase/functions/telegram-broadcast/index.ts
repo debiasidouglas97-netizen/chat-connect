@@ -23,26 +23,26 @@ Deno.serve(async (req) => {
 
     const { text, cidade, participantes_liderancas, tenant_id } = await req.json();
 
-    if (!text || !cidade) {
-      return new Response(JSON.stringify({ error: 'Missing text or cidade' }), {
+    if (!text || !cidade || !tenant_id) {
+      return new Response(JSON.stringify({ error: 'Missing text, cidade or tenant_id' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get liderancas from this city with telegram
-    const liderancaQuery = supabase
+    // Get liderancas from this city with telegram - strictly filtered by tenant
+    const { data: liderancasCity } = await supabase
       .from('liderancas')
       .select('name, telegram_username')
-      .not('telegram_username', 'is', null);
-    
-    if (tenant_id) liderancaQuery.eq('tenant_id', tenant_id);
+      .eq('tenant_id', tenant_id)
+      .eq('cidade_principal', cidade)
+      .not('telegram_username', 'is', null)
+      .neq('telegram_username', '');
 
-    const { data: liderancasCity } = await liderancaQuery.eq('cidade_principal', cidade);
-
-    // Get all telegram contacts
-    const contactQuery = supabase.from('telegram_contacts').select('chat_id, username, lideranca_name');
-    if (tenant_id) contactQuery.eq('tenant_id', tenant_id);
-    const { data: contacts } = await contactQuery;
+    // Get telegram contacts for this tenant only
+    const { data: contacts } = await supabase
+      .from('telegram_contacts')
+      .select('chat_id, username, lideranca_name')
+      .eq('tenant_id', tenant_id);
 
     if (!contacts || contacts.length === 0) {
       return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'Nenhum contato Telegram encontrado' }), {

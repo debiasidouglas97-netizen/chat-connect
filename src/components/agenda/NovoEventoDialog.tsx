@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, Sparkles, Send, RefreshCw, Smartphone } from "lucide-react";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
+import { useTenant } from "@/hooks/use-tenant";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { EventoRow } from "@/hooks/use-eventos";
@@ -36,6 +37,7 @@ interface Props {
 export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDate, evento }: Props) {
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
+  const { tenantId } = useTenant();
   const { toast } = useToast();
 
   const [titulo, setTitulo] = useState("");
@@ -464,6 +466,7 @@ export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDa
                                 text: telegramText,
                                 cidade,
                                 participantes_liderancas: selectedLiderancas,
+                                tenant_id: tenantId,
                               },
                             });
                             if (error) throw error;
