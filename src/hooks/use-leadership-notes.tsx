@@ -29,12 +29,12 @@ export function useLeadershipNotes(liderancaName: string) {
         .eq("lideranca_name", liderancaName)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
-      if (tenantId) q = q.eq("tenant_id", tenantId);
+      q = q.eq("tenant_id", tenantId!);
       const { data, error } = await q;
       if (error) throw error;
       return data as LeadershipNote[];
     },
-    enabled: !!liderancaName,
+    enabled: !!liderancaName && !!tenantId,
   });
 
   const addNote = useMutation({

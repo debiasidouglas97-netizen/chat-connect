@@ -38,12 +38,15 @@ export function useEmendas() {
   const query = useQuery({
     queryKey: ["emendas", tenantId],
     queryFn: async () => {
-      let q = supabase.from("emendas").select("*").order("ano", { ascending: false });
-      if (tenantId) q = q.eq("tenant_id", tenantId);
-      const { data, error } = await q;
+      const { data, error } = await supabase
+        .from("emendas")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .order("ano", { ascending: false });
       if (error) throw error;
       return data as unknown as EmendaRow[];
     },
+    enabled: !!tenantId,
   });
 
   const insertMutation = useMutation({
