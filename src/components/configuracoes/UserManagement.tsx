@@ -42,6 +42,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
 
 
 export default function UserManagement() {
+  const { tenantId } = useTenant();
   const [users, setUsers] = useState<Profile[]>([]);
   const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,19 +70,31 @@ export default function UserManagement() {
   const [suggestedLideranca, setSuggestedLideranca] = useState<Lideranca | null>(null);
 
   useEffect(() => {
-    fetchUsers();
-    fetchLiderancas();
-  }, []);
+    if (tenantId) {
+      fetchUsers();
+      fetchLiderancas();
+    }
+  }, [tenantId]);
 
   const fetchUsers = async () => {
+    if (!tenantId) return;
     setLoading(true);
-    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .neq("role", "super_admin")
+      .order("created_at", { ascending: false });
     if (data) setUsers(data as unknown as Profile[]);
     setLoading(false);
   };
 
   const fetchLiderancas = async () => {
-    const { data } = await supabase.from("liderancas").select("id, name, avatar_url, img, cidade_principal, cargo");
+    if (!tenantId) return;
+    const { data } = await supabase
+      .from("liderancas")
+      .select("id, name, avatar_url, img, cidade_principal, cargo")
+      .eq("tenant_id", tenantId);
     if (data) setLiderancas(data);
   };
 
