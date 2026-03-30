@@ -68,12 +68,19 @@ export default function AdminDeputados() {
     );
   }, [tenants, search]);
 
-  const searchCamara = async () => {
-    if (camaraSearch.length < 3) return;
+  // Debounced search
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const searchCamara = async (query: string) => {
+    if (query.length < 3) {
+      setCamaraResults([]);
+      setSearchingCamara(false);
+      return;
+    }
     setSearchingCamara(true);
     try {
       const res = await fetch(
-        `https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(camaraSearch)}&ordem=ASC&ordenarPor=nome`
+        `https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(query)}&ordem=ASC&ordenarPor=nome`
       );
       const json = await res.json();
       setCamaraResults(
@@ -90,6 +97,16 @@ export default function AdminDeputados() {
       toast.error("Erro ao buscar na API da Câmara");
     }
     setSearchingCamara(false);
+  };
+
+  const handleCamaraSearchChange = (value: string) => {
+    setCamaraSearch(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (value.length >= 3) {
+      searchTimeoutRef.current = setTimeout(() => searchCamara(value), 400);
+    } else {
+      setCamaraResults([]);
+    }
   };
 
   const selectDeputado = async (dep: CamaraDeputado) => {
