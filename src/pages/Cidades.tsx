@@ -516,7 +516,24 @@ export default function Cidades() {
                 {activeFilterCount}
               </Badge>
             )}
-          </Button>
+           </Button>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button
+                   variant={sortByPop !== "none" ? "default" : "outline"}
+                   className="gap-2"
+                   onClick={() => setSortByPop(prev => prev === "none" ? "desc" : prev === "desc" ? "asc" : "none")}
+                 >
+                   {sortByPop === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   Pop.
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent>
+                 {sortByPop === "none" ? "Ordenar por população (maior → menor)" : sortByPop === "desc" ? "Ordenar por população (menor → maior)" : "Ordenar por score"}
+               </TooltipContent>
+             </Tooltip>
+           </TooltipProvider>
           <div className="flex border rounded-md">
             <Button
               variant={viewMode === "cards" ? "default" : "ghost"}
