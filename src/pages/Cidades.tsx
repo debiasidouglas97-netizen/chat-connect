@@ -600,50 +600,75 @@ export default function Cidades() {
           <p className="text-sm">Tente ajustar os filtros ou a busca</p>
         </div>
       ) : viewMode === "cards" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {cidades.map((c) => {
-            const cfg = statusConfig[c.status];
-            return (
-              <Card key={c.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-base">{c.name}</CardTitle>
+        <TooltipProvider>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {cidades.map((c) => {
+              const cfg = statusConfig[c.status];
+              const popClass = getPopulationClass(c.population);
+              const popNum = parsePopulation(c.population);
+              return (
+                <Card
+                  key={c.id}
+                  className="hover:shadow-md transition-shadow"
+                  style={{ backgroundColor: popClass.bg, borderColor: popClass.border }}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" style={{ color: popClass.text }} />
+                        <CardTitle className="text-base" style={{ color: popClass.text }}>{c.name}</CardTitle>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] cursor-help"
+                              style={{ backgroundColor: `${popClass.bg}CC`, borderColor: popClass.border, color: popClass.text }}
+                            >
+                              {popClass.label}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-semibold">{popClass.label}</p>
+                            <p className="text-xs">População: {popNum > 0 ? popNum.toLocaleString("pt-BR") : "N/D"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
+                          <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
-                      <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {showScore && (
-                    <div className="flex items-center gap-2">
-                      <Progress value={c.score} className="h-2 flex-1" />
-                      <span className="text-sm font-bold text-foreground w-8 text-right">{c.score}</span>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {showScore && (
+                      <div className="flex items-center gap-2">
+                        <Progress value={c.score} className="h-2 flex-1" />
+                        <span className="text-sm font-bold w-8 text-right" style={{ color: popClass.text }}>{c.score}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
+                      <span className="font-semibold">Pop: {c.population}</span>
+                      <span>Peso: {c.peso}/10</span>
+                      <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
+                      <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                      <span>{c.regiao}</span>
                     </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <span>Pop: {c.population}</span>
-                    <span>Peso: {c.peso}/10</span>
-                    <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                    <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
-                    <span>{c.regiao}</span>
-                  </div>
-                  <div className="flex gap-1 pt-1">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
-                      <Pencil className="h-3 w-3" /> Editar
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
-                      <Trash2 className="h-3 w-3" /> Excluir
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    <div className="flex gap-1 pt-1">
+                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
+                        <Pencil className="h-3 w-3" /> Editar
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
+                        <Trash2 className="h-3 w-3" /> Excluir
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       ) : (
         <Card>
           <Table>
