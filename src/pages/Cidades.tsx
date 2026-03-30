@@ -376,6 +376,7 @@ export default function Cidades() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [detailCity, setDetailCity] = useState<any | null>(null);
 
   const [sortField, setSortField] = useState<"none" | "pop" | "liderancas">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
