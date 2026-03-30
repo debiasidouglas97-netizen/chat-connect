@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCidades } from "@/hooks/use-cidades";
+import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
@@ -375,6 +376,7 @@ export default function Cidades() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [detailCity, setDetailCity] = useState<any | null>(null);
 
   const [sortField, setSortField] = useState<"none" | "pop" | "liderancas">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
@@ -639,8 +641,9 @@ export default function Cidades() {
               return (
                 <Card
                   key={c.id}
-                  className="hover:shadow-md transition-shadow"
+                  className="hover:shadow-md transition-shadow cursor-pointer"
                   style={{ backgroundColor: popClass.bg, borderColor: popClass.border }}
+                  onClick={() => setDetailCity(c)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -686,10 +689,10 @@ export default function Cidades() {
                       <span>{c.regiao}</span>
                     </div>
                     <div className="flex gap-1 pt-1">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
                         <Pencil className="h-3 w-3" /> Editar
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
                         <Trash2 className="h-3 w-3" /> Excluir
                       </Button>
                     </div>
@@ -721,7 +724,7 @@ export default function Cidades() {
                 const cfg = statusConfig[c.status];
                 const popClass = getPopulationClass(c.population);
                 return (
-                  <TableRow key={c.id} style={{ backgroundColor: `${popClass.bg}80` }}>
+                  <TableRow key={c.id} className="cursor-pointer" style={{ backgroundColor: `${popClass.bg}80` }} onClick={() => setDetailCity(c)}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" style={{ color: popClass.text }} />
@@ -763,12 +766,12 @@ export default function Cidades() {
                     <TableCell>{c.emendas}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
-                          <Pencil className="h-3 w-3" /> Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
-                          <Trash2 className="h-3 w-3" /> Excluir
-                        </Button>
+                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
+                           <Pencil className="h-3 w-3" /> Editar
+                         </Button>
+                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
+                           <Trash2 className="h-3 w-3" /> Excluir
+                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -803,6 +806,12 @@ export default function Cidades() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CidadeDetailDialog
+        open={!!detailCity}
+        onOpenChange={(v) => !v && setDetailCity(null)}
+        cidade={detailCity}
+      />
     </div>
   );
 }

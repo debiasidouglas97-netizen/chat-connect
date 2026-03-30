@@ -6,7 +6,8 @@ import { Plus, MapPin, Star, StickyNote, X, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
 import LiderancaDetailDialog from "@/components/liderancas/LiderancaDetailDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
@@ -31,7 +32,16 @@ export default function Liderancas() {
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
+  const [searchParams] = useSearchParams();
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
+
+  useEffect(() => {
+    const busca = searchParams.get("busca");
+    if (busca) {
+      setSearchQuery(busca);
+      setSearchField("nome");
+    }
+  }, [searchParams]);
   const { cidades: cidadesRaw } = useCidades();
 
   const cidadesMap = useMemo(() => {
