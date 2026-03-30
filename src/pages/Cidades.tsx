@@ -150,24 +150,28 @@ function CidadeFormDialog({ open, onOpenChange, onSave, onBatchSave, initial }: 
     setBatchSaving(true);
     try {
       const munis = await fetchMunicipiosByUF(batchEstado);
-      const cities: CidadeBase[] = [];
-
-      for (const line of lines) {
+      const cities: CidadeBase[] = lines.map(line => {
         const found = munis.find((m: any) => m.nome.toLowerCase() === line.toLowerCase());
-        let pop = "0";
-        if (found) {
-          pop = await fetchPopulacaoIBGE(found.id);
-        }
-        cities.push({
+        return {
           name: `${found?.nome || line}/${batchEstado}`,
-          population: pop, peso: 5, regiao: batchEstado,
+          population: "0", peso: 5, regiao: batchEstado,
           demandas: 0, demandasResolvidas: 0, comunicacaoRecente: false,
           presencaDeputado: false, engajamento: 0, liderancas: 0, emendas: 0,
-        });
-      }
+        };
+      });
 
-      await onBatchSave(cities);
-      toast.success(`${cities.length} cidades importadas!`);
+      let imported = 0;
+      let skipped = 0;
+      for (const c of cities) {
+        try {
+          await onBatchSave([c]);
+          imported++;
+        } catch {
+          skipped++;
+        }
+      }
+      if (imported > 0) toast.success(`${imported} cidades importadas!`);
+      if (skipped > 0) toast.info(`${skipped} cidades já existiam e foram ignoradas`);
       onOpenChange(false);
     } catch (e: any) {
       toast.error("Erro na importação: " + e.message);
