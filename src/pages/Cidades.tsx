@@ -766,12 +766,12 @@ export default function Cidades() {
                     <TableCell>{c.emendas}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
-                          <Pencil className="h-3 w-3" /> Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
-                          <Trash2 className="h-3 w-3" /> Excluir
-                        </Button>
+                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
+                           <Pencil className="h-3 w-3" /> Editar
+                         </Button>
+                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
+                           <Trash2 className="h-3 w-3" /> Excluir
+                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
