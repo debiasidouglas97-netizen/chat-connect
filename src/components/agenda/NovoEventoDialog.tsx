@@ -58,6 +58,10 @@ export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDa
   const [convidados, setConvidados] = useState("");
   const [notas, setNotas] = useState("");
   const [saving, setSaving] = useState(false);
+  const [telegramText, setTelegramText] = useState("");
+  const [telegramEstilo, setTelegramEstilo] = useState<"curto" | "detalhado" | "longo">("detalhado");
+  const [generatingTelegram, setGeneratingTelegram] = useState(false);
+  const [telegramApproved, setTelegramApproved] = useState(false);
 
   useEffect(() => {
     if (open) {
