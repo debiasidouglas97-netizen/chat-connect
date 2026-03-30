@@ -51,6 +51,11 @@ export default function Configuracoes() {
   const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [syncing, setSyncing] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+  const [telegramBotUsername, setTelegramBotUsername] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [savingTelegram, setSavingTelegram] = useState(false);
+  const [testingBot, setTestingBot] = useState(false);
 
   const [form, setForm] = useState({
     full_name: "",
