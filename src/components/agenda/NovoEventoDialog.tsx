@@ -341,11 +341,134 @@ export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDa
               </div>
             </TabsContent>
 
-            {/* TAB: Extras */}
-            <TabsContent value="extras" className="space-y-4">
+            {/* TAB: Telegram */}
+            <TabsContent value="telegram" className="space-y-4">
               <div>
-                <Label>Notas</Label>
-                <Textarea value={notas} onChange={e => setNotas(e.target.value)} rows={4} />
+                <Label>Notas internas</Label>
+                <Textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2} placeholder="Notas internas (não enviadas)" />
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-primary" />
+                    <Label className="text-sm font-semibold">Mensagem Telegram</Label>
+                  </div>
+                  <div className="flex gap-1">
+                    {(["curto", "detalhado", "longo"] as const).map(est => (
+                      <Button
+                        key={est}
+                        type="button"
+                        variant={telegramEstilo === est ? "default" : "outline"}
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => setTelegramEstilo(est)}
+                      >
+                        {est === "curto" ? "Curto" : est === "detalhado" ? "Detalhado" : "Longo"}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={generatingTelegram || !titulo.trim()}
+                  onClick={async () => {
+                    setGeneratingTelegram(true);
+                    setTelegramApproved(false);
+                    try {
+                      const [y, m, d] = (data || "").split("-");
+                      const dataFormatada = data ? `${d}/${m}/${y}` : "A definir";
+                      const { data: fnData, error } = await supabase.functions.invoke("generate-telegram-text", {
+                        body: {
+                          titulo, descricao: description, data: dataFormatada,
+                          hora: diaInteiro ? "Dia inteiro" : hora,
+                          hora_fim: horaFim || null, cidade, endereco, local_nome: localNome, tipo, estilo: telegramEstilo,
+                        },
+                      });
+                      if (error) throw error;
+                      if (fnData?.error) throw new Error(fnData.error);
+                      setTelegramText(fnData.text || "");
+                    } catch (e: any) {
+                      toast({ title: "Erro ao gerar texto", description: e.message, variant: "destructive" });
+                    } finally {
+                      setGeneratingTelegram(false);
+                    }
+                  }}
+                >
+                  {generatingTelegram ? (
+                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Gerando...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4 mr-2" /> Gerar texto com IA</>
+                  )}
+                </Button>
+
+                {telegramText && (
+                  <>
+                    {/* Phone-style preview */}
+                    <div className="flex justify-center">
+                      <div className="w-[320px] rounded-2xl border-2 border-border bg-background shadow-lg overflow-hidden">
+                        {/* Phone header */}
+                        <div className="bg-[#0088cc] text-white px-4 py-2 flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">MG</div>
+                          <div>
+                            <div className="text-sm font-semibold">MandatoGov Bot</div>
+                            <div className="text-[10px] opacity-80">online</div>
+                          </div>
+                        </div>
+                        {/* Chat area */}
+                        <div className="bg-[#e5ddd5] dark:bg-[#0b141a] p-3 min-h-[200px]">
+                          <div className="bg-white dark:bg-[#1f2c34] rounded-lg p-3 shadow-sm max-w-[280px]">
+                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{telegramText}</p>
+                            <div className="text-[10px] text-muted-foreground text-right mt-1">
+                              {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Editable text */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Edite o texto se necessário:</Label>
+                      <Textarea
+                        value={telegramText}
+                        onChange={e => { setTelegramText(e.target.value); setTelegramApproved(false); }}
+                        rows={5}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    {/* Approve + Send */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant={telegramApproved ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setTelegramApproved(!telegramApproved)}
+                      >
+                        {telegramApproved ? "✅ Aprovado" : "Aprovar texto"}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={!telegramApproved}
+                        className="flex-1 bg-[#0088cc] hover:bg-[#0077b5] text-white"
+                        onClick={async () => {
+                          try {
+                            // Save the event first if not saved yet
+                            toast({ title: "Salve o evento primeiro para enviar via Telegram" });
+                          } catch (e: any) {
+                            toast({ title: "Erro", description: e.message, variant: "destructive" });
+                          }
+                        }}
+                      >
+                        <Send className="h-4 w-4 mr-2" /> Enviar via Telegram
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </TabsContent>
           </Tabs>
