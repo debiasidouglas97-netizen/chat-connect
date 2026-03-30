@@ -10,6 +10,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 export function AppLayout() {
   const { userAvatarUrl, userInitials } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <SidebarProvider>
