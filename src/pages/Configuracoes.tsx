@@ -119,6 +119,23 @@ export default function Configuracoes() {
     }
   }, [profile]);
 
+  // Load telegram bot config from tenant
+  useEffect(() => {
+    if (tenantId) {
+      supabase
+        .from("tenants")
+        .select("telegram_bot_token, telegram_bot_username")
+        .eq("id", tenantId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setTelegramBotToken((data as any).telegram_bot_token || "");
+            setTelegramBotUsername((data as any).telegram_bot_username || "");
+          }
+        });
+    }
+  }, [tenantId]);
+
   // Auto-sync from Câmara API if profile has no data yet
   const syncFromCamara = async () => {
     if (!tenantId) return;
