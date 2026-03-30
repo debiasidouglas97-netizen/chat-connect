@@ -45,7 +45,7 @@ export default function UserManagement() {
   const { tenantId } = useTenant();
   const [users, setUsers] = useState<Profile[]>([]);
   const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<Profile | null>(null);
