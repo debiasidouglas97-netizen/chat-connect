@@ -388,10 +388,77 @@ export default function Cidades() {
         </Button>
       </div>
 
-      {cidades.length === 0 ? (
+      {/* Search & Filters */}
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar cidades por nome ou região..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+
+        {showFilters && (
+          <div className="flex flex-col sm:flex-row gap-3 mt-3 pt-3 border-t">
+            <div className="flex-1">
+              <Label className="text-xs font-semibold uppercase tracking-wider">Estado</Label>
+              <Select value={filterEstado} onValueChange={setFilterEstado}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os estados</SelectItem>
+                  {estados.map(e => (
+                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs font-semibold uppercase tracking-wider">Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="atencao">Atenção</SelectItem>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" className="self-end text-xs" onClick={() => { setFilterEstado("all"); setFilterStatus("all"); }}>
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {cidades.length === 0 && allCidades.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-lg">Nenhuma cidade cadastrada</p>
           <p className="text-sm">Clique em "Nova Cidade" para começar</p>
+        </div>
+      ) : cidades.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="text-lg">Nenhuma cidade encontrada</p>
+          <p className="text-sm">Tente ajustar os filtros ou a busca</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
