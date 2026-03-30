@@ -689,16 +689,31 @@ export default function Cidades() {
             <TableBody>
               {cidades.map((c) => {
                 const cfg = statusConfig[c.status];
+                const popClass = getPopulationClass(c.population);
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} style={{ backgroundColor: `${popClass.bg}80` }}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4" style={{ color: popClass.text }} />
                         {c.name}
                       </div>
                     </TableCell>
                     <TableCell>{c.regiao}</TableCell>
-                    <TableCell>{c.population}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            <Badge variant="outline" className="text-[10px]" style={{ backgroundColor: popClass.bg, borderColor: popClass.border, color: popClass.text }}>
+                              {c.population} — {popClass.label}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-semibold">{popClass.label}</p>
+                            <p className="text-xs">Pop: {parsePopulation(c.population).toLocaleString("pt-BR")}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell>{c.peso}/10</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
