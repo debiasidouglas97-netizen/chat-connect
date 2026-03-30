@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2 } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List } from "lucide-react";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
 import {
@@ -328,6 +329,7 @@ export default function Cidades() {
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
 
   const allCidades = useMemo(
     () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })).sort((a, b) => b.score - a.score),
@@ -400,7 +402,7 @@ export default function Cidades() {
               className="pl-9"
             />
           </div>
-          <Button
+           <Button
             variant="outline"
             className="gap-2"
             onClick={() => setShowFilters(!showFilters)}
@@ -413,6 +415,24 @@ export default function Cidades() {
               </Badge>
             )}
           </Button>
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === "cards" ? "default" : "ghost"}
+              size="icon"
+              className="h-9 w-9 rounded-r-none"
+              onClick={() => setViewMode("cards")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="icon"
+              className="h-9 w-9 rounded-l-none"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {showFilters && (
@@ -460,7 +480,7 @@ export default function Cidades() {
           <p className="text-lg">Nenhuma cidade encontrada</p>
           <p className="text-sm">Tente ajustar os filtros ou a busca</p>
         </div>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {cidades.map((c) => {
             const cfg = statusConfig[c.status];
@@ -505,6 +525,69 @@ export default function Cidades() {
             );
           })}
         </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cidade</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>População</TableHead>
+                <TableHead>Peso</TableHead>
+                <TableHead>Status</TableHead>
+                {showScore && <TableHead>Score</TableHead>}
+                <TableHead>Demandas</TableHead>
+                <TableHead>Lideranças</TableHead>
+                <TableHead>Emendas</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cidades.map((c) => {
+                const cfg = statusConfig[c.status];
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        {c.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>{c.regiao}</TableCell>
+                    <TableCell>{c.population}</TableCell>
+                    <TableCell>{c.peso}/10</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
+                        <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
+                      </Badge>
+                    </TableCell>
+                    {showScore && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Progress value={c.score} className="h-2 w-16" />
+                          <span className="text-sm font-bold">{c.score}</span>
+                        </div>
+                      </TableCell>
+                    )}
+                    <TableCell>{c.demandas}</TableCell>
+                    <TableCell>{c.liderancas}</TableCell>
+                    <TableCell>{c.emendas}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
+                          <Trash2 className="h-3 w-3" /> Excluir
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <CidadeFormDialog
