@@ -641,8 +641,9 @@ export default function Cidades() {
               return (
                 <Card
                   key={c.id}
-                  className="hover:shadow-md transition-shadow"
+                  className="hover:shadow-md transition-shadow cursor-pointer"
                   style={{ backgroundColor: popClass.bg, borderColor: popClass.border }}
+                  onClick={() => setDetailCity(c)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
