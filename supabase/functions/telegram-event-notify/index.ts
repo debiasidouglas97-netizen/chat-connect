@@ -69,26 +69,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Find contacts to notify: liderancas from the same city
+    // Find contacts to notify: liderancas from the same city AND tenant
     const cidadeEvento = evento.cidade;
+    const tenantId = evento.tenant_id;
 
-    // Get liderancas from this city that have telegram_username
-    const { data: liderancasCity } = await supabase
-      .from('liderancas')
-      .select('name, telegram_username')
-      .eq('cidade_principal', cidadeEvento)
-      .not('telegram_username', 'is', null);
-
-    if (!liderancasCity || liderancasCity.length === 0) {
-      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'No liderancas with Telegram in this city' }), {
+    if (!tenantId) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'Event has no tenant_id' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get telegram_contacts to find chat_ids
+    // Get liderancas from this city that have telegram_username - filtered by tenant
+    const { data: liderancasCity } = await supabase
+      .from('liderancas')
+      .select('name, telegram_username')
+      .eq('tenant_id', tenantId)
+      .eq('cidade_principal', cidadeEvento)
+      .not('telegram_username', 'is', null)
+      .neq('telegram_username', '');
+
+    if (!liderancasCity || liderancasCity.length === 0) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'No liderancas with Telegram in this city for this tenant' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get telegram_contacts for this tenant only
     const { data: contacts } = await supabase
       .from('telegram_contacts')
-      .select('chat_id, username, lideranca_name');
+      .select('chat_id, username, lideranca_name')
+      .eq('tenant_id', tenantId);
 
     if (!contacts || contacts.length === 0) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'No Telegram contacts found' }), {
