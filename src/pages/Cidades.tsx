@@ -417,7 +417,17 @@ export default function Cidades() {
         </div>
       )}
 
-      <CidadeFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} initial={editingCity} />
+      <CidadeFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSave={handleSave}
+        onBatchSave={async (cities) => {
+          for (const c of cities) {
+            await insert(c);
+          }
+        }}
+        initial={editingCity}
+      />
 
       <AlertDialog open={!!deleteCity} onOpenChange={() => setDeleteCity(null)}>
         <AlertDialogContent>
