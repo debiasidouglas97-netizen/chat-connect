@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
 import {
@@ -25,6 +26,25 @@ const statusConfig = {
   atencao: { icon: AlertTriangle, label: "Atenção", className: "bg-warning/10 text-warning border-warning/20" },
   baixa: { icon: Snowflake, label: "Baixa", className: "bg-info/10 text-info border-info/20" },
 };
+
+// Population classification for color coding
+const FAIXAS_POPULACAO = [
+  { max: 50000, label: "Cidade pequena", bg: "#D1FAE5", border: "#A7F3D0", text: "#065F46" },
+  { max: 200000, label: "Cidade média", bg: "#DBEAFE", border: "#BFDBFE", text: "#1E40AF" },
+  { max: 500000, label: "Cidade grande", bg: "#FEF3C7", border: "#FDE68A", text: "#92400E" },
+  { max: 1000000, label: "Metrópole regional", bg: "#FED7AA", border: "#FDBA74", text: "#9A3412" },
+  { max: Infinity, label: "Metrópole", bg: "#FECACA", border: "#FCA5A5", text: "#991B1B" },
+];
+
+function parsePopulation(pop: string): number {
+  if (!pop || pop === "0") return 0;
+  return Number(pop.replace(/\./g, "").replace(/,/g, "")) || 0;
+}
+
+function getPopulationClass(pop: string) {
+  const num = parsePopulation(pop);
+  return FAIXAS_POPULACAO.find(f => num <= f.max) || FAIXAS_POPULACAO[0];
+}
 
 const ESTADOS_BR = [
   { sigla: "AC", nome: "Acre" }, { sigla: "AL", nome: "Alagoas" }, { sigla: "AP", nome: "Amapá" },
@@ -356,13 +376,15 @@ export default function Cidades() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
 
+  const [sortByPop, setSortByPop] = useState<"desc" | "asc" | "none">("none");
+
   const allCidades = useMemo(
-    () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })).sort((a, b) => b.score - a.score),
+    () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })),
     [cidadesRaw]
   );
 
   const cidades = useMemo(() => {
-    return allCidades.filter((c) => {
+    const filtered = allCidades.filter((c) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!c.name.toLowerCase().includes(q) && !c.regiao.toLowerCase().includes(q)) return false;
@@ -371,7 +393,14 @@ export default function Cidades() {
       if (filterStatus !== "all" && c.status !== filterStatus) return false;
       return true;
     });
-  }, [allCidades, searchQuery, filterEstado, filterStatus]);
+
+    if (sortByPop === "desc") {
+      return [...filtered].sort((a, b) => parsePopulation(b.population) - parsePopulation(a.population));
+    } else if (sortByPop === "asc") {
+      return [...filtered].sort((a, b) => parsePopulation(a.population) - parsePopulation(b.population));
+    }
+    return [...filtered].sort((a, b) => b.score - a.score);
+  }, [allCidades, searchQuery, filterEstado, filterStatus, sortByPop]);
 
   const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
@@ -487,7 +516,24 @@ export default function Cidades() {
                 {activeFilterCount}
               </Badge>
             )}
-          </Button>
+           </Button>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button
+                   variant={sortByPop !== "none" ? "default" : "outline"}
+                   className="gap-2"
+                   onClick={() => setSortByPop(prev => prev === "none" ? "desc" : prev === "desc" ? "asc" : "none")}
+                 >
+                   {sortByPop === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   Pop.
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent>
+                 {sortByPop === "none" ? "Ordenar por população (maior → menor)" : sortByPop === "desc" ? "Ordenar por população (menor → maior)" : "Ordenar por score"}
+               </TooltipContent>
+             </Tooltip>
+           </TooltipProvider>
           <div className="flex border rounded-md">
             <Button
               variant={viewMode === "cards" ? "default" : "ghost"}
@@ -554,50 +600,75 @@ export default function Cidades() {
           <p className="text-sm">Tente ajustar os filtros ou a busca</p>
         </div>
       ) : viewMode === "cards" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {cidades.map((c) => {
-            const cfg = statusConfig[c.status];
-            return (
-              <Card key={c.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-base">{c.name}</CardTitle>
+        <TooltipProvider>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {cidades.map((c) => {
+              const cfg = statusConfig[c.status];
+              const popClass = getPopulationClass(c.population);
+              const popNum = parsePopulation(c.population);
+              return (
+                <Card
+                  key={c.id}
+                  className="hover:shadow-md transition-shadow"
+                  style={{ backgroundColor: popClass.bg, borderColor: popClass.border }}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" style={{ color: popClass.text }} />
+                        <CardTitle className="text-base" style={{ color: popClass.text }}>{c.name}</CardTitle>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] cursor-help"
+                              style={{ backgroundColor: `${popClass.bg}CC`, borderColor: popClass.border, color: popClass.text }}
+                            >
+                              {popClass.label}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-semibold">{popClass.label}</p>
+                            <p className="text-xs">População: {popNum > 0 ? popNum.toLocaleString("pt-BR") : "N/D"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
+                          <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
-                      <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {showScore && (
-                    <div className="flex items-center gap-2">
-                      <Progress value={c.score} className="h-2 flex-1" />
-                      <span className="text-sm font-bold text-foreground w-8 text-right">{c.score}</span>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {showScore && (
+                      <div className="flex items-center gap-2">
+                        <Progress value={c.score} className="h-2 flex-1" />
+                        <span className="text-sm font-bold w-8 text-right" style={{ color: popClass.text }}>{c.score}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
+                      <span className="font-semibold">Pop: {c.population}</span>
+                      <span>Peso: {c.peso}/10</span>
+                      <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
+                      <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                      <span>{c.regiao}</span>
                     </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <span>Pop: {c.population}</span>
-                    <span>Peso: {c.peso}/10</span>
-                    <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                    <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
-                    <span>{c.regiao}</span>
-                  </div>
-                  <div className="flex gap-1 pt-1">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
-                      <Pencil className="h-3 w-3" /> Editar
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
-                      <Trash2 className="h-3 w-3" /> Excluir
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    <div className="flex gap-1 pt-1">
+                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditingCity(c); setFormOpen(true); }}>
+                        <Pencil className="h-3 w-3" /> Editar
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteCity(c)}>
+                        <Trash2 className="h-3 w-3" /> Excluir
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       ) : (
         <Card>
           <Table>
@@ -618,16 +689,31 @@ export default function Cidades() {
             <TableBody>
               {cidades.map((c) => {
                 const cfg = statusConfig[c.status];
+                const popClass = getPopulationClass(c.population);
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} style={{ backgroundColor: `${popClass.bg}80` }}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
+                        <MapPin className="h-4 w-4" style={{ color: popClass.text }} />
                         {c.name}
                       </div>
                     </TableCell>
                     <TableCell>{c.regiao}</TableCell>
-                    <TableCell>{c.population}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            <Badge variant="outline" className="text-[10px]" style={{ backgroundColor: popClass.bg, borderColor: popClass.border, color: popClass.text }}>
+                              {c.population} — {popClass.label}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-semibold">{popClass.label}</p>
+                            <p className="text-xs">Pop: {parsePopulation(c.population).toLocaleString("pt-BR")}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell>{c.peso}/10</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
