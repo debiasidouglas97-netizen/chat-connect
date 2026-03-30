@@ -178,15 +178,22 @@ function CidadeFormDialog({ open, onOpenChange, onSave, onBatchSave, initial }: 
     setBatchSaving(true);
     try {
       const munis = await fetchMunicipiosByUF(batchEstado);
-      const cities: CidadeBase[] = lines.map(line => {
+      const matched = lines.map(line => {
         const found = munis.find((m: any) => m.nome.toLowerCase() === line.toLowerCase());
-        return {
-          name: `${found?.nome || line}/${batchEstado}`,
-          population: "0", peso: 5, regiao: batchEstado,
-          demandas: 0, demandasResolvidas: 0, comunicacaoRecente: false,
-          presencaDeputado: false, engajamento: 0, liderancas: 0, emendas: 0,
-        };
+        return { line, found };
       });
+
+      // Fetch populations in bulk
+      const idsToFetch = matched.filter(m => m.found).map(m => m.found.id as number);
+      const popMap = await fetchPopulacoesBulk(idsToFetch);
+
+      const cities: CidadeBase[] = matched.map(({ line, found }) => ({
+        name: `${found?.nome || line}/${batchEstado}`,
+        population: found ? (popMap.get(found.id) || "0") : "0",
+        peso: 5, regiao: batchEstado,
+        demandas: 0, demandasResolvidas: 0, comunicacaoRecente: false,
+        presencaDeputado: false, engajamento: 0, liderancas: 0, emendas: 0,
+      }));
 
       let imported = 0;
       let skipped = 0;
