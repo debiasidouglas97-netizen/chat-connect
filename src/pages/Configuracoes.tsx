@@ -453,6 +453,7 @@ export default function Configuracoes() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="aparencia" className="mt-4 space-y-6">
           {/* Theme toggle */}
           <Card>
             <CardHeader className="pb-3">
