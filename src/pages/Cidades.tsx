@@ -324,11 +324,30 @@ export default function Cidades() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterEstado, setFilterEstado] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
-  const cidades = useMemo(
+  const allCidades = useMemo(
     () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })).sort((a, b) => b.score - a.score),
     [cidadesRaw]
   );
+
+  const cidades = useMemo(() => {
+    return allCidades.filter((c) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!c.name.toLowerCase().includes(q) && !c.regiao.toLowerCase().includes(q)) return false;
+      }
+      if (filterEstado !== "all" && c.regiao !== filterEstado) return false;
+      if (filterStatus !== "all" && c.status !== filterStatus) return false;
+      return true;
+    });
+  }, [allCidades, searchQuery, filterEstado, filterStatus]);
+
+  const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
+  const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
   const showScore = canViewScore(CURRENT_ROLE);
 
   const handleSave = async (c: CidadeBase) => {
