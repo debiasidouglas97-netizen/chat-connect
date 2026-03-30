@@ -112,15 +112,25 @@ export default function AdminDeputados() {
   const selectDeputado = async (dep: CamaraDeputado) => {
     setSelectedDeputado(dep);
     setCamaraResults([]);
-    // Fetch full details
+    setCamaraSearch("");
+    // Fetch full details from Câmara API
     try {
       const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados/${dep.id}`);
       const json = await res.json();
       const d = json.dados;
+      const gab = d.ultimoStatus?.gabinete || {};
       setFormExtra((f) => ({
         ...f,
-        email_acesso: d.ultimoStatus?.gabinete?.email || dep.email || "",
+        email_acesso: gab.email || dep.email || "",
+        cpf: d.cpf || "",
+        telefone: gab.telefone || "",
         data_nascimento: d.dataNascimento || "",
+        endereco_cep: "",
+        endereco_rua: gab.predio ? `${gab.predio}` : "",
+        endereco_numero: gab.sala || "",
+        endereco_bairro: gab.andar ? `Andar ${gab.andar}` : "",
+        endereco_cidade: d.ultimoStatus?.siglaUf === "DF" ? "Brasília" : "",
+        endereco_estado: d.ultimoStatus?.siglaUf || dep.siglaUf || "",
       }));
     } catch {
       // keep what we have
