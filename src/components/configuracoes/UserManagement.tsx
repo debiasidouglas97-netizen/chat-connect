@@ -224,6 +224,7 @@ export default function UserManagement() {
           role: form.role,
           lideranca_id: form.lideranca_id,
           cities,
+          tenant_id: tenantId,
           avatar_url: linkedLideranca?.avatar_url || linkedLideranca?.img || null,
         } as any).eq("id", data.user.id);
 
