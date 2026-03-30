@@ -330,7 +330,129 @@ export default function Configuracoes() {
           <UserManagement />
         </TabsContent>
 
-        <TabsContent value="aparencia" className="mt-4 space-y-6">
+        <TabsContent value="integracoes" className="mt-4 space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Bot className="h-5 w-5 text-primary" />
+                Bot do Telegram
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Configure o bot do Telegram para enviar notificações e receber demandas das lideranças. 
+                Crie seu bot pelo <a href="https://t.me/BotFather" target="_blank" rel="noopener" className="text-primary underline">@BotFather</a> no Telegram.
+              </p>
+
+              <div>
+                <Label className="flex items-center gap-1"><AtSign className="h-3 w-3" /> Nome do Bot</Label>
+                <Input
+                  value={telegramBotUsername}
+                  onChange={e => setTelegramBotUsername(e.target.value)}
+                  placeholder="@MeuBot"
+                />
+                <p className="text-[10px] text-muted-foreground mt-0.5">Ex: @MandatoGov_Bot</p>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-1">🔑 Token da API</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showToken ? "text" : "password"}
+                      value={telegramBotToken}
+                      onChange={e => setTelegramBotToken(e.target.value)}
+                      placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowToken(!showToken)}
+                    >
+                      {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Obtenha pelo @BotFather → /newbot ou /token. Cada mandato usa seu próprio bot.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={async () => {
+                    if (!tenantId) return;
+                    setSavingTelegram(true);
+                    try {
+                      const { error } = await supabase
+                        .from("tenants")
+                        .update({
+                          telegram_bot_token: telegramBotToken.trim() || null,
+                          telegram_bot_username: telegramBotUsername.trim() || null,
+                        } as any)
+                        .eq("id", tenantId);
+                      if (error) throw error;
+                      toast.success("Configuração do Telegram salva!");
+                    } catch (e: any) {
+                      toast.error("Erro ao salvar: " + e.message);
+                    } finally {
+                      setSavingTelegram(false);
+                    }
+                  }}
+                  disabled={savingTelegram}
+                  className="gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {savingTelegram ? "Salvando..." : "Salvar configuração"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  disabled={!telegramBotToken.trim() || testingBot}
+                  onClick={async () => {
+                    setTestingBot(true);
+                    try {
+                      const res = await fetch(`https://api.telegram.org/bot${telegramBotToken.trim()}/getMe`);
+                      const data = await res.json();
+                      if (data.ok) {
+                        toast.success(`✅ Bot conectado: @${data.result.username}`);
+                        if (data.result.username && !telegramBotUsername) {
+                          setTelegramBotUsername(`@${data.result.username}`);
+                        }
+                      } else {
+                        toast.error("❌ Token inválido: " + (data.description || "Erro desconhecido"));
+                      }
+                    } catch (e: any) {
+                      toast.error("Erro ao testar: " + e.message);
+                    } finally {
+                      setTestingBot(false);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  {testingBot ? "Testando..." : "Testar conexão"}
+                </Button>
+              </div>
+
+              {telegramBotUsername && (
+                <div className="rounded-lg bg-muted/50 p-3 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#0088cc] flex items-center justify-center text-white font-bold text-sm">
+                    <Bot className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{telegramBotUsername}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {telegramBotToken ? "✅ Token configurado" : "⚠️ Token não configurado"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
           {/* Theme toggle */}
           <Card>
             <CardHeader className="pb-3">
