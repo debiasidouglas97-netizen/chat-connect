@@ -42,12 +42,15 @@ export function useEventos() {
   const query = useQuery({
     queryKey: ["eventos", tenantId],
     queryFn: async () => {
-      let q = supabase.from("eventos").select("*").order("data", { ascending: true });
-      if (tenantId) q = q.eq("tenant_id", tenantId);
-      const { data, error } = await q;
+      const { data, error } = await supabase
+        .from("eventos")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .order("data", { ascending: true });
       if (error) throw error;
       return (data as unknown as EventoRow[]);
     },
+    enabled: !!tenantId,
   });
 
   const insertMutation = useMutation({

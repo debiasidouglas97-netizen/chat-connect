@@ -43,12 +43,15 @@ export function useCidades() {
   const query = useQuery({
     queryKey: ["cidades", tenantId],
     queryFn: async () => {
-      let q = supabase.from("cidades").select("*").order("name");
-      if (tenantId) q = q.eq("tenant_id", tenantId);
-      const { data, error } = await q;
+      const { data, error } = await supabase
+        .from("cidades")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .order("name");
       if (error) throw error;
       return (data as unknown as CidadeRow[]).map(rowToBase);
     },
+    enabled: !!tenantId,
   });
 
   const insertMutation = useMutation({

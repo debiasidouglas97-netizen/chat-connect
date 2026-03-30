@@ -26,16 +26,16 @@ export function useDemandas() {
   const query = useQuery({
     queryKey: ["demandas", tenantId],
     queryFn: async () => {
-      let q = supabase
+      const { data, error } = await supabase
         .from("demandas")
         .select("*")
+        .eq("tenant_id", tenantId!)
         .order("order_index", { ascending: true })
         .order("created_at", { ascending: false });
-      if (tenantId) q = q.eq("tenant_id", tenantId);
-      const { data, error } = await q;
       if (error) throw error;
       return data as unknown as DemandaRow[];
     },
+    enabled: !!tenantId,
   });
 
   const insertMutation = useMutation({

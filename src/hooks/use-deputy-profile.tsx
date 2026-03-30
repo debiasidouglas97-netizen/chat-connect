@@ -28,12 +28,16 @@ export function useDeputyProfile() {
   const query = useQuery({
     queryKey: ["deputy-profile", tenantId],
     queryFn: async () => {
-      let q = supabase.from("deputy_profile").select("*");
-      if (tenantId) q = q.eq("tenant_id", tenantId);
-      const { data, error } = await q.limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("deputy_profile")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data as DeputyProfile | null;
     },
+    enabled: !!tenantId,
   });
 
   const upsert = useMutation({
