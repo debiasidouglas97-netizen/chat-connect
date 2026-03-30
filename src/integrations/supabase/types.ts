@@ -1054,6 +1054,8 @@ export type Database = {
           partido: string | null
           status: string
           telefone: string | null
+          telegram_bot_token: string | null
+          telegram_bot_username: string | null
           updated_at: string
         }
         Insert: {
@@ -1076,6 +1078,8 @@ export type Database = {
           partido?: string | null
           status?: string
           telefone?: string | null
+          telegram_bot_token?: string | null
+          telegram_bot_username?: string | null
           updated_at?: string
         }
         Update: {
@@ -1098,6 +1102,8 @@ export type Database = {
           partido?: string | null
           status?: string
           telefone?: string | null
+          telegram_bot_token?: string | null
+          telegram_bot_username?: string | null
           updated_at?: string
         }
         Relationships: []
