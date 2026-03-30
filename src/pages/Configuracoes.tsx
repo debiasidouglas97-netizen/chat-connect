@@ -8,8 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign, Users } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign, Users, Sun, Moon, RefreshCw } from "lucide-react";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
+import { useTenant } from "@/hooks/use-tenant";
+import { useTheme } from "@/hooks/use-theme";
+import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/configuracoes/UserManagement";
 import { toast } from "sonner";
 
@@ -43,7 +47,10 @@ function getInitials(name: string) {
 
 export default function Configuracoes() {
   const { profile, isLoading, upsert, uploadAvatar } = useDeputyProfile();
+  const { tenantId } = useTenant();
+  const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const [form, setForm] = useState({
     full_name: "",
@@ -80,15 +87,15 @@ export default function Configuracoes() {
       setForm({
         full_name: profile.full_name || "",
         public_name: profile.public_name || "",
-        party: profile.party || "",
-        state: profile.state || "São Paulo",
-        regions: profile.regions || [],
-        priority_cities: (profile.priority_cities || []).join(", "),
-        focus_areas: profile.focus_areas || [],
-        bio: profile.bio || "",
-        institutional_message: profile.institutional_message || "",
-        avatar_url: profile.avatar_url || "",
-        primary_color: profile.primary_color || "#2d5a3d",
+        party: (profile as any).party || "",
+        state: (profile as any).state || "São Paulo",
+        regions: (profile as any).regions || [],
+        priority_cities: ((profile as any).priority_cities || []).join(", "),
+        focus_areas: (profile as any).focus_areas || [],
+        bio: (profile as any).bio || "",
+        institutional_message: (profile as any).institutional_message || "",
+        avatar_url: (profile as any).avatar_url || "",
+        primary_color: (profile as any).primary_color || "#2d5a3d",
         phone: (profile as any).phone || "",
         whatsapp: (profile as any).whatsapp || "",
         email: (profile as any).email || "",
@@ -103,9 +110,80 @@ export default function Configuracoes() {
         address_city: (profile as any).address_city || "",
         address_state: (profile as any).address_state || "",
       });
-      if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
+      if ((profile as any).avatar_url) setAvatarPreview((profile as any).avatar_url);
     }
   }, [profile]);
+
+  // Auto-sync from Câmara API if profile has no data yet
+  const syncFromCamara = async () => {
+    if (!tenantId) return;
+    setSyncing(true);
+    try {
+      // Get tenant to find camara_deputado_id
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("camara_deputado_id, foto_url, partido, estado, nome, nome_parlamentar, telefone, email, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, endereco_estado, endereco_cep")
+        .eq("id", tenantId)
+        .single();
+
+      if (!tenant?.camara_deputado_id) {
+        toast.error("Deputado não vinculado à API da Câmara");
+        setSyncing(false);
+        return;
+      }
+
+      // Fetch detailed data from Câmara API
+      const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados/${tenant.camara_deputado_id}`);
+      if (!res.ok) throw new Error("Erro ao buscar dados da API");
+      const apiData = (await res.json()).dados;
+      const gabinete = apiData.ultimoStatus?.gabinete || {};
+
+      // Map API fields → form
+      const uf = apiData.ultimoStatus?.siglaUf || tenant.estado || "";
+      const stateMap: Record<string, string> = {
+        AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia",
+        CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo", GO: "Goiás",
+        MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul",
+        MG: "Minas Gerais", PA: "Pará", PB: "Paraíba", PR: "Paraná",
+        PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro",
+        RN: "Rio Grande do Norte", RS: "Rio Grande do Sul", RO: "Rondônia",
+        RR: "Roraima", SC: "Santa Catarina", SP: "São Paulo", SE: "Sergipe",
+        TO: "Tocantins",
+      };
+
+      setForm((f) => ({
+        ...f,
+        full_name: apiData.nomeCivil || apiData.ultimoStatus?.nome || f.full_name,
+        public_name: apiData.ultimoStatus?.nomeEleitoral || f.public_name,
+        party: apiData.ultimoStatus?.siglaPartido || f.party,
+        state: stateMap[uf] || uf || f.state,
+        avatar_url: apiData.ultimoStatus?.urlFoto || tenant.foto_url || f.avatar_url,
+        phone: gabinete.telefone || f.phone,
+        email: gabinete.email || f.email,
+        address_street: gabinete.predio ? `${gabinete.predio}${gabinete.andar ? `, Andar ${gabinete.andar}` : ""}` : f.address_street,
+        address_number: gabinete.sala ? `Sala ${gabinete.sala}` : f.address_number,
+        address_city: "Brasília",
+        address_state: "DF",
+      }));
+
+      if (apiData.ultimoStatus?.urlFoto) {
+        setAvatarPreview(apiData.ultimoStatus.urlFoto);
+      }
+
+      toast.success("Dados sincronizados da API da Câmara!");
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar: " + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Auto-sync on first load if profile has no name
+  useEffect(() => {
+    if (!isLoading && tenantId && profile && !profile.full_name) {
+      syncFromCamara();
+    }
+  }, [isLoading, tenantId, profile]);
 
   const toggleArrayItem = (arr: string[], item: string) =>
     arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item];
@@ -218,14 +296,96 @@ export default function Configuracoes() {
           <TabsTrigger value="usuarios" className="gap-1.5">
             <Users className="h-4 w-4" /> Usuários
           </TabsTrigger>
+          <TabsTrigger value="aparencia" className="gap-1.5">
+            <Palette className="h-4 w-4" /> Aparência
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
           <UserManagement />
         </TabsContent>
 
+        <TabsContent value="aparencia" className="mt-4 space-y-6">
+          {/* Theme toggle */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                {theme === "dark" ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+                Tema
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Modo escuro</p>
+                  <p className="text-xs text-muted-foreground">Alterne entre tema claro e escuro</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Sun className="h-4 w-4 text-muted-foreground" />
+                  <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
+                  <Moon className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Primary color */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" />
+                Cor Principal do Mandato
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">
+                Esta cor será aplicada ao menu lateral, botões e elementos de destaque do sistema.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={form.primary_color}
+                  onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))}
+                  className="h-10 w-14 rounded border border-input cursor-pointer"
+                />
+                <Input
+                  value={form.primary_color}
+                  onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))}
+                  className="w-32 font-mono text-sm"
+                />
+                <div className="h-10 w-10 rounded-lg border" style={{ backgroundColor: form.primary_color }} />
+              </div>
+              <div className="flex gap-2 mt-3">
+                {["#2d5a3d", "#1a365d", "#7c3aed", "#dc2626", "#d97706", "#0891b2"].map((c) => (
+                  <button
+                    key={c}
+                    className="h-8 w-8 rounded-full border-2 transition-all hover:scale-110"
+                    style={{
+                      backgroundColor: c,
+                      borderColor: form.primary_color === c ? "white" : "transparent",
+                      boxShadow: form.primary_color === c ? `0 0 0 2px ${c}` : "none",
+                    }}
+                    onClick={() => setForm((f) => ({ ...f, primary_color: c }))}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2">
+              <Save className="h-4 w-4" />
+              {upsert.isPending ? "Salvando..." : "Salvar aparência"}
+            </Button>
+          </div>
+        </TabsContent>
+
         <TabsContent value="perfil" className="mt-4 space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <Button variant="outline" onClick={syncFromCamara} disabled={syncing} className="gap-2">
+          <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Sincronizando..." : "Sincronizar da API da Câmara"}
+        </Button>
         <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2">
           <Save className="h-4 w-4" />
           {upsert.isPending ? "Salvando..." : "Salvar"}
@@ -282,16 +442,6 @@ export default function Configuracoes() {
               </div>
             </div>
           </div>
-          <Separator className="my-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">Cor principal do mandato</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input type="color" value={form.primary_color} onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))} className="h-9 w-12 rounded border border-input cursor-pointer" />
-                <Input value={form.primary_color} onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))} className="w-28 font-mono text-xs" />
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -307,11 +457,13 @@ export default function Configuracoes() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="full_name">Nome completo *</Label>
-              <Input id="full_name" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} placeholder="Antonio Carlos Rodrigues" />
+              <Input id="full_name" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} placeholder="Nome civil completo" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Campo "nomeCivil" da API</p>
             </div>
             <div>
-              <Label htmlFor="public_name">Nome público</Label>
-              <Input id="public_name" value={form.public_name} onChange={(e) => setForm((f) => ({ ...f, public_name: e.target.value }))} placeholder='Dep. Antonio Carlos Rodrigues' />
+              <Label htmlFor="public_name">Nome público (eleitoral)</Label>
+              <Input id="public_name" value={form.public_name} onChange={(e) => setForm((f) => ({ ...f, public_name: e.target.value }))} placeholder="Nome eleitoral" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Campo "nomeEleitoral" da API</p>
             </div>
             <div>
               <Label htmlFor="party">Partido *</Label>
@@ -339,7 +491,8 @@ export default function Configuracoes() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</Label>
-              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="(11) 99999-9999" />
+              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="(61) 3215-XXXX" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Campo "gabinete.telefone" da API</p>
             </div>
             <div>
               <Label className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> WhatsApp</Label>
@@ -347,7 +500,8 @@ export default function Configuracoes() {
             </div>
             <div>
               <Label className="flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="deputado@email.com" />
+              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="dep.nome@camara.leg.br" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Campo "gabinete.email" da API</p>
             </div>
             <div>
               <Label className="flex items-center gap-1"><AtSign className="h-3 w-3" /> Telegram</Label>
@@ -388,24 +542,27 @@ export default function Configuracoes() {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
-            Endereço
+            Endereço do Gabinete
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground -mt-2">
+            Dados do gabinete: prédio, andar e sala são preenchidos automaticamente via API da Câmara.
+          </p>
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <Label>CEP</Label>
-              <Input value={form.address_cep} onChange={(e) => setForm((f) => ({ ...f, address_cep: e.target.value }))} placeholder="01001-000" />
+              <Input value={form.address_cep} onChange={(e) => setForm((f) => ({ ...f, address_cep: e.target.value }))} placeholder="70160-900" />
             </div>
             <Button variant="outline" onClick={handleCepLookup}>Buscar</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <Label>Rua</Label>
+              <Label>Prédio / Andar</Label>
               <Input value={form.address_street} onChange={(e) => setForm((f) => ({ ...f, address_street: e.target.value }))} />
             </div>
             <div>
-              <Label>Número</Label>
+              <Label>Sala</Label>
               <Input value={form.address_number} onChange={(e) => setForm((f) => ({ ...f, address_number: e.target.value }))} />
             </div>
             <div>
