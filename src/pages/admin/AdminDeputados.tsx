@@ -341,20 +341,23 @@ export default function AdminDeputados() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* API Câmara search */}
-            <div>
+            {/* API Câmara search with autocomplete */}
+            <div className="relative">
               <Label>Buscar Deputado (API da Câmara)</Label>
-              <div className="flex gap-2">
+              <div className="relative">
                 <Input
                   value={camaraSearch}
-                  onChange={(e) => setCamaraSearch(e.target.value)}
+                  onChange={(e) => handleCamaraSearchChange(e.target.value)}
                   placeholder="Digite o nome do deputado..."
-                  onKeyDown={(e) => e.key === "Enter" && searchCamara()}
+                  className="pr-10"
                 />
-                <Button onClick={searchCamara} disabled={searchingCamara || camaraSearch.length < 3}>
-                  {searchingCamara ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
+                {searchingCamara && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
               </div>
+              {camaraSearch.length > 0 && camaraSearch.length < 3 && (
+                <p className="text-xs text-muted-foreground mt-1">Digite ao menos 3 caracteres para buscar</p>
+              )}
             </div>
 
             {/* Search results */}
