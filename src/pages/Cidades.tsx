@@ -384,7 +384,7 @@ export default function Cidades() {
   );
 
   const cidades = useMemo(() => {
-    return allCidades.filter((c) => {
+    const filtered = allCidades.filter((c) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!c.name.toLowerCase().includes(q) && !c.regiao.toLowerCase().includes(q)) return false;
@@ -393,7 +393,14 @@ export default function Cidades() {
       if (filterStatus !== "all" && c.status !== filterStatus) return false;
       return true;
     });
-  }, [allCidades, searchQuery, filterEstado, filterStatus]);
+
+    if (sortByPop === "desc") {
+      return [...filtered].sort((a, b) => parsePopulation(b.population) - parsePopulation(a.population));
+    } else if (sortByPop === "asc") {
+      return [...filtered].sort((a, b) => parsePopulation(a.population) - parsePopulation(b.population));
+    }
+    return [...filtered].sort((a, b) => b.score - a.score);
+  }, [allCidades, searchQuery, filterEstado, filterStatus, sortByPop]);
 
   const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
