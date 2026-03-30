@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,12 +68,19 @@ export default function AdminDeputados() {
     );
   }, [tenants, search]);
 
-  const searchCamara = async () => {
-    if (camaraSearch.length < 3) return;
+  // Debounced search
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const searchCamara = async (query: string) => {
+    if (query.length < 3) {
+      setCamaraResults([]);
+      setSearchingCamara(false);
+      return;
+    }
     setSearchingCamara(true);
     try {
       const res = await fetch(
-        `https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(camaraSearch)}&ordem=ASC&ordenarPor=nome`
+        `https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(query)}&ordem=ASC&ordenarPor=nome`
       );
       const json = await res.json();
       setCamaraResults(
@@ -90,6 +97,16 @@ export default function AdminDeputados() {
       toast.error("Erro ao buscar na API da Câmara");
     }
     setSearchingCamara(false);
+  };
+
+  const handleCamaraSearchChange = (value: string) => {
+    setCamaraSearch(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (value.length >= 3) {
+      searchTimeoutRef.current = setTimeout(() => searchCamara(value), 400);
+    } else {
+      setCamaraResults([]);
+    }
   };
 
   const selectDeputado = async (dep: CamaraDeputado) => {
@@ -324,20 +341,23 @@ export default function AdminDeputados() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* API Câmara search */}
-            <div>
+            {/* API Câmara search with autocomplete */}
+            <div className="relative">
               <Label>Buscar Deputado (API da Câmara)</Label>
-              <div className="flex gap-2">
+              <div className="relative">
                 <Input
                   value={camaraSearch}
-                  onChange={(e) => setCamaraSearch(e.target.value)}
+                  onChange={(e) => handleCamaraSearchChange(e.target.value)}
                   placeholder="Digite o nome do deputado..."
-                  onKeyDown={(e) => e.key === "Enter" && searchCamara()}
+                  className="pr-10"
                 />
-                <Button onClick={searchCamara} disabled={searchingCamara || camaraSearch.length < 3}>
-                  {searchingCamara ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
+                {searchingCamara && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
               </div>
+              {camaraSearch.length > 0 && camaraSearch.length < 3 && (
+                <p className="text-xs text-muted-foreground mt-1">Digite ao menos 3 caracteres para buscar</p>
+              )}
             </div>
 
             {/* Search results */}
