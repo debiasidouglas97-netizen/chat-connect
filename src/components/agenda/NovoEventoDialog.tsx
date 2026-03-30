@@ -453,18 +453,39 @@ export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDa
                       </Button>
                       <Button
                         type="button"
-                        disabled={!telegramApproved}
+                        disabled={!telegramApproved || sendingTelegram}
                         className="flex-1 bg-[#0088cc] hover:bg-[#0077b5] text-white"
                         onClick={async () => {
+                          setSendingTelegram(true);
                           try {
-                            // Save the event first if not saved yet
-                            toast({ title: "Salve o evento primeiro para enviar via Telegram" });
+                            const { data: fnData, error } = await supabase.functions.invoke("telegram-broadcast", {
+                              body: {
+                                text: telegramText,
+                                cidade,
+                                participantes_liderancas: selectedLiderancas,
+                              },
+                            });
+                            if (error) throw error;
+                            if (fnData?.error) throw new Error(fnData.error);
+                            const sent = fnData?.sent || 0;
+                            const total = fnData?.total || 0;
+                            if (sent === 0) {
+                              toast({ title: "Nenhum contato encontrado", description: fnData?.reason || `Nenhuma liderança com Telegram em ${cidade}`, variant: "destructive" });
+                            } else {
+                              toast({ title: `✅ Mensagem enviada!`, description: `Enviado para ${sent} de ${total} contatos` });
+                            }
                           } catch (e: any) {
-                            toast({ title: "Erro", description: e.message, variant: "destructive" });
+                            toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
+                          } finally {
+                            setSendingTelegram(false);
                           }
                         }}
                       >
-                        <Send className="h-4 w-4 mr-2" /> Enviar via Telegram
+                        {sendingTelegram ? (
+                          <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                        ) : (
+                          <><Send className="h-4 w-4 mr-2" /> Enviar via Telegram</>
+                        )}
                       </Button>
                     </div>
                   </>
