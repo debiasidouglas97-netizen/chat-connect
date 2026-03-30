@@ -37,6 +37,7 @@ interface Props {
 export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDate, evento }: Props) {
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
+  const { tenantId } = useTenant();
   const { toast } = useToast();
 
   const [titulo, setTitulo] = useState("");
