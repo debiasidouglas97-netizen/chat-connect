@@ -193,7 +193,7 @@ export default function NovoEventoDialog({ open, onOpenChange, onSave, initialDa
               <TabsTrigger value="basico">Básico</TabsTrigger>
               <TabsTrigger value="local">Local</TabsTrigger>
               <TabsTrigger value="participantes">Participantes</TabsTrigger>
-              <TabsTrigger value="extras">Extras</TabsTrigger>
+              <TabsTrigger value="telegram">Telegram</TabsTrigger>
             </TabsList>
 
             {/* TAB: Básico */}
