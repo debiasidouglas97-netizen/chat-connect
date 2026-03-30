@@ -33,6 +33,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <TenantProvider>
+          <ThemeProvider>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
