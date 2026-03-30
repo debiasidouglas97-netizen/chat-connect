@@ -376,8 +376,10 @@ export default function Cidades() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
 
+  const [sortByPop, setSortByPop] = useState<"desc" | "asc" | "none">("none");
+
   const allCidades = useMemo(
-    () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })).sort((a, b) => b.score - a.score),
+    () => cidadesRaw.map((c) => ({ ...calcularScoreCidade(c), id: (c as any).id })),
     [cidadesRaw]
   );
 
