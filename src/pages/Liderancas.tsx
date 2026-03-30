@@ -32,7 +32,16 @@ export default function Liderancas() {
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
+  const [searchParams] = useSearchParams();
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
+
+  useEffect(() => {
+    const busca = searchParams.get("busca");
+    if (busca) {
+      setSearchQuery(busca);
+      setSearchField("nome");
+    }
+  }, [searchParams]);
   const { cidades: cidadesRaw } = useCidades();
 
   const cidadesMap = useMemo(() => {
