@@ -7,14 +7,6 @@ const corsHeaders = {
 
 const CAMARA_API = "https://dadosabertos.camara.leg.br/api/v2";
 
-interface CamaraProposicao {
-  id: number;
-  siglaTipo: string;
-  numero: number;
-  ano: number;
-  ementa: string;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -42,12 +34,11 @@ Deno.serve(async (req) => {
 
     for (const tenant of tenants) {
       try {
-        // Fetch propositions from Câmara API
+        // Fetch propositions list (lightweight - no details yet)
         const url = `${CAMARA_API}/proposicoes?idDeputadoAutor=${tenant.camara_deputado_id}&ordem=DESC&ordenarPor=id&itens=100`;
-        console.log(`Fetching propositions for tenant ${tenant.id}: ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
-          results.push({ tenant_id: tenant.id, error: `API returned ${response.status}` });
+          results.push({ tenant_id: tenant.id, error: `API ${response.status}` });
           continue;
         }
 
@@ -57,38 +48,36 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        console.log(`Found ${dados.length} propositions for tenant ${tenant.id}`);
+        // Get existing proposições for this tenant to check what's new/changed
+        const { data: existing } = await supabase
+          .from("proposicoes")
+          .select("camara_id, status_proposicao, updated_at")
+          .eq("tenant_id", tenant.id);
+
+        const existingMap = new Map(
+          (existing || []).map((e: any) => [e.camara_id, e])
+        );
+
         let synced = 0;
         let kanbanCreated = 0;
 
-        // Process in batches of 5 for speed
+        // Process in parallel batches of 5
         const BATCH_SIZE = 5;
         for (let i = 0; i < dados.length; i += BATCH_SIZE) {
-          const batch = (dados as CamaraProposicao[]).slice(i, i + BATCH_SIZE);
+          const batch = dados.slice(i, i + BATCH_SIZE);
 
-          const batchResults = await Promise.allSettled(
-            batch.map(async (prop) => {
-              // Get details
-              let detailData: any = null;
-              try {
-                const detailRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}`);
-                if (detailRes.ok) {
-                  const detail = await detailRes.json();
-                  detailData = detail.dados;
-                }
-              } catch { /* skip */ }
+          await Promise.allSettled(
+            batch.map(async (prop: any) => {
+              // Get details + authors in parallel
+              const [detailRes, autorRes] = await Promise.allSettled([
+                fetch(`${CAMARA_API}/proposicoes/${prop.id}`).then(r => r.ok ? r.json() : null),
+                fetch(`${CAMARA_API}/proposicoes/${prop.id}/autores`).then(r => r.ok ? r.json() : null),
+              ]);
 
+              const detailData = detailRes.status === "fulfilled" ? detailRes.value?.dados : null;
+              const autorData = autorRes.status === "fulfilled" ? autorRes.value?.dados : null;
               const status = detailData?.statusProposicao?.descricaoSituacao || "Apresentada";
-
-              // Get authors
-              let autor = "";
-              try {
-                const autorRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}/autores`);
-                if (autorRes.ok) {
-                  const autorData = await autorRes.json();
-                  autor = (autorData.dados || []).map((a: any) => a.nome).join(", ");
-                }
-              } catch { /* skip */ }
+              const autor = autorData ? autorData.map((a: any) => a.nome).join(", ") : "";
 
               // Upsert proposition
               const { data: upserted, error: upsertError } = await supabase
@@ -106,24 +95,19 @@ Deno.serve(async (req) => {
                   url_inteiro_teor: detailData?.urlInteiroTeor || null,
                   ultima_atualizacao: detailData?.statusProposicao?.dataHora || new Date().toISOString(),
                   updated_at: new Date().toISOString(),
-                }, {
-                  onConflict: "tenant_id,camara_id",
-                })
-                .select("id, status_proposicao, adicionado_kanban, demanda_id")
+                }, { onConflict: "tenant_id,camara_id" })
+                .select("id, adicionado_kanban, demanda_id")
                 .single();
 
-              if (upsertError) {
-                console.error(`Upsert error for ${prop.siglaTipo} ${prop.numero}:`, upsertError.message);
-                return { synced: false, kanban: false };
-              }
+              if (upsertError) return;
+              synced++;
 
-              // Sync top 10 tramitações
+              // Sync top 5 tramitações only
               try {
                 const tramRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}/tramitacoes`);
                 if (tramRes.ok) {
                   const tramData = await tramRes.json();
-                  const tramitacoes = (tramData.dados || []).slice(0, 10);
-                  for (const tram of tramitacoes) {
+                  for (const tram of (tramData.dados || []).slice(0, 5)) {
                     await supabase.from("proposicao_tramitacoes").upsert({
                       proposicao_id: upserted.id,
                       tenant_id: tenant.id,
@@ -139,16 +123,15 @@ Deno.serve(async (req) => {
                 }
               } catch { /* skip */ }
 
-              // Kanban integration
+              // Kanban: create or move
               const kanbanCol = mapStatusToKanban(status);
-              let didCreateKanban = false;
 
               if (!upserted.adicionado_kanban || !upserted.demanda_id) {
-                const { data: newDemanda, error: insertErr } = await supabase
+                const { data: newDemanda } = await supabase
                   .from("demandas")
                   .insert({
                     title: `${prop.siglaTipo} ${prop.numero}/${prop.ano}`,
-                    description: prop.ementa || detailData?.ementa || "",
+                    description: prop.ementa || "",
                     city: "Brasília",
                     col: kanbanCol,
                     priority: "Média",
@@ -158,15 +141,12 @@ Deno.serve(async (req) => {
                   .select("id")
                   .single();
 
-                if (insertErr) {
-                  console.error(`Kanban insert error for ${prop.siglaTipo} ${prop.numero}:`, insertErr.message);
-                } else if (newDemanda) {
+                if (newDemanda) {
                   await supabase
                     .from("proposicoes")
                     .update({ adicionado_kanban: true, demanda_id: newDemanda.id })
                     .eq("id", upserted.id);
-                  console.log(`✅ Kanban card created: ${prop.siglaTipo} ${prop.numero}/${prop.ano} -> ${kanbanCol}`);
-                  didCreateKanban = true;
+                  kanbanCreated++;
                 }
               } else {
                 await supabase
@@ -174,26 +154,15 @@ Deno.serve(async (req) => {
                   .update({ col: kanbanCol })
                   .eq("id", upserted.demanda_id);
               }
-
-              return { synced: true, kanban: didCreateKanban };
             })
           );
 
-          for (const r of batchResults) {
-            if (r.status === "fulfilled") {
-              if (r.value.synced) synced++;
-              if (r.value.kanban) kanbanCreated++;
-            }
-          }
-
-          // Small delay between batches
-          await new Promise(r => setTimeout(r, 100));
+          // Small delay between batches to respect rate limits
+          await new Promise(r => setTimeout(r, 50));
         }
 
-        console.log(`Tenant ${tenant.id}: synced=${synced}, kanban_created=${kanbanCreated}`);
-        results.push({ tenant_id: tenant.id, count: synced, kanban_created: kanbanCreated });
+        results.push({ tenant_id: tenant.id, synced, kanban_created: kanbanCreated });
       } catch (e: any) {
-        console.error(`Tenant ${tenant.id} error:`, e.message);
         results.push({ tenant_id: tenant.id, error: e.message });
       }
     }
@@ -202,7 +171,6 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Sync error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -213,7 +181,7 @@ Deno.serve(async (req) => {
 function mapStatusToKanban(status: string): string {
   const s = status.toLowerCase();
   if (s.includes("apresentada")) return "nova";
-  if (s.includes("tramitação") || s.includes("tramitando") || s.includes("tramitando em conjunto")) return "encaminhada";
+  if (s.includes("tramitação") || s.includes("tramitando") || s.includes("conjunto")) return "encaminhada";
   if (s.includes("análise") || s.includes("comissão") || s.includes("parecer") || s.includes("pauta") || s.includes("designação")) return "analise";
   if (s.includes("aprovada")) return "resolvida";
   if (s.includes("arquivada") || s.includes("rejeitada") || s.includes("devolvida")) return "resolvida";
