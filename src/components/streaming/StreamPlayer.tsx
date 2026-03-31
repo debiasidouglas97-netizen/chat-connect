@@ -52,21 +52,32 @@ export default function StreamPlayer({ url, streamType }: StreamPlayerProps) {
 
     if (resolvedType === "hls") {
       if (Hls.isSupported()) {
-        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 30,
+          maxBufferLength: 30,
+        });
         hls.loadSource(proxyUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setLoading(false);
           video.play().catch(() => {});
         });
-        hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) {
-            setLoading(false);
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              setError("Erro de rede ao carregar o stream. Verifique se a URL está acessível e o servidor de streaming está ativo.");
-            } else {
-              setError("Erro ao carregar stream HLS. Verifique a URL.");
-            }
+        hls.on(Hls.Events.LEVEL_LOADED, () => {
+          setLoading(false);
+        });
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal) return;
+          setLoading(false);
+          console.error("HLS fatal error", data);
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            setError(`Erro de rede ao carregar o stream (${data.details}).`);
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+            setError("Erro de mídia ao reproduzir o stream.");
+          } else {
+            setError(`Erro ao carregar stream HLS (${data.details}).`);
           }
         });
         hlsRef.current = hls;

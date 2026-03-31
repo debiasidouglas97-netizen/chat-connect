@@ -1,124 +1,152 @@
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, range, accept, origin",
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+  "Access-Control-Expose-Headers": "content-length, content-range, accept-ranges, content-type, cache-control",
 };
 
+function buildProxyBase() {
+  return `${Deno.env.get("SUPABASE_URL")!}/functions/v1/stream-proxy`;
+}
+
+function appendPassthroughHeaders(
+  source: Headers,
+  target: Record<string, string>,
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = source.get(key);
+    if (value) {
+      target[key] = value;
+    }
+  }
+}
+
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const reqUrlObj = new URL(req.url);
-    const targetUrl = reqUrlObj.searchParams.get('url');
-    console.log("Proxy request:", { reqUrl: req.url, targetUrl, supabaseUrl: Deno.env.get("SUPABASE_URL") });
+    const targetUrl = reqUrlObj.searchParams.get("url");
 
     if (!targetUrl) {
-      return new Response(JSON.stringify({ error: 'Missing url parameter' }), {
+      return new Response(JSON.stringify({ error: "Missing url parameter" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate URL format
-    let parsedUrl: URL;
     try {
-      parsedUrl = new URL(targetUrl);
+      new URL(targetUrl);
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid URL' }), {
+      return new Response(JSON.stringify({ error: "Invalid URL" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch the remote resource
-    const response = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'MandatoGov-StreamProxy/1.0',
-      },
+    const upstreamHeaders = new Headers({
+      "User-Agent": "MandatoGov-StreamProxy/1.0",
+      Accept: req.headers.get("accept") ?? "*/*",
     });
 
+    const rangeHeader = req.headers.get("range");
+    if (rangeHeader) {
+      upstreamHeaders.set("Range", rangeHeader);
+    }
+
+    const response = await fetch(targetUrl, {
+      method: req.method === "HEAD" ? "HEAD" : "GET",
+      headers: upstreamHeaders,
+    });
+
+    const baseResponseHeaders: Record<string, string> = {
+      ...corsHeaders,
+      "Cache-Control": response.headers.get("cache-control") ?? "no-cache",
+      "Content-Type": response.headers.get("content-type") ?? "application/octet-stream",
+    };
+
+    appendPassthroughHeaders(response.headers, baseResponseHeaders, [
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "etag",
+      "last-modified",
+    ]);
+
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: `Upstream error: ${response.status}` }), {
+      const errorText = req.method === "HEAD" ? "" : await response.text();
+      return new Response(errorText || JSON.stringify({ error: `Upstream error: ${response.status}` }), {
         status: response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: baseResponseHeaders,
       });
     }
 
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
 
-    // For .m3u8 playlists, rewrite relative URLs to go through proxy
-    if (targetUrl.endsWith('.m3u8') || contentType.includes('mpegurl') || contentType.includes('m3u8')) {
-      let body = await response.text();
-      
-      // Get base URL for resolving relative paths
-      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const proxyBase = `${supabaseUrl}/functions/v1/stream-proxy`;
-      
-      // Rewrite relative URLs in the playlist
-      const lines = body.split('\n').map(line => {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#')) {
-          // This is a URL line (segment or sub-playlist)
-          if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-            return `${proxyBase}?url=${encodeURIComponent(trimmed)}`;
-          } else {
-            // Relative URL
-            return `${proxyBase}?url=${encodeURIComponent(baseUrl + trimmed)}`;
-          }
-        }
-        return line;
+    if (req.method === "HEAD") {
+      return new Response(null, {
+        status: response.status,
+        headers: baseResponseHeaders,
       });
-      
-      body = lines.join('\n');
+    }
 
-      return new Response(body, {
+    if (targetUrl.endsWith(".m3u8") || contentType.includes("mpegurl") || contentType.includes("m3u8")) {
+      let body = await response.text();
+      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
+      const proxyBase = buildProxyBase();
+
+      const lines = body.split("\n").map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) {
+          return line;
+        }
+
+        const resolvedUrl = trimmed.startsWith("http://") || trimmed.startsWith("https://")
+          ? trimmed
+          : new URL(trimmed, baseUrl).toString();
+
+        return `${proxyBase}?url=${encodeURIComponent(resolvedUrl)}`;
+      });
+
+      return new Response(lines.join("\n"), {
+        status: response.status,
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/vnd.apple.mpegurl',
-          'Cache-Control': 'no-cache',
+          ...baseResponseHeaders,
+          "Content-Type": "application/vnd.apple.mpegurl",
         },
       });
     }
 
-    // For .mpd manifests, rewrite BaseURL
-    if (targetUrl.endsWith('.mpd') || contentType.includes('dash')) {
+    if (targetUrl.endsWith(".mpd") || contentType.includes("dash")) {
       let body = await response.text();
-      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const proxyBase = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/stream-proxy`;
-      
-      // Add BaseURL rewriting for DASH
-      body = body.replace(/<BaseURL>(.*?)<\/BaseURL>/g, (_, url) => {
-        const fullUrl = url.startsWith('http') ? url : baseUrl + url;
+      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
+      const proxyBase = buildProxyBase();
+
+      body = body.replace(/<BaseURL>(.*?)<\/BaseURL>/g, (_match, url) => {
+        const fullUrl = url.startsWith("http") ? url : new URL(url, baseUrl).toString();
         return `<BaseURL>${proxyBase}?url=${encodeURIComponent(fullUrl)}</BaseURL>`;
       });
 
       return new Response(body, {
+        status: response.status,
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/dash+xml',
-          'Cache-Control': 'no-cache',
+          ...baseResponseHeaders,
+          "Content-Type": "application/dash+xml",
         },
       });
     }
 
-    // For segments (.ts, .mp4, etc.), stream directly
-    const responseHeaders: Record<string, string> = {
-      ...corsHeaders,
-      'Content-Type': contentType,
-    };
-
-    const cl = response.headers.get('content-length');
-    if (cl) responseHeaders['Content-Length'] = cl;
-
     return new Response(response.body, {
-      headers: responseHeaders,
+      status: response.status,
+      headers: baseResponseHeaders,
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
