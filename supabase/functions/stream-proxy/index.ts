@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
       
       // Get base URL for resolving relative paths
       const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const proxyBase = new URL(req.url).origin + new URL(req.url).pathname;
+      const reqUrl = new URL(req.url);
+      const proxyBase = `${reqUrl.origin}/functions/v1/stream-proxy`;
       
       // Rewrite relative URLs in the playlist
       const lines = body.split('\n').map(line => {
