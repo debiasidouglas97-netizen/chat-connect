@@ -34,6 +34,17 @@ export interface Tramitacao {
   created_at: string;
 }
 
+function mapStatusToKanban(status: string | null): string {
+  if (!status) return "nova";
+  const s = status.toLowerCase();
+  if (s.includes("apresentada")) return "nova";
+  if (s.includes("tramitação") || s.includes("tramitando")) return "encaminhada";
+  if (s.includes("análise") || s.includes("comissão") || s.includes("parecer") || s.includes("pauta") || s.includes("designação")) return "analise";
+  if (s.includes("aprovada")) return "resolvida";
+  if (s.includes("arquivada") || s.includes("rejeitada")) return "resolvida";
+  return "nova";
+}
+
 export function useProposicoes() {
   const { tenantId } = useTenant();
   const queryClient = useQueryClient();
@@ -54,14 +65,15 @@ export function useProposicoes() {
 
   const addToKanban = useMutation({
     mutationFn: async (prop: Proposicao) => {
-      // Create demanda card
+      const col = mapStatusToKanban(prop.status_proposicao);
+      // Create demanda card with correct column based on status
       const { data: demanda, error: demandaError } = await supabase
         .from("demandas")
         .insert({
           title: `${prop.tipo} ${prop.numero}/${prop.ano}`,
           description: prop.ementa || "",
           city: "Brasília",
-          col: "nova",
+          col,
           priority: "Média",
           origin: "proposicao",
           tenant_id: tenantId,
