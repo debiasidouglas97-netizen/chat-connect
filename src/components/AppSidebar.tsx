@@ -64,16 +64,24 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary overflow-hidden">
+            {profile?.logo_url || (profile as any)?.party_logo_url ? (
+              <img
+                src={(profile as any)?.party_logo_url || profile?.logo_url}
+                alt="Logo"
+                className="h-full w-full object-contain p-0.5"
+              />
+            ) : (
+              <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+            )}
           </div>
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-sm font-bold text-sidebar-foreground tracking-tight">
-                MandatoGov
+                {profile?.public_name || profile?.full_name || "MandatoGov"}
               </span>
               <span className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">
-                Inteligência Parlamentar
+                {profile?.party || "Inteligência Parlamentar"}
               </span>
             </div>
           )}

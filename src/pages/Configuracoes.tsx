@@ -27,6 +27,13 @@ const FOCUS_AREAS_OPTIONS = [
   "Cultura", "Esporte", "Assistência Social", "Tecnologia", "Agricultura",
 ];
 
+const PARTIES = [
+  "AGIR", "AVANTE", "CIDADANIA", "DC", "MDB", "NOVO", "PATRIOTA", "PCB", "PCdoB",
+  "PCO", "PDT", "PL", "PMB", "PMN", "PODE", "PP", "PRD", "PROS", "PRTB", "PSB",
+  "PSC", "PSD", "PSDB", "PSOL", "PSTU", "PT", "PTB", "PV", "REDE",
+  "REPUBLICANOS", "SD", "UNIÃO", "UP",
+];
+
 const STATES = [
   "Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal",
   "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul",
@@ -50,6 +57,9 @@ export default function Configuracoes() {
   const { tenantId } = useTenant();
   const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const partyLogoInputRef = useRef<HTMLInputElement>(null);
+  const [partyLogoPreview, setPartyLogoPreview] = useState<string | null>(null);
+  const [uploadingPartyLogo, setUploadingPartyLogo] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [telegramBotToken, setTelegramBotToken] = useState("");
   const [telegramBotUsername, setTelegramBotUsername] = useState("");
@@ -68,6 +78,7 @@ export default function Configuracoes() {
     bio: "",
     institutional_message: "",
     avatar_url: "",
+    party_logo_url: "",
     primary_color: "#2d5a3d",
     phone: "",
     whatsapp: "",
@@ -100,6 +111,7 @@ export default function Configuracoes() {
         bio: (profile as any).bio || "",
         institutional_message: (profile as any).institutional_message || "",
         avatar_url: (profile as any).avatar_url || "",
+        party_logo_url: (profile as any).party_logo_url || "",
         primary_color: (profile as any).primary_color || "#2d5a3d",
         phone: (profile as any).phone || "",
         whatsapp: (profile as any).whatsapp || "",
@@ -116,6 +128,7 @@ export default function Configuracoes() {
         address_state: (profile as any).address_state || "",
       });
       if ((profile as any).avatar_url) setAvatarPreview((profile as any).avatar_url);
+      if ((profile as any).party_logo_url) setPartyLogoPreview((profile as any).party_logo_url);
     }
   }, [profile]);
 
@@ -237,6 +250,36 @@ export default function Configuracoes() {
     }
   };
 
+  const handlePartyLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/png"].includes(file.type)) {
+      toast.error("Use apenas PNG com fundo transparente.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setPartyLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    try {
+      setUploadingPartyLogo(true);
+      const ext = file.name.split(".").pop();
+      const path = `party-logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setForm((f) => ({ ...f, party_logo_url: data.publicUrl }));
+      toast.success("Logo do partido enviado!");
+    } catch {
+      toast.error("Erro ao enviar logo.");
+    } finally {
+      setUploadingPartyLogo(false);
+    }
+  };
+
   const handleCepLookup = async () => {
     const cep = form.address_cep.replace(/\D/g, "");
     if (cep.length !== 8) { toast.error("CEP inválido"); return; }
@@ -273,6 +316,7 @@ export default function Configuracoes() {
       bio: form.bio.trim() || null,
       institutional_message: form.institutional_message.trim() || null,
       avatar_url: form.avatar_url || null,
+      party_logo_url: form.party_logo_url || null,
       primary_color: form.primary_color,
       phone: form.phone.trim() || null,
       whatsapp: form.whatsapp.trim() || null,
@@ -615,13 +659,53 @@ export default function Configuracoes() {
             </div>
             <div>
               <Label htmlFor="party">Partido *</Label>
-              <Input id="party" value={form.party} onChange={(e) => setForm((f) => ({ ...f, party: e.target.value }))} placeholder="PL" />
+              <select id="party" value={form.party} onChange={(e) => setForm((f) => ({ ...f, party: e.target.value }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <option value="">Selecione...</option>
+                {PARTIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
             <div>
               <Label htmlFor="state">Estado *</Label>
               <select id="state" value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
+            </div>
+          </div>
+
+          {/* Party Logo Upload */}
+          <Separator />
+          <div>
+            <Label className="flex items-center gap-1 mb-2">🏛️ Logo do Partido (PNG transparente)</Label>
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-lg border-2 border-dashed border-input flex items-center justify-center bg-muted/30 overflow-hidden">
+                {partyLogoPreview ? (
+                  <img src={partyLogoPreview} alt="Logo partido" className="h-full w-full object-contain p-1" />
+                ) : (
+                  <Briefcase className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  Upload do logo do partido em PNG com fundo transparente. Será exibido no menu lateral.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => partyLogoInputRef.current?.click()} disabled={uploadingPartyLogo}>
+                    {uploadingPartyLogo ? "Enviando..." : "Escolher logo"}
+                  </Button>
+                  {partyLogoPreview && (
+                    <Button variant="ghost" size="sm" onClick={() => { setPartyLogoPreview(null); setForm((f) => ({ ...f, party_logo_url: "" })); }}>
+                      <X className="h-4 w-4 mr-1" /> Remover
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={partyLogoInputRef}
+                  type="file"
+                  accept="image/png"
+                  className="hidden"
+                  onChange={handlePartyLogoChange}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
