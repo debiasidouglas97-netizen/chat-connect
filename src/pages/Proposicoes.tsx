@@ -170,7 +170,7 @@ export default function Proposicoes() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(prop => (
+              {paginated.map(prop => (
                 <TableRow
                   key={prop.id}
                   className="cursor-pointer hover:bg-accent/50"
