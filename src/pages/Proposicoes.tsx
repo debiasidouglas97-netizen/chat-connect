@@ -38,6 +38,8 @@ export default function Proposicoes() {
   const [tipoFilter, setTipoFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<Proposicao | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const statusOptions = useMemo(() => {
     if (!proposicoes) return [];
