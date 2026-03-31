@@ -496,6 +496,8 @@ export default function Configuracoes() {
               )}
             </CardContent>
           </Card>
+
+          <StreamConfigCard />
         </TabsContent>
 
         <TabsContent value="aparencia" className="mt-4 space-y-6">
