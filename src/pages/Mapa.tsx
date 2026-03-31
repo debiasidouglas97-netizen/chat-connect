@@ -316,7 +316,7 @@ export default function Mapa() {
           </div>
         )}
 
-        <div ref={mapElementRef} className="h-full w-full" />
+        <div ref={mapElementRef} className="h-full w-full" style={{ zIndex: 0 }} />
       </div>
 
       <CidadeDetailDialog
