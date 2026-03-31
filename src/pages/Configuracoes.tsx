@@ -128,6 +128,7 @@ export default function Configuracoes() {
         address_state: (profile as any).address_state || "",
       });
       if ((profile as any).avatar_url) setAvatarPreview((profile as any).avatar_url);
+      if ((profile as any).party_logo_url) setPartyLogoPreview((profile as any).party_logo_url);
     }
   }, [profile]);
 
