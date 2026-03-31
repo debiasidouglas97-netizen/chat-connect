@@ -9,8 +9,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const targetUrl = searchParams.get('url');
+    const reqUrlObj = new URL(req.url);
+    const targetUrl = reqUrlObj.searchParams.get('url');
+    console.log("Proxy request:", { reqUrl: req.url, targetUrl, supabaseUrl: Deno.env.get("SUPABASE_URL") });
 
     if (!targetUrl) {
       return new Response(JSON.stringify({ error: 'Missing url parameter' }), {
@@ -52,7 +53,8 @@ Deno.serve(async (req) => {
       
       // Get base URL for resolving relative paths
       const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const proxyBase = new URL(req.url).origin + new URL(req.url).pathname;
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const proxyBase = `${supabaseUrl}/functions/v1/stream-proxy`;
       
       // Rewrite relative URLs in the playlist
       const lines = body.split('\n').map(line => {
@@ -84,7 +86,7 @@ Deno.serve(async (req) => {
     if (targetUrl.endsWith('.mpd') || contentType.includes('dash')) {
       let body = await response.text();
       const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const proxyBase = new URL(req.url).origin + new URL(req.url).pathname;
+      const proxyBase = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/stream-proxy`;
       
       // Add BaseURL rewriting for DASH
       body = body.replace(/<BaseURL>(.*?)<\/BaseURL>/g, (_, url) => {
