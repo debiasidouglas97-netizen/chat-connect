@@ -915,6 +915,135 @@ export type Database = {
           },
         ]
       }
+      proposicao_tramitacoes: {
+        Row: {
+          created_at: string
+          data_hora: string | null
+          descricao_tramitacao: string | null
+          despacho: string | null
+          id: string
+          proposicao_id: string
+          sequencia: number | null
+          sigla_orgao: string | null
+          situacao: string | null
+          tenant_id: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_hora?: string | null
+          descricao_tramitacao?: string | null
+          despacho?: string | null
+          id?: string
+          proposicao_id: string
+          sequencia?: number | null
+          sigla_orgao?: string | null
+          situacao?: string | null
+          tenant_id?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_hora?: string | null
+          descricao_tramitacao?: string | null
+          despacho?: string | null
+          id?: string
+          proposicao_id?: string
+          sequencia?: number | null
+          sigla_orgao?: string | null
+          situacao?: string | null
+          tenant_id?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposicao_tramitacoes_proposicao_id_fkey"
+            columns: ["proposicao_id"]
+            isOneToOne: false
+            referencedRelation: "proposicoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposicao_tramitacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposicoes: {
+        Row: {
+          adicionado_kanban: boolean | null
+          ano: number
+          autor: string | null
+          camara_id: number
+          created_at: string
+          demanda_id: string | null
+          ementa: string | null
+          id: string
+          numero: number
+          status_proposicao: string | null
+          tema: string | null
+          tenant_id: string | null
+          tipo: string
+          ultima_atualizacao: string | null
+          updated_at: string
+          url_inteiro_teor: string | null
+        }
+        Insert: {
+          adicionado_kanban?: boolean | null
+          ano: number
+          autor?: string | null
+          camara_id: number
+          created_at?: string
+          demanda_id?: string | null
+          ementa?: string | null
+          id?: string
+          numero: number
+          status_proposicao?: string | null
+          tema?: string | null
+          tenant_id?: string | null
+          tipo: string
+          ultima_atualizacao?: string | null
+          updated_at?: string
+          url_inteiro_teor?: string | null
+        }
+        Update: {
+          adicionado_kanban?: boolean | null
+          ano?: number
+          autor?: string | null
+          camara_id?: number
+          created_at?: string
+          demanda_id?: string | null
+          ementa?: string | null
+          id?: string
+          numero?: number
+          status_proposicao?: string | null
+          tema?: string | null
+          tenant_id?: string | null
+          tipo?: string
+          ultima_atualizacao?: string | null
+          updated_at?: string
+          url_inteiro_teor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposicoes_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposicoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_bot_state: {
         Row: {
           id: number
