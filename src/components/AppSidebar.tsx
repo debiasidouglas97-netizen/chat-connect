@@ -8,6 +8,7 @@ import {
   CalendarDays,
   FileText,
   ScrollText,
+  Tv,
   MessageCircle,
   Search,
   Settings,
