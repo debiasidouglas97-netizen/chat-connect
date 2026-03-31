@@ -9,8 +9,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const targetUrl = searchParams.get('url');
+    const reqUrlObj = new URL(req.url);
+    const targetUrl = reqUrlObj.searchParams.get('url');
+    console.log("Proxy request:", { reqUrl: req.url, targetUrl, supabaseUrl: Deno.env.get("SUPABASE_URL") });
 
     if (!targetUrl) {
       return new Response(JSON.stringify({ error: 'Missing url parameter' }), {
