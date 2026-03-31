@@ -78,6 +78,7 @@ export default function Configuracoes() {
     bio: "",
     institutional_message: "",
     avatar_url: "",
+    party_logo_url: "",
     primary_color: "#2d5a3d",
     phone: "",
     whatsapp: "",
