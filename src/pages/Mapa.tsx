@@ -204,11 +204,13 @@ export default function Mapa() {
     let updatedCount = 0;
 
     for (const city of cities) {
-      const cityName = city.name.split("/")[0].trim();
+      const parts = city.name.split("/");
+      const cityName = parts[0].trim();
+      const cityState = parts.length > 1 ? parts[1].trim() : estado;
 
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`${cityName}, ${estado}, Brasil`)}&format=json&limit=1`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`${cityName}, ${cityState}, Brasil`)}&format=json&limit=1`,
           { headers: { "User-Agent": "MandatoGov/1.0" } },
         );
         const results = await response.json();
