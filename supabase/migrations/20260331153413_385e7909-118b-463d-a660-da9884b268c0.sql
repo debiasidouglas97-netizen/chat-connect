@@ -1,0 +1,1 @@
+ALTER TABLE public.proposicao_tramitacoes ADD CONSTRAINT proposicao_tramitacoes_unique_seq UNIQUE (proposicao_id, sequencia);
