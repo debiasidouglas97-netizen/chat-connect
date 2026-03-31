@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
-import { Tv, AlertCircle, ShieldAlert } from "lucide-react";
+import { Tv, AlertCircle, Loader2 } from "lucide-react";
 
 interface StreamPlayerProps {
   url: string;
@@ -16,8 +16,12 @@ function detectType(url: string): "hls" | "dash" | "embed" | "unknown" {
   return "unknown";
 }
 
-function isMixedContent(url: string): boolean {
-  return window.location.protocol === "https:" && url.startsWith("http://");
+function getProxyUrl(originalUrl: string): string {
+  // If it's already HTTPS, no proxy needed
+  if (originalUrl.startsWith("https://")) return originalUrl;
+  // Route HTTP streams through our edge function proxy
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  return `${supabaseUrl}/functions/v1/stream-proxy?url=${encodeURIComponent(originalUrl)}`;
 }
 
 export default function StreamPlayer({ url, streamType }: StreamPlayerProps) {
@@ -25,40 +29,41 @@ export default function StreamPlayer({ url, streamType }: StreamPlayerProps) {
   const dashPlayerRef = useRef<dashjs.MediaPlayerClass | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mixedContent, setMixedContent] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const resolvedType = streamType === "auto" ? detectType(url) : streamType;
 
   useEffect(() => {
     setError(null);
-    setMixedContent(false);
+    setLoading(true);
 
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
     if (dashPlayerRef.current) { dashPlayerRef.current.destroy(); dashPlayerRef.current = null; }
 
-    if (!url || resolvedType === "embed") return;
-
-    // Check mixed content
-    if (isMixedContent(url)) {
-      setMixedContent(true);
+    if (!url || resolvedType === "embed") {
+      setLoading(false);
       return;
     }
 
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) { setLoading(false); return; }
+
+    const proxyUrl = getProxyUrl(url);
 
     if (resolvedType === "hls") {
       if (Hls.isSupported()) {
         const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-        hls.loadSource(url);
+        hls.loadSource(proxyUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setLoading(false);
           video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
+            setLoading(false);
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              setError("Erro de rede ao carregar o stream. Verifique se a URL está acessível e o servidor permite conexões externas (CORS).");
+              setError("Erro de rede ao carregar o stream. Verifique se a URL está acessível e o servidor de streaming está ativo.");
             } else {
               setError("Erro ao carregar stream HLS. Verifique a URL.");
             }
@@ -66,17 +71,22 @@ export default function StreamPlayer({ url, streamType }: StreamPlayerProps) {
         });
         hlsRef.current = hls;
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url;
+        video.src = proxyUrl;
+        video.addEventListener("loadeddata", () => setLoading(false), { once: true });
+        video.addEventListener("error", () => { setLoading(false); setError("Erro ao carregar stream."); }, { once: true });
       } else {
+        setLoading(false);
         setError("Seu navegador não suporta HLS.");
       }
     } else if (resolvedType === "dash") {
       const player = dashjs.MediaPlayer().create();
-      player.initialize(video, url, false);
-      player.on("error", () => setError("Erro ao carregar stream DASH. Verifique a URL."));
+      player.initialize(video, getProxyUrl(url), false);
+      player.on("streamInitialized", () => setLoading(false));
+      player.on("error", () => { setLoading(false); setError("Erro ao carregar stream DASH."); });
       dashPlayerRef.current = player;
     } else {
-      setError("Formato de stream não reconhecido. Use HLS (.m3u8), DASH (.mpd) ou Embed.");
+      setLoading(false);
+      setError("Formato não reconhecido. Use HLS (.m3u8), DASH (.mpd) ou Embed.");
     }
 
     return () => {
@@ -91,34 +101,6 @@ export default function StreamPlayer({ url, streamType }: StreamPlayerProps) {
         <Tv className="h-16 w-16 opacity-30" />
         <p className="text-lg">Nenhuma transmissão configurada</p>
         <p className="text-sm opacity-60">Configure a URL em Configurações → Integrações</p>
-      </div>
-    );
-  }
-
-  if (mixedContent) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-black/90 rounded-xl text-amber-400 gap-4 p-8">
-        <ShieldAlert className="h-12 w-12" />
-        <p className="text-lg font-semibold text-center">Conteúdo misto bloqueado pelo navegador</p>
-        <p className="text-sm text-center text-muted-foreground max-w-lg">
-          O site roda em HTTPS mas a URL do stream usa HTTP. O navegador bloqueia isso por segurança.
-        </p>
-        <div className="text-sm text-muted-foreground space-y-2 max-w-lg">
-          <p className="font-medium text-foreground">Soluções:</p>
-          <ul className="list-disc list-inside space-y-1 text-xs">
-            <li><strong>Recomendado:</strong> Use HTTPS no servidor de streaming</li>
-            <li><strong>Alternativa:</strong> Mude o tipo para "Embed" nas configurações e use a URL do embed: <code className="bg-muted px-1 rounded text-[10px]">{url.replace("index.m3u8", "embed.html")}</code></li>
-            <li><strong>Teste rápido:</strong> Abra diretamente em nova aba para verificar se o stream funciona</li>
-          </ul>
-        </div>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-primary underline mt-2"
-        >
-          Abrir stream diretamente →
-        </a>
       </div>
     );
   }
@@ -150,7 +132,12 @@ export default function StreamPlayer({ url, streamType }: StreamPlayerProps) {
   }
 
   return (
-    <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      )}
       <video
         ref={videoRef}
         className="w-full h-full"
