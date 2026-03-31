@@ -41,6 +41,7 @@ const mainItems = [
   { title: "Cidades", url: "/cidades", icon: MapPin },
   { title: "Mapa", url: "/mapa", icon: Map },
   { title: "Emendas", url: "/emendas", icon: Landmark },
+  { title: "Proposições", url: "/proposicoes", icon: ScrollText },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "Documentos", url: "/documentos", icon: FileText },
   { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
