@@ -233,6 +233,7 @@ export default function Proposicoes() {
             </div>
           </div>
         )}
+      </div>
       )}
 
       {/* Detail Modal */}
