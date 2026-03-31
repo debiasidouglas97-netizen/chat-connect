@@ -25,7 +25,7 @@ export function useStreamConfig() {
         .eq("tenant_id", tenantId!)
         .maybeSingle();
       if (error) throw error;
-      return data as StreamConfig | null;
+      return data as unknown as StreamConfig | null;
     },
   });
 
