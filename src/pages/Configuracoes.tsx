@@ -56,8 +56,8 @@ function getInitials(name: string) {
 function StreamConfigCard() {
   const { config, upsert } = useStreamConfig();
   const [streamUrl, setStreamUrl] = useState(config?.stream_url || "");
-  const [streamType, setStreamType] = useState(config?.stream_type || "auto");
-  const [streamStatus, setStreamStatus] = useState(config?.status || "inactive");
+  const [streamType, setStreamType] = useState<string>(config?.stream_type || "auto");
+  const [streamStatus, setStreamStatus] = useState<string>(config?.status || "inactive");
 
   useEffect(() => {
     if (config) {
