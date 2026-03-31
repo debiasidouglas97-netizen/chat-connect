@@ -250,6 +250,36 @@ export default function Configuracoes() {
     }
   };
 
+  const handlePartyLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/png"].includes(file.type)) {
+      toast.error("Use apenas PNG com fundo transparente.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setPartyLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    try {
+      setUploadingPartyLogo(true);
+      const ext = file.name.split(".").pop();
+      const path = `party-logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setForm((f) => ({ ...f, party_logo_url: data.publicUrl }));
+      toast.success("Logo do partido enviado!");
+    } catch {
+      toast.error("Erro ao enviar logo.");
+    } finally {
+      setUploadingPartyLogo(false);
+    }
+  };
+
   const handleCepLookup = async () => {
     const cep = form.address_cep.replace(/\D/g, "");
     if (cep.length !== 8) { toast.error("CEP inválido"); return; }
