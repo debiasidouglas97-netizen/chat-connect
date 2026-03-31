@@ -54,14 +54,15 @@ export function useProposicoes() {
 
   const addToKanban = useMutation({
     mutationFn: async (prop: Proposicao) => {
-      // Create demanda card
+      const col = mapStatusToKanban(prop.status_proposicao);
+      // Create demanda card with correct column based on status
       const { data: demanda, error: demandaError } = await supabase
         .from("demandas")
         .insert({
           title: `${prop.tipo} ${prop.numero}/${prop.ano}`,
           description: prop.ementa || "",
           city: "Brasília",
-          col: "nova",
+          col,
           priority: "Média",
           origin: "proposicao",
           tenant_id: tenantId,
