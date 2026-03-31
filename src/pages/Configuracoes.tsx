@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign, Users, Sun, Moon, RefreshCw, Bot, Eye, EyeOff, Send } from "lucide-react";
+import { Settings, Upload, X, Save, User, MapPin, Briefcase, Palette, Phone, Globe, Instagram, Facebook, Youtube, MessageCircle, Mail, AtSign, Users, Sun, Moon, RefreshCw, Bot, Eye, EyeOff, Send, Tv } from "lucide-react";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { useTenant } from "@/hooks/use-tenant";
 import { useTheme } from "@/hooks/use-theme";
