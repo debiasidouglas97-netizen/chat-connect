@@ -64,12 +64,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary overflow-hidden">
-            {profile?.logo_url || (profile as any)?.party_logo_url ? (
+          <div className={`flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden ${(profile as any)?.party_logo_url ? 'bg-white' : 'bg-sidebar-primary'}`}>
+            {(profile as any)?.party_logo_url ? (
               <img
-                src={(profile as any)?.party_logo_url || profile?.logo_url}
-                alt="Logo"
-                className="h-full w-full object-contain p-0.5"
+                src={(profile as any).party_logo_url}
+                alt="Logo partido"
+                className="h-8 w-8 object-contain"
               />
             ) : (
               <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
