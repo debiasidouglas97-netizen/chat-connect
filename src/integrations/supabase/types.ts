@@ -1171,6 +1171,44 @@ export type Database = {
           },
         ]
       }
+      tenant_stream_config: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          stream_type: string
+          stream_url: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          stream_type?: string
+          stream_url?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          stream_type?: string
+          stream_url?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_stream_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           camara_deputado_id: number | null
