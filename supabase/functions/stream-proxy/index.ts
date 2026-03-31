@@ -85,8 +85,7 @@ Deno.serve(async (req) => {
     if (targetUrl.endsWith('.mpd') || contentType.includes('dash')) {
       let body = await response.text();
       const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const reqUrl2 = new URL(req.url);
-      const proxyBase = `${reqUrl2.origin}/functions/v1/stream-proxy`;
+      const proxyBase = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/stream-proxy`;
       
       // Add BaseURL rewriting for DASH
       body = body.replace(/<BaseURL>(.*?)<\/BaseURL>/g, (_, url) => {
