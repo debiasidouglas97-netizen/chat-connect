@@ -63,29 +63,35 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden ${(profile as any)?.party_logo_url ? 'bg-white' : 'bg-sidebar-primary'}`}>
-            {(profile as any)?.party_logo_url ? (
-              <img
-                src={(profile as any).party_logo_url}
-                alt="Logo partido"
-                className="h-8 w-8 object-contain"
-              />
-            ) : (
-              <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+        {(profile as any)?.party_logo_url && !collapsed ? (
+          <div className="flex items-center justify-center py-2">
+            <img
+              src={(profile as any).party_logo_url}
+              alt="Logo partido"
+              className="max-h-14 w-auto object-contain"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className={`flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden ${(profile as any)?.party_logo_url ? 'bg-transparent' : 'bg-sidebar-primary'}`}>
+              {(profile as any)?.party_logo_url ? (
+                <img src={(profile as any).party_logo_url} alt="Logo" className="h-8 w-8 object-contain" />
+              ) : (
+                <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+              )}
+            </div>
+            {!collapsed && (
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-sidebar-foreground tracking-tight">
+                  {profile?.public_name || profile?.full_name || "MandatoGov"}
+                </span>
+                <span className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">
+                  {profile?.party || "Inteligência Parlamentar"}
+                </span>
+              </div>
             )}
           </div>
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-sidebar-foreground tracking-tight">
-                {profile?.public_name || profile?.full_name || "MandatoGov"}
-              </span>
-              <span className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">
-                {profile?.party || "Inteligência Parlamentar"}
-              </span>
-            </div>
-          )}
-        </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
