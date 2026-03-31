@@ -153,9 +153,32 @@ Deno.serve(async (req) => {
             }
           } catch { /* skip tramitacoes */ }
 
-          // Auto-move Kanban card if linked
-          if (upserted.adicionado_kanban && upserted.demanda_id) {
-            const kanbanCol = mapStatusToKanban(status);
+          const kanbanCol = mapStatusToKanban(status);
+
+          // Auto-create Kanban card if not yet linked
+          if (!upserted.adicionado_kanban || !upserted.demanda_id) {
+            const { data: newDemanda } = await supabase
+              .from("demandas")
+              .insert({
+                title: `${prop.siglaTipo} ${prop.numero}/${prop.ano}`,
+                description: prop.ementa || detailData?.ementa || "",
+                city: "Brasília",
+                col: kanbanCol,
+                priority: "Média",
+                origin: "proposicao",
+                tenant_id: tenant.id,
+              })
+              .select("id")
+              .single();
+
+            if (newDemanda) {
+              await supabase
+                .from("proposicoes")
+                .update({ adicionado_kanban: true, demanda_id: newDemanda.id })
+                .eq("id", upserted.id);
+            }
+          } else {
+            // Auto-move existing Kanban card based on tramitação
             await supabase
               .from("demandas")
               .update({ col: kanbanCol })
