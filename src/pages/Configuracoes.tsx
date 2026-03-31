@@ -15,6 +15,7 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/configuracoes/UserManagement";
+import { useStreamConfig } from "@/hooks/use-stream-config";
 import { toast } from "sonner";
 
 const REGIONS_OPTIONS = [
