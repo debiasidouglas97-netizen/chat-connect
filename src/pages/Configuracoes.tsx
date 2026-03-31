@@ -316,6 +316,7 @@ export default function Configuracoes() {
       bio: form.bio.trim() || null,
       institutional_message: form.institutional_message.trim() || null,
       avatar_url: form.avatar_url || null,
+      party_logo_url: form.party_logo_url || null,
       primary_color: form.primary_color,
       phone: form.phone.trim() || null,
       whatsapp: form.whatsapp.trim() || null,
