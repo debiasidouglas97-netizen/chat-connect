@@ -3,6 +3,7 @@ import {
   KanbanSquare,
   Users,
   MapPin,
+  Map,
   Landmark,
   CalendarDays,
   FileText,

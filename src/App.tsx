@@ -16,6 +16,7 @@ import Agenda from "./pages/Agenda";
 import Documentos from "./pages/Documentos";
 import Mensagens from "./pages/Mensagens";
 import Configuracoes from "./pages/Configuracoes";
+import Mapa from "./pages/Mapa";
 import Login from "./pages/Login";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
