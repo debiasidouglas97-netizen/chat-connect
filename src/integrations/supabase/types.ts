@@ -356,6 +356,7 @@ export type Database = {
           institutional_message: string | null
           logo_url: string | null
           party: string
+          party_logo_url: string | null
           phone: string | null
           primary_color: string | null
           priority_cities: string[] | null
@@ -387,6 +388,7 @@ export type Database = {
           institutional_message?: string | null
           logo_url?: string | null
           party: string
+          party_logo_url?: string | null
           phone?: string | null
           primary_color?: string | null
           priority_cities?: string[] | null
@@ -418,6 +420,7 @@ export type Database = {
           institutional_message?: string | null
           logo_url?: string | null
           party?: string
+          party_logo_url?: string | null
           phone?: string | null
           primary_color?: string | null
           priority_cities?: string[] | null

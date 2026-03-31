@@ -1,0 +1,1 @@
+ALTER TABLE public.deputy_profile ADD COLUMN IF NOT EXISTS party_logo_url text;
