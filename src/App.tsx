@@ -17,6 +17,7 @@ import Documentos from "./pages/Documentos";
 import Mensagens from "./pages/Mensagens";
 import Configuracoes from "./pages/Configuracoes";
 import Mapa from "./pages/Mapa";
+import Proposicoes from "./pages/Proposicoes";
 import Login from "./pages/Login";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/cidades" element={<Cidades />} />
               <Route path="/emendas" element={<Emendas />} />
               <Route path="/mapa" element={<Mapa />} />
+              <Route path="/proposicoes" element={<Proposicoes />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/documentos" element={<Documentos />} />
               <Route path="/mensagens" element={<Mensagens />} />
