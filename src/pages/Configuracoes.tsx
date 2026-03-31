@@ -57,6 +57,9 @@ export default function Configuracoes() {
   const { tenantId } = useTenant();
   const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const partyLogoInputRef = useRef<HTMLInputElement>(null);
+  const [partyLogoPreview, setPartyLogoPreview] = useState<string | null>(null);
+  const [uploadingPartyLogo, setUploadingPartyLogo] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [telegramBotToken, setTelegramBotToken] = useState("");
   const [telegramBotUsername, setTelegramBotUsername] = useState("");
