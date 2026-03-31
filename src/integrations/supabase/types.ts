@@ -23,7 +23,9 @@ export type Database = {
           emendas: number
           engajamento: number
           id: string
+          latitude: number | null
           liderancas: number
+          longitude: number | null
           name: string
           peso: number
           population: string
@@ -40,7 +42,9 @@ export type Database = {
           emendas?: number
           engajamento?: number
           id?: string
+          latitude?: number | null
           liderancas?: number
+          longitude?: number | null
           name: string
           peso?: number
           population: string
@@ -57,7 +61,9 @@ export type Database = {
           emendas?: number
           engajamento?: number
           id?: string
+          latitude?: number | null
           liderancas?: number
+          longitude?: number | null
           name?: string
           peso?: number
           population?: string
