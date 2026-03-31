@@ -62,6 +62,14 @@ export default function Proposicoes() {
     });
   }, [proposicoes, search, tipoFilter, statusFilter]);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset page when filters change
+  const handleSearch = (val: string) => { setSearch(val); setPage(1); };
+  const handleTipoFilter = (val: string) => { setTipoFilter(val); setPage(1); };
+  const handleStatusFilter = (val: string) => { setStatusFilter(val); setPage(1); };
+
   const handleSync = () => {
     syncNow.mutate(undefined, {
       onSuccess: () => toast({ title: "Sincronização iniciada", description: "As proposições estão sendo atualizadas." }),
