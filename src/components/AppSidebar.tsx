@@ -38,6 +38,7 @@ const mainItems = [
   { title: "Demandas", url: "/demandas", icon: KanbanSquare },
   { title: "Lideranças", url: "/liderancas", icon: Users },
   { title: "Cidades", url: "/cidades", icon: MapPin },
+  { title: "Mapa", url: "/mapa", icon: Map },
   { title: "Emendas", url: "/emendas", icon: Landmark },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "Documentos", url: "/documentos", icon: FileText },
