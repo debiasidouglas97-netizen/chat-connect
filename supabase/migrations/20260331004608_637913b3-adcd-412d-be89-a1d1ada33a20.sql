@@ -1,0 +1,1 @@
+UPDATE public.cidades SET latitude = NULL, longitude = NULL WHERE tenant_id = 'b477b278-157d-4d4f-a576-f3fa660514a6';
