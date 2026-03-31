@@ -38,6 +38,8 @@ export default function Proposicoes() {
   const [tipoFilter, setTipoFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<Proposicao | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const statusOptions = useMemo(() => {
     if (!proposicoes) return [];
@@ -59,6 +61,14 @@ export default function Proposicoes() {
       return matchSearch && matchTipo && matchStatus;
     });
   }, [proposicoes, search, tipoFilter, statusFilter]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset page when filters change
+  const handleSearch = (val: string) => { setSearch(val); setPage(1); };
+  const handleTipoFilter = (val: string) => { setTipoFilter(val); setPage(1); };
+  const handleStatusFilter = (val: string) => { setStatusFilter(val); setPage(1); };
 
   const handleSync = () => {
     syncNow.mutate(undefined, {
@@ -98,11 +108,11 @@ export default function Proposicoes() {
           <Input
             placeholder="Buscar por número, tipo, ementa ou autor..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Select value={tipoFilter} onValueChange={setTipoFilter}>
+        <Select value={tipoFilter} onValueChange={handleTipoFilter}>
           <SelectTrigger className="w-[140px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Tipo" />
@@ -112,7 +122,7 @@ export default function Proposicoes() {
             {TIPOS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -146,56 +156,73 @@ export default function Proposicoes() {
           <p className="text-sm">Clique em "Sincronizar agora" para buscar na API da Câmara.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Tipo</TableHead>
-                <TableHead className="w-[120px]">Número/Ano</TableHead>
-                <TableHead>Ementa</TableHead>
-                <TableHead className="w-[160px]">Status</TableHead>
-                <TableHead className="w-[160px]">Autor</TableHead>
-                <TableHead className="w-[130px]">Atualização</TableHead>
-                <TableHead className="w-[80px]">Kanban</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(prop => (
-                <TableRow
-                  key={prop.id}
-                  className="cursor-pointer hover:bg-accent/50"
-                  onClick={() => setSelected(prop)}
-                >
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">{prop.tipo}</Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{prop.numero}/{prop.ano}</TableCell>
-                  <TableCell className="max-w-[300px] truncate text-sm">{prop.ementa}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(prop.status_proposicao)}>
-                      {prop.status_proposicao || "—"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm truncate max-w-[140px]">{prop.autor || "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {prop.ultima_atualizacao
-                      ? format(new Date(prop.ultima_atualizacao), "dd/MM/yyyy", { locale: ptBR })
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {prop.adicionado_kanban ? (
-                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px]">
-                        <KanbanSquare className="h-3 w-3 mr-1" /> Sim
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
+        <>
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Tipo</TableHead>
+                  <TableHead className="w-[120px]">Número/Ano</TableHead>
+                  <TableHead>Ementa</TableHead>
+                  <TableHead className="w-[160px]">Status</TableHead>
+                  <TableHead className="w-[160px]">Autor</TableHead>
+                  <TableHead className="w-[130px]">Atualização</TableHead>
+                  <TableHead className="w-[80px]">Kanban</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {paginated.map(prop => (
+                  <TableRow
+                    key={prop.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => setSelected(prop)}
+                  >
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">{prop.tipo}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{prop.numero}/{prop.ano}</TableCell>
+                    <TableCell className="max-w-[300px] truncate text-sm">{prop.ementa}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(prop.status_proposicao)}>
+                        {prop.status_proposicao || "—"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm truncate max-w-[140px]">{prop.autor || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {prop.ultima_atualizacao
+                        ? format(new Date(prop.ultima_atualizacao), "dd/MM/yyyy", { locale: ptBR })
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {prop.adicionado_kanban ? (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px]">
+                          <KanbanSquare className="h-3 w-3 mr-1" /> Sim
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Página {page} de {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                  Próximo
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Detail Modal */}
