@@ -189,9 +189,9 @@ Deno.serve(async (req) => {
 function mapStatusToKanban(status: string): string {
   const s = status.toLowerCase();
   if (s.includes("apresentada")) return "nova";
-  if (s.includes("tramitação") || s.includes("tramitando")) return "andamento";
-  if (s.includes("análise") || s.includes("comissão")) return "analise";
+  if (s.includes("tramitação") || s.includes("tramitando") || s.includes("tramitando em conjunto")) return "encaminhada";
+  if (s.includes("análise") || s.includes("comissão") || s.includes("parecer") || s.includes("pauta") || s.includes("designação")) return "analise";
   if (s.includes("aprovada")) return "resolvida";
-  if (s.includes("arquivada") || s.includes("rejeitada")) return "encerrada";
+  if (s.includes("arquivada") || s.includes("rejeitada") || s.includes("devolvida")) return "resolvida";
   return "nova";
 }
