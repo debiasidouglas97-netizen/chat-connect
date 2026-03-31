@@ -111,6 +111,7 @@ export default function Configuracoes() {
         bio: (profile as any).bio || "",
         institutional_message: (profile as any).institutional_message || "",
         avatar_url: (profile as any).avatar_url || "",
+        party_logo_url: (profile as any).party_logo_url || "",
         primary_color: (profile as any).primary_color || "#2d5a3d",
         phone: (profile as any).phone || "",
         whatsapp: (profile as any).whatsapp || "",
