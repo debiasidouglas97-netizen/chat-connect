@@ -156,84 +156,73 @@ export default function Proposicoes() {
           <p className="text-sm">Clique em "Sincronizar agora" para buscar na API da Câmara.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Tipo</TableHead>
-                <TableHead className="w-[120px]">Número/Ano</TableHead>
-                <TableHead>Ementa</TableHead>
-                <TableHead className="w-[160px]">Status</TableHead>
-                <TableHead className="w-[160px]">Autor</TableHead>
-                <TableHead className="w-[130px]">Atualização</TableHead>
-                <TableHead className="w-[80px]">Kanban</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginated.map(prop => (
-                <TableRow
-                  key={prop.id}
-                  className="cursor-pointer hover:bg-accent/50"
-                  onClick={() => setSelected(prop)}
-                >
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">{prop.tipo}</Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{prop.numero}/{prop.ano}</TableCell>
-                  <TableCell className="max-w-[300px] truncate text-sm">{prop.ementa}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(prop.status_proposicao)}>
-                      {prop.status_proposicao || "—"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm truncate max-w-[140px]">{prop.autor || "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {prop.ultima_atualizacao
-                      ? format(new Date(prop.ultima_atualizacao), "dd/MM/yyyy", { locale: ptBR })
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {prop.adicionado_kanban ? (
-                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px]">
-                        <KanbanSquare className="h-3 w-3 mr-1" /> Sim
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
+        <>
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Tipo</TableHead>
+                  <TableHead className="w-[120px]">Número/Ano</TableHead>
+                  <TableHead>Ementa</TableHead>
+                  <TableHead className="w-[160px]">Status</TableHead>
+                  <TableHead className="w-[160px]">Autor</TableHead>
+                  <TableHead className="w-[130px]">Atualização</TableHead>
+                  <TableHead className="w-[80px]">Kanban</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <p className="text-sm text-muted-foreground">
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Próximo
-              </Button>
-            </div>
+              </TableHeader>
+              <TableBody>
+                {paginated.map(prop => (
+                  <TableRow
+                    key={prop.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => setSelected(prop)}
+                  >
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">{prop.tipo}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{prop.numero}/{prop.ano}</TableCell>
+                    <TableCell className="max-w-[300px] truncate text-sm">{prop.ementa}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(prop.status_proposicao)}>
+                        {prop.status_proposicao || "—"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm truncate max-w-[140px]">{prop.autor || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {prop.ultima_atualizacao
+                        ? format(new Date(prop.ultima_atualizacao), "dd/MM/yyyy", { locale: ptBR })
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {prop.adicionado_kanban ? (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px]">
+                          <KanbanSquare className="h-3 w-3 mr-1" /> Sim
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Página {page} de {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                  Próximo
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Detail Modal */}
