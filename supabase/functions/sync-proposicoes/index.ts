@@ -13,26 +13,6 @@ interface CamaraProposicao {
   numero: number;
   ano: number;
   ementa: string;
-  statusProposicao?: {
-    descricaoSituacao?: string;
-    dataHora?: string;
-    despacho?: string;
-    siglaOrgao?: string;
-    descricaoTramitacao?: string;
-    url?: string;
-    sequencia?: number;
-  };
-  urlInteiroTeor?: string;
-}
-
-interface CamaraTramitacao {
-  dataHora: string;
-  sequencia: number;
-  siglaOrgao: string;
-  descricaoTramitacao: string;
-  despacho: string;
-  situacao?: string;
-  url?: string;
 }
 
 Deno.serve(async (req) => {
@@ -45,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all active tenants with camara_deputado_id
     const { data: tenants, error: tenantError } = await supabase
       .from("tenants")
       .select("id, camara_deputado_id")
@@ -63,8 +42,9 @@ Deno.serve(async (req) => {
 
     for (const tenant of tenants) {
       try {
-        // Fetch propositions authored by this deputy
+        // Fetch propositions from Câmara API
         const url = `${CAMARA_API}/proposicoes?idDeputadoAutor=${tenant.camara_deputado_id}&ordem=DESC&ordenarPor=id&itens=100`;
+        console.log(`Fetching propositions for tenant ${tenant.id}: ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
           results.push({ tenant_id: tenant.id, error: `API returned ${response.status}` });
@@ -77,126 +57,143 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        console.log(`Found ${dados.length} propositions for tenant ${tenant.id}`);
         let synced = 0;
+        let kanbanCreated = 0;
 
-        for (const prop of dados as CamaraProposicao[]) {
-          // Get full details
-          let detailData: any = null;
-          try {
-            const detailRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}`);
-            if (detailRes.ok) {
-              const detail = await detailRes.json();
-              detailData = detail.dados;
-            }
-          } catch { /* skip detail */ }
+        // Process in batches of 5 for speed
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < dados.length; i += BATCH_SIZE) {
+          const batch = (dados as CamaraProposicao[]).slice(i, i + BATCH_SIZE);
 
-          const status = detailData?.statusProposicao?.descricaoSituacao || "Apresentada";
-          const tema = detailData?.keywords || null;
+          const batchResults = await Promise.allSettled(
+            batch.map(async (prop) => {
+              // Get details
+              let detailData: any = null;
+              try {
+                const detailRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}`);
+                if (detailRes.ok) {
+                  const detail = await detailRes.json();
+                  detailData = detail.dados;
+                }
+              } catch { /* skip */ }
 
-          // Get authors
-          let autor = "";
-          try {
-            const autorRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}/autores`);
-            if (autorRes.ok) {
-              const autorData = await autorRes.json();
-              autor = (autorData.dados || []).map((a: any) => a.nome).join(", ");
-            }
-          } catch { /* skip */ }
+              const status = detailData?.statusProposicao?.descricaoSituacao || "Apresentada";
 
-          // Upsert proposition
-          const { data: upserted, error: upsertError } = await supabase
-            .from("proposicoes")
-            .upsert({
-              tenant_id: tenant.id,
-              camara_id: prop.id,
-              tipo: prop.siglaTipo,
-              numero: prop.numero,
-              ano: prop.ano,
-              ementa: prop.ementa || detailData?.ementa,
-              status_proposicao: status,
-              tema: typeof tema === "string" ? tema : null,
-              autor: autor || null,
-              url_inteiro_teor: detailData?.urlInteiroTeor || null,
-              ultima_atualizacao: detailData?.statusProposicao?.dataHora || new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: "tenant_id,camara_id",
-            })
-            .select("id, status_proposicao, adicionado_kanban, demanda_id")
-            .single();
+              // Get authors
+              let autor = "";
+              try {
+                const autorRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}/autores`);
+                if (autorRes.ok) {
+                  const autorData = await autorRes.json();
+                  autor = (autorData.dados || []).map((a: any) => a.nome).join(", ");
+                }
+              } catch { /* skip */ }
 
-          if (upsertError) {
-            console.error("Upsert error:", upsertError);
-            continue;
-          }
-
-          // Sync tramitações
-          try {
-            const tramRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}/tramitacoes`);
-            if (tramRes.ok) {
-              const tramData = await tramRes.json();
-              const tramitacoes = (tramData.dados || []) as CamaraTramitacao[];
-
-              for (const tram of tramitacoes.slice(0, 20)) {
-                await supabase.from("proposicao_tramitacoes").upsert({
-                  proposicao_id: upserted.id,
-                  tenant_id: tenant.id,
-                  data_hora: tram.dataHora,
-                  sequencia: tram.sequencia,
-                  sigla_orgao: tram.siglaOrgao,
-                  descricao_tramitacao: tram.descricaoTramitacao,
-                  despacho: tram.despacho,
-                  situacao: tram.situacao || null,
-                  url: tram.url || null,
-                }, { onConflict: "proposicao_id,sequencia", ignoreDuplicates: true });
-              }
-            }
-          } catch { /* skip tramitacoes */ }
-
-          const kanbanCol = mapStatusToKanban(status);
-
-          // Auto-create Kanban card if not yet linked
-          if (!upserted.adicionado_kanban || !upserted.demanda_id) {
-            const { data: newDemanda, error: insertErr } = await supabase
-              .from("demandas")
-              .insert({
-                title: `${prop.siglaTipo} ${prop.numero}/${prop.ano}`,
-                description: prop.ementa || detailData?.ementa || "",
-                city: "Brasília",
-                col: kanbanCol,
-                priority: "Média",
-                origin: "proposicao",
-                tenant_id: tenant.id,
-              })
-              .select("id")
-              .single();
-
-            if (insertErr) {
-              console.error(`Failed to create kanban card for ${prop.siglaTipo} ${prop.numero}:`, insertErr);
-            } else if (newDemanda) {
-              const { error: linkErr } = await supabase
+              // Upsert proposition
+              const { data: upserted, error: upsertError } = await supabase
                 .from("proposicoes")
-                .update({ adicionado_kanban: true, demanda_id: newDemanda.id })
-                .eq("id", upserted.id);
-              if (linkErr) console.error(`Failed to link proposicao ${upserted.id}:`, linkErr);
-              else console.log(`Created kanban card for ${prop.siglaTipo} ${prop.numero}/${prop.ano} -> col: ${kanbanCol}`);
+                .upsert({
+                  tenant_id: tenant.id,
+                  camara_id: prop.id,
+                  tipo: prop.siglaTipo,
+                  numero: prop.numero,
+                  ano: prop.ano,
+                  ementa: prop.ementa || detailData?.ementa,
+                  status_proposicao: status,
+                  tema: typeof detailData?.keywords === "string" ? detailData.keywords : null,
+                  autor: autor || null,
+                  url_inteiro_teor: detailData?.urlInteiroTeor || null,
+                  ultima_atualizacao: detailData?.statusProposicao?.dataHora || new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }, {
+                  onConflict: "tenant_id,camara_id",
+                })
+                .select("id, status_proposicao, adicionado_kanban, demanda_id")
+                .single();
+
+              if (upsertError) {
+                console.error(`Upsert error for ${prop.siglaTipo} ${prop.numero}:`, upsertError.message);
+                return { synced: false, kanban: false };
+              }
+
+              // Sync top 10 tramitações
+              try {
+                const tramRes = await fetch(`${CAMARA_API}/proposicoes/${prop.id}/tramitacoes`);
+                if (tramRes.ok) {
+                  const tramData = await tramRes.json();
+                  const tramitacoes = (tramData.dados || []).slice(0, 10);
+                  for (const tram of tramitacoes) {
+                    await supabase.from("proposicao_tramitacoes").upsert({
+                      proposicao_id: upserted.id,
+                      tenant_id: tenant.id,
+                      data_hora: tram.dataHora,
+                      sequencia: tram.sequencia,
+                      sigla_orgao: tram.siglaOrgao,
+                      descricao_tramitacao: tram.descricaoTramitacao,
+                      despacho: tram.despacho,
+                      situacao: tram.situacao || null,
+                      url: tram.url || null,
+                    }, { onConflict: "proposicao_id,sequencia", ignoreDuplicates: true });
+                  }
+                }
+              } catch { /* skip */ }
+
+              // Kanban integration
+              const kanbanCol = mapStatusToKanban(status);
+              let didCreateKanban = false;
+
+              if (!upserted.adicionado_kanban || !upserted.demanda_id) {
+                const { data: newDemanda, error: insertErr } = await supabase
+                  .from("demandas")
+                  .insert({
+                    title: `${prop.siglaTipo} ${prop.numero}/${prop.ano}`,
+                    description: prop.ementa || detailData?.ementa || "",
+                    city: "Brasília",
+                    col: kanbanCol,
+                    priority: "Média",
+                    origin: "proposicao",
+                    tenant_id: tenant.id,
+                  })
+                  .select("id")
+                  .single();
+
+                if (insertErr) {
+                  console.error(`Kanban insert error for ${prop.siglaTipo} ${prop.numero}:`, insertErr.message);
+                } else if (newDemanda) {
+                  await supabase
+                    .from("proposicoes")
+                    .update({ adicionado_kanban: true, demanda_id: newDemanda.id })
+                    .eq("id", upserted.id);
+                  console.log(`✅ Kanban card created: ${prop.siglaTipo} ${prop.numero}/${prop.ano} -> ${kanbanCol}`);
+                  didCreateKanban = true;
+                }
+              } else {
+                await supabase
+                  .from("demandas")
+                  .update({ col: kanbanCol })
+                  .eq("id", upserted.demanda_id);
+              }
+
+              return { synced: true, kanban: didCreateKanban };
+            })
+          );
+
+          for (const r of batchResults) {
+            if (r.status === "fulfilled") {
+              if (r.value.synced) synced++;
+              if (r.value.kanban) kanbanCreated++;
             }
-          } else {
-            // Auto-move existing Kanban card based on tramitação
-            await supabase
-              .from("demandas")
-              .update({ col: kanbanCol })
-              .eq("id", upserted.demanda_id);
           }
 
-          synced++;
-
-          // Rate limiting - be nice to the API
-          await new Promise(r => setTimeout(r, 200));
+          // Small delay between batches
+          await new Promise(r => setTimeout(r, 100));
         }
 
-        results.push({ tenant_id: tenant.id, count: synced });
+        console.log(`Tenant ${tenant.id}: synced=${synced}, kanban_created=${kanbanCreated}`);
+        results.push({ tenant_id: tenant.id, count: synced, kanban_created: kanbanCreated });
       } catch (e: any) {
+        console.error(`Tenant ${tenant.id} error:`, e.message);
         results.push({ tenant_id: tenant.id, error: e.message });
       }
     }
