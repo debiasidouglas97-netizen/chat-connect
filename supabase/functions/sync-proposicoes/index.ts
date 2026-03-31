@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
 
           // Auto-create Kanban card if not yet linked
           if (!upserted.adicionado_kanban || !upserted.demanda_id) {
-            const { data: newDemanda } = await supabase
+            const { data: newDemanda, error: insertErr } = await supabase
               .from("demandas")
               .insert({
                 title: `${prop.siglaTipo} ${prop.numero}/${prop.ano}`,
@@ -171,11 +171,15 @@ Deno.serve(async (req) => {
               .select("id")
               .single();
 
-            if (newDemanda) {
-              await supabase
+            if (insertErr) {
+              console.error(`Failed to create kanban card for ${prop.siglaTipo} ${prop.numero}:`, insertErr);
+            } else if (newDemanda) {
+              const { error: linkErr } = await supabase
                 .from("proposicoes")
                 .update({ adicionado_kanban: true, demanda_id: newDemanda.id })
                 .eq("id", upserted.id);
+              if (linkErr) console.error(`Failed to link proposicao ${upserted.id}:`, linkErr);
+              else console.log(`Created kanban card for ${prop.siglaTipo} ${prop.numero}/${prop.ano} -> col: ${kanbanCol}`);
             }
           } else {
             // Auto-move existing Kanban card based on tramitação
