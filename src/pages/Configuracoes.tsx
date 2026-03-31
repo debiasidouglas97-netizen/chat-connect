@@ -659,13 +659,53 @@ export default function Configuracoes() {
             </div>
             <div>
               <Label htmlFor="party">Partido *</Label>
-              <Input id="party" value={form.party} onChange={(e) => setForm((f) => ({ ...f, party: e.target.value }))} placeholder="PL" />
+              <select id="party" value={form.party} onChange={(e) => setForm((f) => ({ ...f, party: e.target.value }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <option value="">Selecione...</option>
+                {PARTIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
             <div>
               <Label htmlFor="state">Estado *</Label>
               <select id="state" value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
+            </div>
+          </div>
+
+          {/* Party Logo Upload */}
+          <Separator />
+          <div>
+            <Label className="flex items-center gap-1 mb-2">🏛️ Logo do Partido (PNG transparente)</Label>
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-lg border-2 border-dashed border-input flex items-center justify-center bg-muted/30 overflow-hidden">
+                {partyLogoPreview ? (
+                  <img src={partyLogoPreview} alt="Logo partido" className="h-full w-full object-contain p-1" />
+                ) : (
+                  <Briefcase className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  Upload do logo do partido em PNG com fundo transparente. Será exibido no menu lateral.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => partyLogoInputRef.current?.click()} disabled={uploadingPartyLogo}>
+                    {uploadingPartyLogo ? "Enviando..." : "Escolher logo"}
+                  </Button>
+                  {partyLogoPreview && (
+                    <Button variant="ghost" size="sm" onClick={() => { setPartyLogoPreview(null); setForm((f) => ({ ...f, party_logo_url: "" })); }}>
+                      <X className="h-4 w-4 mr-1" /> Remover
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={partyLogoInputRef}
+                  type="file"
+                  accept="image/png"
+                  className="hidden"
+                  onChange={handlePartyLogoChange}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
