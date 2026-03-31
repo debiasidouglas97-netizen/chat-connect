@@ -53,6 +53,79 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+function StreamConfigCard() {
+  const { config, upsert } = useStreamConfig();
+  const [streamUrl, setStreamUrl] = useState(config?.stream_url || "");
+  const [streamType, setStreamType] = useState(config?.stream_type || "auto");
+  const [streamStatus, setStreamStatus] = useState(config?.status || "inactive");
+
+  useEffect(() => {
+    if (config) {
+      setStreamUrl(config.stream_url || "");
+      setStreamType(config.stream_type || "auto");
+      setStreamStatus(config.status || "inactive");
+    }
+  }, [config]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Tv className="h-5 w-5 text-primary" />
+          Mandato em Foco (TV Web)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Configure a URL da TV Parlamentar para transmissão ao vivo. Formatos suportados: HLS (.m3u8), DASH (.mpd) e Embed (iframe).
+        </p>
+        <div>
+          <Label>URL da Transmissão</Label>
+          <Input
+            value={streamUrl}
+            onChange={(e) => setStreamUrl(e.target.value)}
+            placeholder="http://exemplo.com/stream/index.m3u8"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Tipo de Stream</Label>
+            <select
+              value={streamType}
+              onChange={(e) => setStreamType(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="auto">Auto-detect</option>
+              <option value="hls">HLS (.m3u8)</option>
+              <option value="dash">DASH (.mpd)</option>
+              <option value="embed">Embed (iframe)</option>
+            </select>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <select
+              value={streamStatus}
+              onChange={(e) => setStreamStatus(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="active">Ativo</option>
+              <option value="inactive">Inativo</option>
+            </select>
+          </div>
+        </div>
+        <Button
+          onClick={() => upsert.mutate({ stream_url: streamUrl.trim(), stream_type: streamType, status: streamStatus })}
+          disabled={upsert.isPending}
+          className="gap-2"
+        >
+          <Save className="h-4 w-4" />
+          {upsert.isPending ? "Salvando..." : "Salvar configuração"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Configuracoes() {
   const { profile, isLoading, upsert, uploadAvatar } = useDeputyProfile();
   const { tenantId } = useTenant();
