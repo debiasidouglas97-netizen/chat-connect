@@ -27,6 +27,13 @@ const FOCUS_AREAS_OPTIONS = [
   "Cultura", "Esporte", "Assistência Social", "Tecnologia", "Agricultura",
 ];
 
+const PARTIES = [
+  "AGIR", "AVANTE", "CIDADANIA", "DC", "MDB", "NOVO", "PATRIOTA", "PCB", "PCdoB",
+  "PCO", "PDT", "PL", "PMB", "PMN", "PODE", "PP", "PRD", "PROS", "PRTB", "PSB",
+  "PSC", "PSD", "PSDB", "PSOL", "PSTU", "PT", "PTB", "PV", "REDE",
+  "REPUBLICANOS", "SD", "UNIÃO", "UP",
+];
+
 const STATES = [
   "Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal",
   "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul",
