@@ -108,11 +108,11 @@ export default function Proposicoes() {
           <Input
             placeholder="Buscar por número, tipo, ementa ou autor..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Select value={tipoFilter} onValueChange={setTipoFilter}>
+        <Select value={tipoFilter} onValueChange={handleTipoFilter}>
           <SelectTrigger className="w-[140px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Tipo" />
