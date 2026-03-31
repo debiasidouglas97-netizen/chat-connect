@@ -114,7 +114,7 @@ function StreamConfigCard() {
           </div>
         </div>
         <Button
-          onClick={() => upsert.mutate({ stream_url: streamUrl.trim(), stream_type: streamType, status: streamStatus })}
+          onClick={() => upsert.mutate({ stream_url: streamUrl.trim(), stream_type: streamType as any, status: streamStatus as any })}
           disabled={upsert.isPending}
           className="gap-2"
         >
