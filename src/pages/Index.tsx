@@ -13,6 +13,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { useCidades } from "@/hooks/use-cidades";
+import { useEmendas } from "@/hooks/use-emendas";
 
 // Simulated current role — will be replaced by real auth
 const CURRENT_ROLE: UserRole = "deputado";
@@ -20,7 +21,6 @@ const CURRENT_ROLE: UserRole = "deputado";
 const kpis = [
   { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
   { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
-  { label: "Emendas Cadastradas", value: 9, icon: Landmark, change: "R$ 10,0M total", bg: "bg-[hsl(210_60%_92%)]", iconBg: "bg-[hsl(210_60%_85%)]", iconColor: "text-[hsl(210_60%_35%)]" },
 ];
 
 const opportunities = [
@@ -40,6 +40,7 @@ const statusConfig = {
 export default function Index() {
   const { profile } = useDeputyProfile();
   const { cidades: cidadesRaw } = useCidades();
+  const { emendas } = useEmendas();
   const navigate = useNavigate();
   const cidadesComScore = useMemo(
     () => cidadesRaw.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
@@ -56,6 +57,19 @@ export default function Index() {
     if (total >= 1_000) return `${(total / 1_000).toFixed(0)}mil hab.`;
     return `${total} hab.`;
   }, [cidadesRaw]);
+
+  const totalEmendas = emendas.length;
+  const totalValorEmendas = useMemo(() => {
+    const total = emendas.reduce((sum, e) => {
+      const num = parseFloat(
+        e.valor.replace(/[R$\s.]/g, "").replace(",", ".")
+      );
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+    if (total >= 1_000_000) return `R$ ${(total / 1_000_000).toFixed(1).replace(".", ",")}M total`;
+    if (total >= 1_000) return `R$ ${(total / 1_000).toFixed(0)}mil total`;
+    return `R$ ${total.toFixed(0)} total`;
+  }, [emendas]);
 
   const showRanking = canViewRanking(CURRENT_ROLE);
 
@@ -111,6 +125,24 @@ export default function Index() {
             </CardContent>
           </Card>
         ))}
+        {/* Emendas Cadastradas — dynamic & clickable */}
+        <Card
+          className="hover:shadow-md transition-shadow border-0 bg-[hsl(210_60%_92%)] cursor-pointer"
+          onClick={() => navigate("/emendas")}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Emendas Cadastradas</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{totalEmendas}</p>
+                <p className="text-xs text-muted-foreground mt-1">{totalValorEmendas}</p>
+              </div>
+              <div className="h-11 w-11 rounded-lg bg-[hsl(210_60%_85%)] flex items-center justify-center">
+                <Landmark className="h-5 w-5 text-[hsl(210_60%_35%)]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         {/* Cidades Atendidas — dynamic & clickable */}
         <Card
           className="hover:shadow-md transition-shadow border-0 bg-[hsl(145_50%_92%)] cursor-pointer"
