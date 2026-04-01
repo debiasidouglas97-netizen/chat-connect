@@ -86,7 +86,7 @@ Deno.serve(async () => {
   async function getLiderancaByChat(chatId: number) {
     const { data: contact } = await supabase
       .from('telegram_contacts')
-      .select('lideranca_name')
+      .select('lideranca_name, tenant_id')
       .eq('chat_id', chatId)
       .single();
 
@@ -94,11 +94,16 @@ Deno.serve(async () => {
 
     const { data: lideranca } = await supabase
       .from('liderancas')
-      .select('name, cidade_principal')
+      .select('name, cidade_principal, tenant_id, telegram_username')
       .eq('name', contact.lideranca_name)
       .single();
 
-    return lideranca;
+    if (!lideranca) return null;
+
+    // Only allow lideranças with telegram_username registered
+    if (!lideranca.telegram_username) return null;
+
+    return { ...lideranca, tenant_id: lideranca.tenant_id || contact.tenant_id };
   }
 
   async function getCidadesForLideranca(liderancaName: string | null) {
@@ -219,8 +224,13 @@ Deno.serve(async () => {
     // Handle /demanda command
     if (trimmed.toLowerCase() === '/demanda') {
       const lideranca = await getLiderancaByChat(chatId);
+      if (!lideranca) {
+        await sendMessage(chatId, '⚠️ Você precisa estar cadastrado como liderança com @telegram no sistema para criar demandas. Entre em contato com o gabinete.');
+        return;
+      }
       await setConversationState(chatId, 'title', {
-        lideranca_name: lideranca?.name || messageFrom?.first_name || 'Usuário',
+        lideranca_name: lideranca.name,
+        tenant_id: lideranca.tenant_id,
       });
       await sendMessage(chatId, '📝 *Nova Demanda*\n\nQual o título da demanda?');
       return;
@@ -371,9 +381,10 @@ Deno.serve(async () => {
             col: 'nova',
             origin: 'telegram',
             creator_chat_id: chatId,
-            creator_name: data.lideranca_name || 'Via Telegram',
+            creator_name: data.lideranca_name,
             responsible: data.lideranca_name || null,
             attachments: (data.pending_files || []).length,
+            tenant_id: data.tenant_id || null,
           } as any).select().single();
 
           if (error) {
@@ -408,8 +419,9 @@ Deno.serve(async () => {
             await supabase.from('demanda_history').insert({
               demanda_id: newDemanda.id,
               action: 'Demanda criada via Telegram',
-              actor: data.lideranca_name || 'Via Telegram',
+              actor: data.lideranca_name,
               new_status: 'nova',
+              tenant_id: data.tenant_id || null,
             } as any);
 
             let confirmMsg = `✅ Sua demanda foi registrada com sucesso!\n\n📌 Título: ${data.title}\n📍 Cidade: ${data.city}\n📊 Prioridade: ${data.priority}`;
