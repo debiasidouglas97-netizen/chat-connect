@@ -505,6 +505,76 @@ export default function Demandas() {
     [demandas, update, addHistory, notifyStatusChange]
   );
 
+  if (showArchived) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setShowArchived(false)}>
+              <ChevronUp className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Archive className="h-5 w-5 text-destructive" /> Demandas Arquivadas
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {archivedItems.length} demanda(s) arquivada(s)
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => setShowArchived(false)} className="gap-2">
+            <ChevronUp className="h-4 w-4" /> Voltar ao Kanban
+          </Button>
+        </div>
+
+        {archivedItems.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Archive className="h-12 w-12 mx-auto mb-3 opacity-40" />
+            <p>Nenhuma demanda arquivada.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {archivedItems.map((item) => {
+              const cardType = getCardType(item);
+              const styles = getCardStyles(cardType);
+              const typeConfig = cardTypeConfig[cardType];
+              return (
+                <Card
+                  key={item.id}
+                  className={`cursor-pointer hover:shadow-md transition-all rounded-xl ${styles.bg} ${styles.border} border`}
+                  onClick={() => setSelectedDemanda(item)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Badge className={`text-[9px] px-1.5 py-0 font-bold ${typeConfig.badgeClass}`}>
+                        {typeConfig.label}
+                      </Badge>
+                    </div>
+                    <p className={`text-sm font-medium leading-tight ${styles.text}`}>{item.title}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> {item.city}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        <DemandaDetailDialog
+          demanda={selectedDemanda}
+          open={!!selectedDemanda}
+          onOpenChange={(v) => { if (!v) setSelectedDemanda(null); }}
+          onUpdate={handleUpdate}
+          onArchive={handleArchive}
+          onMoveNext={handleMoveNext}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -517,14 +587,15 @@ export default function Demandas() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted"
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived(true)}
+            className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             <Archive className="h-4 w-4" />
             <span>Arquivadas</span>
-            <Badge variant="secondary" className="text-xs">{archivedItems.length}</Badge>
-          </button>
+            <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive">{archivedItems.length}</Badge>
+          </Button>
           <Button className="gap-2" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Demanda
           </Button>
@@ -588,52 +659,6 @@ export default function Demandas() {
           })() : null}
         </DragOverlay>
       </DndContext>
-
-      {/* Archived panel */}
-      {showArchived && (
-        <div className="border rounded-xl bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Archive className="h-4 w-4" /> Demandas Arquivadas ({archivedItems.length})
-            </h3>
-            <Button variant="ghost" size="sm" onClick={() => setShowArchived(false)}>
-              <ChevronUp className="h-4 w-4" />
-            </Button>
-          </div>
-          {archivedItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma demanda arquivada.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {archivedItems.map((item) => {
-                const cardType = getCardType(item);
-                const styles = getCardStyles(cardType);
-                const typeConfig = cardTypeConfig[cardType];
-                return (
-                  <Card
-                    key={item.id}
-                    className={`cursor-pointer hover:shadow-md transition-all opacity-70 hover:opacity-100 rounded-xl ${styles.bg} ${styles.border} border`}
-                    onClick={() => setSelectedDemanda(item)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Badge className={`text-[9px] px-1.5 py-0 font-bold ${typeConfig.badgeClass}`}>
-                          {typeConfig.label}
-                        </Badge>
-                      </div>
-                      <p className={`text-sm font-medium leading-tight ${styles.text}`}>{item.title}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> {item.city}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       <NovaDemandaDialog
         open={newOpen}
