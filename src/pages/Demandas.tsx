@@ -95,6 +95,11 @@ function getCardStyles(type: CardType) {
       border: "border-l-[3px] border-l-[hsl(var(--card-comunicacao-border))]",
       text: "text-[hsl(var(--card-comunicacao-text))]",
     },
+    proposicao: {
+      bg: "bg-[hsl(var(--card-proposicao))]",
+      border: "border-l-[3px] border-l-[hsl(var(--card-proposicao-border))]",
+      text: "text-[hsl(var(--card-proposicao-text))]",
+    },
   };
 
   return stylesByType[type];

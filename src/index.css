@@ -119,6 +119,9 @@
     --card-comunicacao: 45 25% 15%;
     --card-comunicacao-border: 45 40% 48%;
     --card-comunicacao-text: 40 40% 68%;
+    --card-proposicao: 25 30% 16%;
+    --card-proposicao-border: 25 45% 50%;
+    --card-proposicao-text: 25 45% 70%;
   }
 }
 
