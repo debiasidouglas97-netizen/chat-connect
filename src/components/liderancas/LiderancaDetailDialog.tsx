@@ -78,6 +78,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setAddressNeighborhood(l.address_neighborhood || "");
     setAddressCity(l.address_city || "");
     setAddressState(l.address_state || "");
+    setClassificacaoManual(l.classificacao_manual || "");
     setEditing(true);
   };
 
