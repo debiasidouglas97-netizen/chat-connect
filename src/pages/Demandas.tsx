@@ -268,11 +268,6 @@ export default function Demandas() {
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  const archivedItems = useMemo(
-    () => demandas.filter((d) => d.col === "arquivada"),
-    [demandas]
-  );
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, {
