@@ -55,16 +55,18 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
-type CardType = "demanda" | "emenda" | "agenda" | "comunicacao";
+type CardType = "demanda" | "emenda" | "agenda" | "comunicacao" | "proposicao";
 
 const cardTypeConfig: Record<CardType, { label: string; badgeClass: string }> = {
   demanda: { label: "DEMANDA", badgeClass: "bg-[hsl(var(--card-demanda-border))] text-primary-foreground" },
   emenda: { label: "EMENDA", badgeClass: "bg-[hsl(var(--card-emenda-border))] text-primary-foreground" },
   agenda: { label: "AGENDA", badgeClass: "bg-[hsl(var(--card-agenda-border))] text-primary-foreground" },
   comunicacao: { label: "COMUNICAÇÃO", badgeClass: "bg-[hsl(var(--card-comunicacao-border))] text-primary-foreground" },
+  proposicao: { label: "PROPOSIÇÃO", badgeClass: "bg-[hsl(var(--card-proposicao-border))] text-primary-foreground" },
 };
 
 function getCardType(item: Demanda): CardType {
+  if (item.origin === "proposicao") return "proposicao";
   if (item.origin === "emenda") return "emenda";
   if (item.origin === "agenda") return "agenda";
   if (item.origin === "comunicacao") return "comunicacao";
@@ -92,6 +94,11 @@ function getCardStyles(type: CardType) {
       bg: "bg-[hsl(var(--card-comunicacao))]",
       border: "border-l-[3px] border-l-[hsl(var(--card-comunicacao-border))]",
       text: "text-[hsl(var(--card-comunicacao-text))]",
+    },
+    proposicao: {
+      bg: "bg-[hsl(var(--card-proposicao))]",
+      border: "border-l-[3px] border-l-[hsl(var(--card-proposicao-border))]",
+      text: "text-[hsl(var(--card-proposicao-text))]",
     },
   };
 
