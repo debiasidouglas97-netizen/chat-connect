@@ -224,8 +224,13 @@ Deno.serve(async () => {
     // Handle /demanda command
     if (trimmed.toLowerCase() === '/demanda') {
       const lideranca = await getLiderancaByChat(chatId);
+      if (!lideranca) {
+        await sendMessage(chatId, '⚠️ Você precisa estar cadastrado como liderança com @telegram no sistema para criar demandas. Entre em contato com o gabinete.');
+        return;
+      }
       await setConversationState(chatId, 'title', {
-        lideranca_name: lideranca?.name || messageFrom?.first_name || 'Usuário',
+        lideranca_name: lideranca.name,
+        tenant_id: lideranca.tenant_id,
       });
       await sendMessage(chatId, '📝 *Nova Demanda*\n\nQual o título da demanda?');
       return;
