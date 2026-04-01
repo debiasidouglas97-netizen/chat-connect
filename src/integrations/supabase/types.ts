@@ -559,6 +559,148 @@ export type Database = {
           },
         ]
       }
+      engagement_logs: {
+        Row: {
+          comment_id: string
+          comment_text: string | null
+          created_at: string
+          id: string
+          instagram_username: string
+          leader_id: string | null
+          post_id: string
+          score: number
+          tenant_id: string
+          tipo_interacao: string
+        }
+        Insert: {
+          comment_id: string
+          comment_text?: string | null
+          created_at?: string
+          id?: string
+          instagram_username: string
+          leader_id?: string | null
+          post_id: string
+          score?: number
+          tenant_id: string
+          tipo_interacao?: string
+        }
+        Update: {
+          comment_id?: string
+          comment_text?: string | null
+          created_at?: string
+          id?: string
+          instagram_username?: string
+          leader_id?: string | null
+          post_id?: string
+          score?: number
+          tenant_id?: string
+          tipo_interacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_logs_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "liderancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_processed_posts: {
+        Row: {
+          comments_count: number | null
+          id: string
+          post_caption: string | null
+          post_id: string
+          post_timestamp: string | null
+          post_url: string | null
+          processed_at: string
+          tenant_id: string
+        }
+        Insert: {
+          comments_count?: number | null
+          id?: string
+          post_caption?: string | null
+          post_id: string
+          post_timestamp?: string | null
+          post_url?: string | null
+          processed_at?: string
+          tenant_id: string
+        }
+        Update: {
+          comments_count?: number | null
+          id?: string
+          post_caption?: string | null
+          post_id?: string
+          post_timestamp?: string | null
+          post_url?: string | null
+          processed_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_processed_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_sync_config: {
+        Row: {
+          apify_api_key: string
+          created_at: string
+          frequencia_sincronizacao: string
+          id: string
+          instagram_handle: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          apify_api_key?: string
+          created_at?: string
+          frequencia_sincronizacao?: string
+          id?: string
+          instagram_handle?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          apify_api_key?: string
+          created_at?: string
+          frequencia_sincronizacao?: string
+          id?: string
+          instagram_handle?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_sync_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evento_notifications: {
         Row: {
           chat_id: number
