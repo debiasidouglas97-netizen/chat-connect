@@ -109,14 +109,21 @@ export default function Emendas() {
 
       {/* Status cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {statusCounts.map(s => (
-          <Card key={s.label} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilterStatus(filterStatus === s.label ? "all" : s.label)}>
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground uppercase">{s.label}</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{s.count}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {statusCounts.map(s => {
+          const sc = statusColors[s.label] || { bg: "bg-muted", text: "text-muted-foreground", border: "border-muted" };
+          return (
+            <Card
+              key={s.label}
+              className={`cursor-pointer hover:shadow-md transition-shadow border ${sc.border} ${sc.bg}`}
+              onClick={() => setFilterStatus(filterStatus === s.label ? "all" : s.label)}
+            >
+              <CardContent className="p-3 text-center">
+                <p className={`text-xs uppercase font-medium ${sc.text}`}>{s.label}</p>
+                <p className={`text-2xl font-bold mt-1 ${sc.text}`}>{s.count}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Filters */}
