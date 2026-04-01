@@ -304,6 +304,38 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div><Label className="text-xs">Estado</Label><Input value={addressState} onChange={(e) => setAddressState(e.target.value)} /></div>
               </div>
 
+              {/* Cidades de atuação */}
+              <p className="text-xs font-medium text-muted-foreground pt-2">Cidades de atuação</p>
+              <div className="flex items-center gap-2">
+                <Select value={novaCidade} onValueChange={setNovaCidade}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Cidade" /></SelectTrigger>
+                  <SelectContent>
+                    {cidadeOptions.filter((c) => !atuacao.some((a) => a.cidadeNome === c)).map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={novaIntensidade} onValueChange={(v) => setNovaIntensidade(v as any)}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Média">Média</SelectItem>
+                    <SelectItem value="Baixa">Baixa</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="icon" variant="outline" className="shrink-0" onClick={addCidade} disabled={!novaCidade}><Plus className="h-4 w-4" /></Button>
+              </div>
+              {atuacao.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {atuacao.map((a) => (
+                    <Badge key={a.cidadeNome} variant="secondary" className="text-xs gap-1">
+                      {a.cidadeNome} ({a.intensidade})
+                      <button onClick={() => removeCidade(a.cidadeNome)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2 border-t">
                 <Button size="sm" onClick={handleSave}>Salvar</Button>
                 <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
