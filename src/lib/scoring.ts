@@ -38,6 +38,7 @@ export interface LiderancaBase {
   tipo: "Eleitoral" | "Comunitária" | "Política";
   atuacao: AtuacaoCidade[];
   engajamento: number; // 0-100
+  classificacao_manual?: string | null;
 }
 
 export interface LiderancaComScore extends LiderancaBase {
