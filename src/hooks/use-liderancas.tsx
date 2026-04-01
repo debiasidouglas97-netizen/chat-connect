@@ -29,6 +29,7 @@ export interface LiderancaRow {
   address_state: string | null;
   created_at: string;
   updated_at: string;
+  classificacao_manual: string | null;
 }
 
 function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
