@@ -858,6 +858,119 @@ export type Database = {
           },
         ]
       }
+      mobilizacao_destinatarios: {
+        Row: {
+          chat_id: number | null
+          cidade: string | null
+          created_at: string
+          enviado_at: string | null
+          id: string
+          lideranca_name: string
+          mobilizacao_id: string
+          telegram_enviado: boolean
+          tenant_id: string
+        }
+        Insert: {
+          chat_id?: number | null
+          cidade?: string | null
+          created_at?: string
+          enviado_at?: string | null
+          id?: string
+          lideranca_name: string
+          mobilizacao_id: string
+          telegram_enviado?: boolean
+          tenant_id: string
+        }
+        Update: {
+          chat_id?: number | null
+          cidade?: string | null
+          created_at?: string
+          enviado_at?: string | null
+          id?: string
+          lideranca_name?: string
+          mobilizacao_id?: string
+          telegram_enviado?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobilizacao_destinatarios_mobilizacao_id_fkey"
+            columns: ["mobilizacao_id"]
+            isOneToOne: false
+            referencedRelation: "mobilizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobilizacao_destinatarios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mobilizacoes: {
+        Row: {
+          agendado_para: string | null
+          created_at: string
+          criado_por: string
+          enviado_por: string | null
+          id: string
+          link: string
+          mensagem: string
+          segmentacao_tipo: string
+          segmentacao_valor: string[] | null
+          status: string
+          tenant_id: string
+          tipo: string
+          titulo: string
+          total_enviado: number
+          updated_at: string
+        }
+        Insert: {
+          agendado_para?: string | null
+          created_at?: string
+          criado_por?: string
+          enviado_por?: string | null
+          id?: string
+          link: string
+          mensagem: string
+          segmentacao_tipo?: string
+          segmentacao_valor?: string[] | null
+          status?: string
+          tenant_id: string
+          tipo?: string
+          titulo: string
+          total_enviado?: number
+          updated_at?: string
+        }
+        Update: {
+          agendado_para?: string | null
+          created_at?: string
+          criado_por?: string
+          enviado_por?: string | null
+          id?: string
+          link?: string
+          mensagem?: string
+          segmentacao_tipo?: string
+          segmentacao_valor?: string[] | null
+          status?: string
+          tenant_id?: string
+          tipo?: string
+          titulo?: string
+          total_enviado?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobilizacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

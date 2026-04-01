@@ -10,6 +10,7 @@ import {
   ScrollText,
   Tv,
   MessageCircle,
+  Megaphone,
   Search,
   Settings,
   Shield,
@@ -47,6 +48,7 @@ const mainItems = [
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "Documentos", url: "/documentos", icon: FileText },
   { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
+  { title: "Mobilização Digital", url: "/mobilizacao", icon: Megaphone },
 ];
 
 const systemItems = [

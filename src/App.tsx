@@ -19,6 +19,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Mapa from "./pages/Mapa";
 import Proposicoes from "./pages/Proposicoes";
 import MandatoEmFoco from "./pages/MandatoEmFoco";
+import MobilizacaoPage from "./pages/Mobilizacao";
 import Login from "./pages/Login";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/documentos" element={<Documentos />} />
               <Route path="/mensagens" element={<Mensagens />} />
+              <Route path="/mobilizacao" element={<MobilizacaoPage />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
