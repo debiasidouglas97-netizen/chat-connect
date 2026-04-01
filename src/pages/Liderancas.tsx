@@ -14,6 +14,7 @@ import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import { toast } from "sonner";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
+import { useAllLeaderEngagementScores } from "@/hooks/use-engagement";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
@@ -34,6 +35,7 @@ export default function Liderancas() {
   const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
   const [searchParams] = useSearchParams();
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
+  const { data: engagementScores } = useAllLeaderEngagementScores();
 
   useEffect(() => {
     const busca = searchParams.get("busca");
@@ -200,6 +202,19 @@ export default function Liderancas() {
                   <Badge variant="secondary" className="text-[10px]">
                     <MapPin className="h-3 w-3 mr-1" /> {l.atuacao.length} cidades
                   </Badge>
+                  {(() => {
+                    const engScore = engagementScores?.get((l as any).id) || 0;
+                    if (engScore > 0) {
+                      const nivel = engScore >= 30 ? "Alto" : engScore >= 15 ? "Médio" : "Baixo";
+                      const nivelColor = nivel === "Alto" ? "bg-[#E6F4EA] text-[#2E7D32] border-[#C8E6C9]" : nivel === "Médio" ? "bg-[#FFF4E5] text-[#B26A00] border-[#FFE0B2]" : "bg-muted text-muted-foreground";
+                      return (
+                        <Badge variant="outline" className={`text-[10px] ${nivelColor}`}>
+                          📊 Eng. {nivel} ({engScore}pts)
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()}
                   <Button
                     size="sm"
                     variant="ghost"
