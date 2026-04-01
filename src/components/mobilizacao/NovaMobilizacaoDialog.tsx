@@ -45,7 +45,7 @@ export function NovaMobilizacaoDialog({ open, onOpenChange }: Props) {
   const [tipo, setTipo] = useState("post");
   const [link, setLink] = useState("");
   const [mensagem, setMensagem] = useState(
-    "🚀 Olá!\n\nO deputado publicou um novo conteúdo importante.\n\n👉 Assista, curta e compartilhe:\n{link}\n\nSua participação é fundamental 💪"
+    "🚀 Olá {nome_lider}!\n\nO deputado publicou um novo conteúdo importante.\n\n👉 Assista, curta e compartilhe:\n{link}\n\nSua participação é fundamental 💪"
   );
   const [segTipo, setSegTipo] = useState("todas");
   const [segValor, setSegValor] = useState<string[]>([]);
