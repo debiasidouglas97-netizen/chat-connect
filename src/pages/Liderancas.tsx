@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, MapPin, Star, StickyNote, X, Search } from "lucide-react";
+import { Plus, MapPin, Star, StickyNote, X, Search, ArrowUpAZ, ArrowDownAZ, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
@@ -24,6 +24,8 @@ const influenciaColors: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
+type SortOption = "score" | "az" | "za" | "engajamento";
+
 export default function Liderancas() {
   const [notesOpen, setNotesOpen] = useState(false);
   const [selectedLider, setSelectedLider] = useState("");
@@ -33,6 +35,10 @@ export default function Liderancas() {
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
+  const [sortBy, setSortBy] = useState<SortOption>("score");
+  const [filterCidade, setFilterCidade] = useState<string>("all");
+  const [filterTipo, setFilterTipo] = useState<string>("all");
+  const [filterEngajamento, setFilterEngajamento] = useState<string>("all");
   const [searchParams] = useSearchParams();
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { data: engagementScores } = useAllLeaderEngagementScores();
@@ -53,23 +59,78 @@ export default function Liderancas() {
   }, [cidadesRaw]);
 
   const liderancas = useMemo(
-    () => rawData
-      .map((l) => ({ ...calcularScoreLideranca(l, cidadesMap), id: (l as any).id }))
-      .sort((a, b) => b.score - a.score),
+    () => rawData.map((l) => ({ ...calcularScoreLideranca(l, cidadesMap), id: (l as any).id })),
     [cidadesMap, rawData]
   );
 
+  // Unique cities for filter
+  const cidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    liderancas.forEach((l) => set.add(l.cidadePrincipal));
+    return Array.from(set).sort();
+  }, [liderancas]);
+
   const filteredLiderancas = useMemo(() => {
-    if (!searchQuery.trim()) return liderancas;
-    const q = searchQuery.toLowerCase();
-    return liderancas.filter((l) =>
-      searchField === "nome"
-        ? l.name.toLowerCase().includes(q)
-        : l.cidadePrincipal.toLowerCase().includes(q)
-    );
-  }, [liderancas, searchQuery, searchField]);
+    let result = [...liderancas];
+
+    // Text search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((l) =>
+        searchField === "nome"
+          ? l.name.toLowerCase().includes(q)
+          : l.cidadePrincipal.toLowerCase().includes(q)
+      );
+    }
+
+    // Filter by city
+    if (filterCidade !== "all") {
+      result = result.filter((l) => l.cidadePrincipal === filterCidade);
+    }
+
+    // Filter by type
+    if (filterTipo !== "all") {
+      result = result.filter((l) => l.tipo === filterTipo);
+    }
+
+    // Filter by engagement level
+    if (filterEngajamento !== "all" && engagementScores) {
+      result = result.filter((l) => {
+        const score = engagementScores.get((l as any).id) || 0;
+        if (filterEngajamento === "alto") return score >= 30;
+        if (filterEngajamento === "medio") return score >= 15 && score < 30;
+        if (filterEngajamento === "baixo") return score > 0 && score < 15;
+        if (filterEngajamento === "sem") return score === 0;
+        return true;
+      });
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === "az") return a.name.localeCompare(b.name, "pt-BR");
+      if (sortBy === "za") return b.name.localeCompare(a.name, "pt-BR");
+      if (sortBy === "engajamento") {
+        const sa = engagementScores?.get((a as any).id) || 0;
+        const sb = engagementScores?.get((b as any).id) || 0;
+        return sb - sa;
+      }
+      return b.score - a.score;
+    });
+
+    return result;
+  }, [liderancas, searchQuery, searchField, filterCidade, filterTipo, filterEngajamento, sortBy, engagementScores]);
 
   const showScore = canViewScore(CURRENT_ROLE);
+
+  const hasActiveFilters = filterCidade !== "all" || filterTipo !== "all" || filterEngajamento !== "all";
+
+  const clearFilters = () => {
+    setFilterCidade("all");
+    setFilterTipo("all");
+    setFilterEngajamento("all");
+    setSearchQuery("");
+    setSortBy("score");
+  };
 
   const openNotes = (e: React.MouseEvent, name: string) => {
     e.stopPropagation();
@@ -127,31 +188,101 @@ export default function Liderancas() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-2 max-w-md">
-        <Select value={searchField} onValueChange={(v) => setSearchField(v as "nome" | "cidade")}>
-          <SelectTrigger className="w-[140px] shrink-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="nome">Nome</SelectItem>
-            <SelectItem value="cidade">Cidade</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={searchField === "nome" ? "Buscar por nome..." : "Buscar por cidade..."}
-            className="pl-9"
-          />
+      {/* Search + Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 max-w-md">
+          <Select value={searchField} onValueChange={(v) => setSearchField(v as "nome" | "cidade")}>
+            <SelectTrigger className="w-[140px] shrink-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nome">Nome</SelectItem>
+              <SelectItem value="cidade">Cidade</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={searchField === "nome" ? "Buscar por nome..." : "Buscar por cidade..."}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="score">🏆 Maior Score</SelectItem>
+              <SelectItem value="az">
+                <span className="flex items-center gap-1"><ArrowUpAZ className="h-3 w-3" /> A → Z</span>
+              </SelectItem>
+              <SelectItem value="za">
+                <span className="flex items-center gap-1"><ArrowDownAZ className="h-3 w-3" /> Z → A</span>
+              </SelectItem>
+              <SelectItem value="engajamento">📊 Maior Engajamento</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterCidade} onValueChange={setFilterCidade}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Cidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as cidades</SelectItem>
+              {cidadesDisponiveis.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterTipo} onValueChange={setFilterTipo}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="Eleitoral">Eleitoral</SelectItem>
+              <SelectItem value="Comunitária">Comunitária</SelectItem>
+              <SelectItem value="Política">Política</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterEngajamento} onValueChange={setFilterEngajamento}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Engajamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo engajamento</SelectItem>
+              <SelectItem value="alto">📊 Alto (30+)</SelectItem>
+              <SelectItem value="medio">📊 Médio (15-29)</SelectItem>
+              <SelectItem value="baixo">📊 Baixo (1-14)</SelectItem>
+              <SelectItem value="sem">Sem engajamento</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-muted-foreground" onClick={clearFilters}>
+              <X className="h-3 w-3" /> Limpar filtros
+            </Button>
+          )}
+
+          <span className="text-xs text-muted-foreground ml-auto">
+            {filteredLiderancas.length} de {liderancas.length} lideranças
+          </span>
         </div>
       </div>
 
       {filteredLiderancas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg">{searchQuery ? "Nenhuma liderança encontrada" : "Nenhuma liderança cadastrada"}</p>
-          <p className="text-sm">{searchQuery ? "Tente outro termo de busca" : 'Clique em "Nova Liderança" para começar'}</p>
+          <p className="text-lg">{searchQuery || hasActiveFilters ? "Nenhuma liderança encontrada" : "Nenhuma liderança cadastrada"}</p>
+          <p className="text-sm">{searchQuery || hasActiveFilters ? "Tente outro termo ou limpe os filtros" : 'Clique em "Nova Liderança" para começar'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube } from "lucide-react";
 import type { LiderancaComScore } from "@/lib/scoring";
 import { toast } from "sonner";
+import EngagementSection from "./EngagementSection";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -202,8 +203,12 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 </div>
               </div>
 
+              {/* Engagement Section */}
+              <div className="border-t pt-3">
+                <EngagementSection leaderId={(l as any).id} />
+              </div>
+
               <div className="flex items-center gap-2 pt-2 border-t">
-                <Button size="sm" variant="outline" className="gap-1" onClick={startEdit}><Pencil className="h-3.5 w-3.5" /> Editar</Button>
                 <Button size="sm" variant="destructive" className="gap-1" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
               </div>
             </div>
