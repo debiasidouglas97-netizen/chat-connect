@@ -306,6 +306,11 @@ export default function Demandas() {
     [demandas, activeId]
   );
 
+  const archivedItems = useMemo(
+    () => demandas.filter((d) => d.col === "arquivada"),
+    [demandas]
+  );
+
   const handleCreate = async (d: Demanda) => {
     try {
       const result = await insert({
