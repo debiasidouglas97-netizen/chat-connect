@@ -10,6 +10,7 @@ import {
   ScrollText,
   Tv,
   MessageCircle,
+  Megaphone,
   Search,
   Settings,
   Shield,
