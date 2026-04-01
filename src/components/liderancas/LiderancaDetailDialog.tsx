@@ -241,6 +241,18 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                   <Label className="text-xs">Tipo</Label>
                   <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem></SelectContent></Select>
                 </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Classificação</Label>
+                  <Select value={classificacaoManual} onValueChange={setClassificacaoManual}>
+                    <SelectTrigger><SelectValue placeholder="Automática (baseada no score)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">🤖 Automática</SelectItem>
+                      <SelectItem value="Força Local">🏙️ Força Local</SelectItem>
+                      <SelectItem value="Força Regional">🌎 Força Regional</SelectItem>
+                      <SelectItem value="Força Estratégica">🏛️ Força Estratégica</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Contacts */}
