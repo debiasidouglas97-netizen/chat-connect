@@ -54,6 +54,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [addressNeighborhood, setAddressNeighborhood] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
+  const [classificacaoManual, setClassificacaoManual] = useState("");
 
   const startEdit = () => {
     if (!lideranca) return;
