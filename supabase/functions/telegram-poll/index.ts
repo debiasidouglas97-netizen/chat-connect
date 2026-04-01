@@ -86,7 +86,7 @@ Deno.serve(async () => {
   async function getLiderancaByChat(chatId: number) {
     const { data: contact } = await supabase
       .from('telegram_contacts')
-      .select('lideranca_name')
+      .select('lideranca_name, tenant_id')
       .eq('chat_id', chatId)
       .single();
 
@@ -94,11 +94,16 @@ Deno.serve(async () => {
 
     const { data: lideranca } = await supabase
       .from('liderancas')
-      .select('name, cidade_principal')
+      .select('name, cidade_principal, tenant_id, telegram_username')
       .eq('name', contact.lideranca_name)
       .single();
 
-    return lideranca;
+    if (!lideranca) return null;
+
+    // Only allow lideranças with telegram_username registered
+    if (!lideranca.telegram_username) return null;
+
+    return { ...lideranca, tenant_id: lideranca.tenant_id || contact.tenant_id };
   }
 
   async function getCidadesForLideranca(liderancaName: string | null) {
