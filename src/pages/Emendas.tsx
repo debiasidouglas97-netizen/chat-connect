@@ -17,17 +17,17 @@ import { useLiderancas } from "@/hooks/use-liderancas";
 import EmendaFormDialog from "@/components/emendas/EmendaFormDialog";
 import EmendaDetailDialog from "@/components/emendas/EmendaDetailDialog";
 
-const statusColors: Record<string, string> = {
-  Proposta: "bg-muted text-muted-foreground",
-  Aprovada: "bg-info/10 text-info border-info/20",
-  Liberada: "bg-warning/10 text-warning border-warning/20",
-  "Em execução": "bg-accent/10 text-accent-foreground border-accent/20",
-  Paga: "bg-success/10 text-success border-success/20",
+const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+  Proposta: { bg: "bg-[#FFF4E5]", text: "text-[#B26A00]", border: "border-[#FFE0B2]" },
+  Aprovada: { bg: "bg-[#E6F4EA]", text: "text-[#2E7D32]", border: "border-[#C8E6C9]" },
+  Liberada: { bg: "bg-[#E3F2FD]", text: "text-[#1565C0]", border: "border-[#BBDEFB]" },
+  "Em execução": { bg: "bg-[#E8F5E9]", text: "text-[#2E7D32]", border: "border-[#C8E6C9]" },
+  Paga: { bg: "bg-[#F3E5F5]", text: "text-[#6A1B9A]", border: "border-[#E1BEE7]" },
 };
 
 const prioridadeColors: Record<string, string> = {
-  Alta: "bg-destructive/10 text-destructive",
-  Média: "bg-warning/10 text-warning",
+  Alta: "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]",
+  Média: "bg-[#FFF8E1] text-[#F57F17] border-[#FFECB3]",
   Baixa: "bg-muted text-muted-foreground",
 };
 
@@ -109,14 +109,21 @@ export default function Emendas() {
 
       {/* Status cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {statusCounts.map(s => (
-          <Card key={s.label} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilterStatus(filterStatus === s.label ? "all" : s.label)}>
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground uppercase">{s.label}</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{s.count}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {statusCounts.map(s => {
+          const sc = statusColors[s.label] || { bg: "bg-muted", text: "text-muted-foreground", border: "border-muted" };
+          return (
+            <Card
+              key={s.label}
+              className={`cursor-pointer hover:shadow-md transition-shadow border ${sc.border} ${sc.bg}`}
+              onClick={() => setFilterStatus(filterStatus === s.label ? "all" : s.label)}
+            >
+              <CardContent className="p-3 text-center">
+                <p className={`text-xs uppercase font-medium ${sc.text}`}>{s.label}</p>
+                <p className={`text-2xl font-bold mt-1 ${sc.text}`}>{s.count}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -176,7 +183,9 @@ export default function Emendas() {
                   <TableCell>{e.tipo}</TableCell>
                   <TableCell className="font-semibold">{e.valor}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`text-xs ${statusColors[e.status]}`}>{e.status}</Badge>
+                    {(() => { const sc = statusColors[e.status] || { bg: "bg-muted", text: "text-muted-foreground", border: "border-muted" }; return (
+                      <Badge variant="outline" className={`text-xs ${sc.bg} ${sc.text} ${sc.border}`}>{e.status}</Badge>
+                    ); })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={`text-xs ${prioridadeColors[e.prioridade]}`}>{e.prioridade}</Badge>
