@@ -14,6 +14,7 @@ import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import { toast } from "sonner";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
+import { useAllLeaderEngagementScores } from "@/hooks/use-engagement";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
