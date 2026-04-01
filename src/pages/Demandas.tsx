@@ -589,20 +589,21 @@ export default function Demandas() {
         </DragOverlay>
       </DndContext>
 
-      {/* Archived section */}
-      {archivedItems.length > 0 && (
-        <div className="border-t pt-4">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
-          >
-            <Archive className="h-4 w-4" />
-            <span className="font-medium">Arquivadas</span>
-            <Badge variant="secondary" className="text-xs">{archivedItems.length}</Badge>
-            {showArchived ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
-          </button>
-          {showArchived && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+      {/* Archived panel */}
+      {showArchived && (
+        <div className="border rounded-xl bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Archive className="h-4 w-4" /> Demandas Arquivadas ({archivedItems.length})
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => setShowArchived(false)}>
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+          </div>
+          {archivedItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma demanda arquivada.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {archivedItems.map((item) => {
                 const cardType = getCardType(item);
                 const styles = getCardStyles(cardType);
