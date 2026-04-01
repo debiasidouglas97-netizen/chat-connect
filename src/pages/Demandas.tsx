@@ -508,15 +508,27 @@ export default function Demandas() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Demandas</h1>
-          <p className="text-sm text-muted-foreground">
-            Kanban de gestão de demandas parlamentares
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Demandas</h1>
+            <p className="text-sm text-muted-foreground">
+              Kanban de gestão de demandas parlamentares
+            </p>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4" /> Nova Demanda
-        </Button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted"
+          >
+            <Archive className="h-4 w-4" />
+            <span>Arquivadas</span>
+            <Badge variant="secondary" className="text-xs">{archivedItems.length}</Badge>
+          </button>
+          <Button className="gap-2" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4" /> Nova Demanda
+          </Button>
+        </div>
       </div>
 
       <DndContext
