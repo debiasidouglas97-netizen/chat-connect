@@ -114,6 +114,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       avatar_url: avatarPreview,
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
+      classificacao_manual: classificacaoManual || null,
     });
     setEditing(false);
   };
