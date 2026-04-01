@@ -85,6 +85,9 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setAddressCity(l.address_city || "");
     setAddressState(l.address_state || "");
     setClassificacaoManual(l.classificacao_manual || "");
+    setAtuacao(l.atuacao ? [...l.atuacao] : []);
+    setNovaCidade("");
+    setNovaIntensidade("Média");
     setEditing(true);
   };
 
