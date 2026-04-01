@@ -125,6 +125,15 @@ export function calcularScoreLideranca(
   };
 }
 
+function getClassificacaoFromLabel(label: string): { label: string; icon: string } {
+  const map: Record<string, string> = {
+    "Força Estratégica": "🏛️",
+    "Força Regional": "🌎",
+    "Força Local": "🏙️",
+  };
+  return { label, icon: map[label] || "🏙️" };
+}
+
 function classificarLideranca(
   l: LiderancaBase,
   scoreTerritorial: number
