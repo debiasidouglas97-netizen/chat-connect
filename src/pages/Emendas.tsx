@@ -17,17 +17,17 @@ import { useLiderancas } from "@/hooks/use-liderancas";
 import EmendaFormDialog from "@/components/emendas/EmendaFormDialog";
 import EmendaDetailDialog from "@/components/emendas/EmendaDetailDialog";
 
-const statusColors: Record<string, string> = {
-  Proposta: "bg-muted text-muted-foreground",
-  Aprovada: "bg-info/10 text-info border-info/20",
-  Liberada: "bg-warning/10 text-warning border-warning/20",
-  "Em execução": "bg-accent/10 text-accent-foreground border-accent/20",
-  Paga: "bg-success/10 text-success border-success/20",
+const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+  Proposta: { bg: "bg-[#FFF4E5]", text: "text-[#B26A00]", border: "border-[#FFE0B2]" },
+  Aprovada: { bg: "bg-[#E6F4EA]", text: "text-[#2E7D32]", border: "border-[#C8E6C9]" },
+  Liberada: { bg: "bg-[#E3F2FD]", text: "text-[#1565C0]", border: "border-[#BBDEFB]" },
+  "Em execução": { bg: "bg-[#E8F5E9]", text: "text-[#2E7D32]", border: "border-[#C8E6C9]" },
+  Paga: { bg: "bg-[#F3E5F5]", text: "text-[#6A1B9A]", border: "border-[#E1BEE7]" },
 };
 
 const prioridadeColors: Record<string, string> = {
-  Alta: "bg-destructive/10 text-destructive",
-  Média: "bg-warning/10 text-warning",
+  Alta: "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]",
+  Média: "bg-[#FFF8E1] text-[#F57F17] border-[#FFECB3]",
   Baixa: "bg-muted text-muted-foreground",
 };
 
