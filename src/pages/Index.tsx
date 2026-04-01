@@ -58,6 +58,19 @@ export default function Index() {
     return `${total} hab.`;
   }, [cidadesRaw]);
 
+  const totalEmendas = emendas.length;
+  const totalValorEmendas = useMemo(() => {
+    const total = emendas.reduce((sum, e) => {
+      const num = parseFloat(
+        e.valor.replace(/[R$\s.]/g, "").replace(",", ".")
+      );
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+    if (total >= 1_000_000) return `R$ ${(total / 1_000_000).toFixed(1).replace(".", ",")}M total`;
+    if (total >= 1_000) return `R$ ${(total / 1_000).toFixed(0)}mil total`;
+    return `R$ ${total.toFixed(0)} total`;
+  }, [emendas]);
+
   const showRanking = canViewRanking(CURRENT_ROLE);
 
   const displayName = profile?.public_name || profile?.full_name || "Dep. Antonio Carlos Rodrigues";
