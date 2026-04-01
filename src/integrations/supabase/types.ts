@@ -917,6 +917,7 @@ export type Database = {
           avatar_url: string | null
           cargo: string
           cidade_principal: string
+          classificacao_manual: string | null
           created_at: string
           email: string | null
           engajamento: number
@@ -945,6 +946,7 @@ export type Database = {
           avatar_url?: string | null
           cargo: string
           cidade_principal: string
+          classificacao_manual?: string | null
           created_at?: string
           email?: string | null
           engajamento?: number
@@ -973,6 +975,7 @@ export type Database = {
           avatar_url?: string | null
           cargo?: string
           cidade_principal?: string
+          classificacao_manual?: string | null
           created_at?: string
           email?: string | null
           engajamento?: number
