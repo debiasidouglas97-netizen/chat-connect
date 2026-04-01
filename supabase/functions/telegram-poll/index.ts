@@ -381,9 +381,10 @@ Deno.serve(async () => {
             col: 'nova',
             origin: 'telegram',
             creator_chat_id: chatId,
-            creator_name: data.lideranca_name || 'Via Telegram',
+            creator_name: data.lideranca_name,
             responsible: data.lideranca_name || null,
             attachments: (data.pending_files || []).length,
+            tenant_id: data.tenant_id || null,
           } as any).select().single();
 
           if (error) {
