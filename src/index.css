@@ -64,6 +64,9 @@
     --card-comunicacao: 45 50% 96%;
     --card-comunicacao-border: 45 50% 72%;
     --card-comunicacao-text: 40 55% 35%;
+    --card-proposicao: 25 60% 96%;
+    --card-proposicao-border: 25 55% 65%;
+    --card-proposicao-text: 25 60% 30%;
   }
 
   .dark {
