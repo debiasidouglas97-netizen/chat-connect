@@ -57,6 +57,7 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
     address_neighborhood: r.address_neighborhood,
     address_city: r.address_city,
     address_state: r.address_state,
+    classificacao_manual: r.classificacao_manual,
   };
 }
 
