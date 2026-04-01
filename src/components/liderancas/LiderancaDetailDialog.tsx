@@ -32,6 +32,8 @@ interface Props {
 }
 
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
+  const { cidades: cidadesData } = useCidades();
+  const cidadeOptions = cidadesData.map((c) => c.name);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
