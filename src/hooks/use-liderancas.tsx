@@ -29,6 +29,7 @@ export interface LiderancaRow {
   address_state: string | null;
   created_at: string;
   updated_at: string;
+  classificacao_manual: string | null;
 }
 
 function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
@@ -56,6 +57,7 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
     address_neighborhood: r.address_neighborhood,
     address_city: r.address_city,
     address_state: r.address_state,
+    classificacao_manual: r.classificacao_manual,
   };
 }
 
@@ -134,6 +136,7 @@ export function useLiderancas() {
       if (l.address_neighborhood !== undefined) payload.address_neighborhood = l.address_neighborhood || null;
       if (l.address_city !== undefined) payload.address_city = l.address_city || null;
       if (l.address_state !== undefined) payload.address_state = l.address_state || null;
+      if (l.classificacao_manual !== undefined) payload.classificacao_manual = l.classificacao_manual || null;
       const { error } = await supabase.from("liderancas").update(payload as any).eq("id", id);
       if (error) throw error;
     },

@@ -54,6 +54,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [addressNeighborhood, setAddressNeighborhood] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
+  const [classificacaoManual, setClassificacaoManual] = useState("");
 
   const startEdit = () => {
     if (!lideranca) return;
@@ -77,6 +78,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setAddressNeighborhood(l.address_neighborhood || "");
     setAddressCity(l.address_city || "");
     setAddressState(l.address_state || "");
+    setClassificacaoManual(l.classificacao_manual || "");
     setEditing(true);
   };
 
@@ -112,6 +114,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       avatar_url: avatarPreview,
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
+      classificacao_manual: classificacaoManual && classificacaoManual !== "auto" ? classificacaoManual : null,
     });
     setEditing(false);
   };
@@ -237,6 +240,18 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div>
                   <Label className="text-xs">Tipo</Label>
                   <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem></SelectContent></Select>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Classificação</Label>
+                  <Select value={classificacaoManual} onValueChange={setClassificacaoManual}>
+                    <SelectTrigger><SelectValue placeholder="Automática (baseada no score)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">🤖 Automática</SelectItem>
+                      <SelectItem value="Força Local">🏙️ Força Local</SelectItem>
+                      <SelectItem value="Força Regional">🌎 Força Regional</SelectItem>
+                      <SelectItem value="Força Estratégica">🏛️ Força Estratégica</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

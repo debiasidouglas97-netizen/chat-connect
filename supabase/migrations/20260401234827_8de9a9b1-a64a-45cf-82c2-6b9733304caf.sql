@@ -1,0 +1,1 @@
+ALTER TABLE public.liderancas ADD COLUMN classificacao_manual text DEFAULT NULL;

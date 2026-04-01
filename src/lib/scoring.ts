@@ -38,6 +38,7 @@ export interface LiderancaBase {
   tipo: "Eleitoral" | "Comunitária" | "Política";
   atuacao: AtuacaoCidade[];
   engajamento: number; // 0-100
+  classificacao_manual?: string | null;
 }
 
 export interface LiderancaComScore extends LiderancaBase {
@@ -110,12 +111,27 @@ export function calcularScoreLideranca(
     l.engajamento * 0.2
   );
 
+  const autoClassificacao = classificarLideranca(l, scoreTerritorial);
+  const manualLabel = (l as any).classificacao_manual;
+  const classificacao = manualLabel
+    ? getClassificacaoFromLabel(manualLabel)
+    : autoClassificacao;
+
   return {
     ...l,
     score: Math.min(100, Math.max(0, score)),
     scoreTerritorial,
-    classificacao: classificarLideranca(l, scoreTerritorial),
+    classificacao,
   };
+}
+
+function getClassificacaoFromLabel(label: string): { label: string; icon: string } {
+  const map: Record<string, string> = {
+    "Força Estratégica": "🏛️",
+    "Força Regional": "🌎",
+    "Força Local": "🏙️",
+  };
+  return { label, icon: map[label] || "🏙️" };
 }
 
 function classificarLideranca(
