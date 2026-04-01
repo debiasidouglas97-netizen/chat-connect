@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube } from "lucide-react";
-import type { LiderancaComScore } from "@/lib/scoring";
+import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, Plus, X } from "lucide-react";
+import type { LiderancaComScore, AtuacaoCidade } from "@/lib/scoring";
+import { useCidades } from "@/hooks/use-cidades";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
 import {
@@ -31,6 +32,8 @@ interface Props {
 }
 
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
+  const { cidades: cidadesData } = useCidades();
+  const cidadeOptions = cidadesData.map((c) => c.name);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -54,6 +57,9 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [addressNeighborhood, setAddressNeighborhood] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
+  const [atuacao, setAtuacao] = useState<AtuacaoCidade[]>([]);
+  const [novaCidade, setNovaCidade] = useState("");
+  const [novaIntensidade, setNovaIntensidade] = useState<"Alta" | "Média" | "Baixa">("Média");
   const [classificacaoManual, setClassificacaoManual] = useState("");
 
   const startEdit = () => {
@@ -79,6 +85,9 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setAddressCity(l.address_city || "");
     setAddressState(l.address_state || "");
     setClassificacaoManual(l.classificacao_manual || "");
+    setAtuacao(l.atuacao ? [...l.atuacao] : []);
+    setNovaCidade("");
+    setNovaIntensidade("Média");
     setEditing(true);
   };
 
@@ -105,6 +114,14 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     } catch { toast.error("Erro ao buscar CEP"); }
   };
 
+  const addCidade = () => {
+    if (!novaCidade || atuacao.some((a) => a.cidadeNome === novaCidade)) return;
+    setAtuacao([...atuacao, { cidadeNome: novaCidade, intensidade: novaIntensidade }]);
+    setNovaCidade("");
+  };
+
+  const removeCidade = (nome: string) => setAtuacao(atuacao.filter((a) => a.cidadeNome !== nome));
+
   const handleSave = () => {
     if (!lideranca) return;
     onSave(lideranca, {
@@ -115,6 +132,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
       classificacao_manual: classificacaoManual && classificacaoManual !== "auto" ? classificacaoManual : null,
+      atuacao,
     });
     setEditing(false);
   };
@@ -285,6 +303,38 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div><Label className="text-xs">Cidade</Label><Input value={addressCity} onChange={(e) => setAddressCity(e.target.value)} /></div>
                 <div><Label className="text-xs">Estado</Label><Input value={addressState} onChange={(e) => setAddressState(e.target.value)} /></div>
               </div>
+
+              {/* Cidades de atuação */}
+              <p className="text-xs font-medium text-muted-foreground pt-2">Cidades de atuação</p>
+              <div className="flex items-center gap-2">
+                <Select value={novaCidade} onValueChange={setNovaCidade}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Cidade" /></SelectTrigger>
+                  <SelectContent>
+                    {cidadeOptions.filter((c) => !atuacao.some((a) => a.cidadeNome === c)).map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={novaIntensidade} onValueChange={(v) => setNovaIntensidade(v as any)}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Média">Média</SelectItem>
+                    <SelectItem value="Baixa">Baixa</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="icon" variant="outline" className="shrink-0" onClick={addCidade} disabled={!novaCidade}><Plus className="h-4 w-4" /></Button>
+              </div>
+              {atuacao.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {atuacao.map((a) => (
+                    <Badge key={a.cidadeNome} variant="secondary" className="text-xs gap-1">
+                      {a.cidadeNome} ({a.intensidade})
+                      <button onClick={() => removeCidade(a.cidadeNome)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-2 border-t">
                 <Button size="sm" onClick={handleSave}>Salvar</Button>
