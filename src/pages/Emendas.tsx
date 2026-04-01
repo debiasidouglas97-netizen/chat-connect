@@ -183,7 +183,9 @@ export default function Emendas() {
                   <TableCell>{e.tipo}</TableCell>
                   <TableCell className="font-semibold">{e.valor}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`text-xs ${statusColors[e.status]}`}>{e.status}</Badge>
+                    {(() => { const sc = statusColors[e.status] || { bg: "bg-muted", text: "text-muted-foreground", border: "border-muted" }; return (
+                      <Badge variant="outline" className={`text-xs ${sc.bg} ${sc.text} ${sc.border}`}>{e.status}</Badge>
+                    ); })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={`text-xs ${prioridadeColors[e.prioridade]}`}>{e.prioridade}</Badge>
