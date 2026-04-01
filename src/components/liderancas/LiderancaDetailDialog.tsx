@@ -114,6 +114,14 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     } catch { toast.error("Erro ao buscar CEP"); }
   };
 
+  const addCidade = () => {
+    if (!novaCidade || atuacao.some((a) => a.cidadeNome === novaCidade)) return;
+    setAtuacao([...atuacao, { cidadeNome: novaCidade, intensidade: novaIntensidade }]);
+    setNovaCidade("");
+  };
+
+  const removeCidade = (nome: string) => setAtuacao(atuacao.filter((a) => a.cidadeNome !== nome));
+
   const handleSave = () => {
     if (!lideranca) return;
     onSave(lideranca, {
@@ -124,6 +132,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
       classificacao_manual: classificacaoManual && classificacaoManual !== "auto" ? classificacaoManual : null,
+      atuacao,
     });
     setEditing(false);
   };
