@@ -40,6 +40,7 @@ const statusConfig = {
 export default function Index() {
   const { profile } = useDeputyProfile();
   const { cidades: cidadesRaw } = useCidades();
+  const { emendas } = useEmendas();
   const navigate = useNavigate();
   const cidadesComScore = useMemo(
     () => cidadesRaw.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
