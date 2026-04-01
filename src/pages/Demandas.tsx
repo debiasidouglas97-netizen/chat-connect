@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, Paperclip, MapPin, User, MessageCircle, Send } from "lucide-react";
+import { Plus, GripVertical, Paperclip, MapPin, User, MessageCircle, Send, Archive, ChevronDown, ChevronUp } from "lucide-react";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
 import type { Demanda } from "@/components/demandas/types";
