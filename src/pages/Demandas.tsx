@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, Paperclip, MapPin, User, MessageCircle, Send } from "lucide-react";
+import { Plus, GripVertical, Paperclip, MapPin, User, MessageCircle, Send, Archive, ChevronDown, ChevronUp } from "lucide-react";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
 import type { Demanda } from "@/components/demandas/types";
@@ -266,6 +266,7 @@ export default function Demandas() {
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -303,6 +304,11 @@ export default function Demandas() {
   const activeItem = useMemo(
     () => demandas.find((d) => d.id === activeId) || null,
     [demandas, activeId]
+  );
+
+  const archivedItems = useMemo(
+    () => demandas.filter((d) => d.col === "arquivada"),
+    [demandas]
   );
 
   const handleCreate = async (d: Demanda) => {
@@ -570,6 +576,51 @@ export default function Demandas() {
           })() : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Archived section */}
+      {archivedItems.length > 0 && (
+        <div className="border-t pt-4">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+          >
+            <Archive className="h-4 w-4" />
+            <span className="font-medium">Arquivadas</span>
+            <Badge variant="secondary" className="text-xs">{archivedItems.length}</Badge>
+            {showArchived ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
+          </button>
+          {showArchived && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+              {archivedItems.map((item) => {
+                const cardType = getCardType(item);
+                const styles = getCardStyles(cardType);
+                const typeConfig = cardTypeConfig[cardType];
+                return (
+                  <Card
+                    key={item.id}
+                    className={`cursor-pointer hover:shadow-md transition-all opacity-70 hover:opacity-100 rounded-xl ${styles.bg} ${styles.border} border`}
+                    onClick={() => setSelectedDemanda(item)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Badge className={`text-[9px] px-1.5 py-0 font-bold ${typeConfig.badgeClass}`}>
+                          {typeConfig.label}
+                        </Badge>
+                      </div>
+                      <p className={`text-sm font-medium leading-tight ${styles.text}`}>{item.title}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {item.city}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <NovaDemandaDialog
         open={newOpen}
