@@ -111,11 +111,17 @@ export function calcularScoreLideranca(
     l.engajamento * 0.2
   );
 
+  const autoClassificacao = classificarLideranca(l, scoreTerritorial);
+  const manualLabel = (l as any).classificacao_manual;
+  const classificacao = manualLabel
+    ? getClassificacaoFromLabel(manualLabel)
+    : autoClassificacao;
+
   return {
     ...l,
     score: Math.min(100, Math.max(0, score)),
     scoreTerritorial,
-    classificacao: classificarLideranca(l, scoreTerritorial),
+    classificacao,
   };
 }
 
