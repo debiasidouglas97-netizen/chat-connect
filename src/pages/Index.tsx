@@ -13,6 +13,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { useCidades } from "@/hooks/use-cidades";
+import { useEmendas } from "@/hooks/use-emendas";
 
 // Simulated current role — will be replaced by real auth
 const CURRENT_ROLE: UserRole = "deputado";
