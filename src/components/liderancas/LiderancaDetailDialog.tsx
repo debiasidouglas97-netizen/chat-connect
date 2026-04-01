@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube } from "lucide-react";
-import type { LiderancaComScore } from "@/lib/scoring";
+import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, Plus, X } from "lucide-react";
+import type { LiderancaComScore, AtuacaoCidade } from "@/lib/scoring";
+import { useCidades } from "@/hooks/use-cidades";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
 import {
