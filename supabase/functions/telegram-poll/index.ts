@@ -419,8 +419,9 @@ Deno.serve(async () => {
             await supabase.from('demanda_history').insert({
               demanda_id: newDemanda.id,
               action: 'Demanda criada via Telegram',
-              actor: data.lideranca_name || 'Via Telegram',
+              actor: data.lideranca_name,
               new_status: 'nova',
+              tenant_id: data.tenant_id || null,
             } as any);
 
             let confirmMsg = `✅ Sua demanda foi registrada com sucesso!\n\n📌 Título: ${data.title}\n📍 Cidade: ${data.city}\n📊 Prioridade: ${data.priority}`;
