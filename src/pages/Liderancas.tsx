@@ -35,6 +35,7 @@ export default function Liderancas() {
   const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
   const [searchParams] = useSearchParams();
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
+  const { data: engagementScores } = useAllLeaderEngagementScores();
 
   useEffect(() => {
     const busca = searchParams.get("busca");
