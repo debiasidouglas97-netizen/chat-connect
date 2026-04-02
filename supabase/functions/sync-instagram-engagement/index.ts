@@ -50,22 +50,20 @@ Deno.serve(async (req) => {
     const instagramHandle = config.instagram_handle.replace("@", "");
     const apifyToken = config.apify_api_key;
 
-    // 2. Fetch last 50 posts via Instagram Scraper
+    // 2. Fetch last 5 posts via Instagram Scraper
     console.log(`[${tenant_id}] Buscando últimos 5 posts de @${instagramHandle}`);
-
-    const apifyInput = {
-      directUrls: [`https://www.instagram.com/${instagramHandle}/`],
-      resultsType: "posts",
-      resultsLimit: 5,
-      addParentData: false,
-    };
 
     const runRes = await fetch(
       `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${apifyToken}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(apifyInput),
+        body: JSON.stringify({
+          directUrls: [`https://www.instagram.com/${instagramHandle}/`],
+          resultsType: "posts",
+          resultsLimit: 5,
+          addParentData: false,
+        }),
       }
     );
 
@@ -84,23 +82,13 @@ Deno.serve(async (req) => {
 
     if (!Array.isArray(posts) || posts.length === 0) {
       await updateSyncStatus(supabase, tenant_id, "ok", null);
-      return new Response(JSON.stringify({ message: "Nenhum post encontrado", posts_processados: 0, likes_processados: 0, matches_encontrados: 0 }), {
+      return new Response(JSON.stringify({ message: "Nenhum post encontrado", posts_processados: 0, matches_encontrados: 0 }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 3. Get already processed post IDs
-    const postIds = posts.map((p: any) => p.id || p.shortCode || p.url).filter(Boolean);
-    const { data: existingPosts } = await supabase
-      .from("engagement_processed_posts")
-      .select("post_id")
-      .eq("tenant_id", tenant_id)
-      .in("post_id", postIds);
-
-    const processedPostIds = new Set((existingPosts || []).map((p: any) => p.post_id));
-
-    // 4. Get lideranças with instagram handles
+    // 3. Get lideranças with instagram handles
     const { data: liderancas } = await supabase
       .from("liderancas")
       .select("id, name, instagram")
@@ -117,40 +105,37 @@ Deno.serve(async (req) => {
 
     console.log(`[${tenant_id}] ${leaderMap.size} lideranças com Instagram cadastrado`);
 
-    let totalNewPosts = 0;
+    let totalPostsProcessed = 0;
     let totalNewComments = 0;
-    let totalMatches = 0;
+    let totalCommentMatches = 0;
     let totalLikeMatches = 0;
 
-    // 5. Process each new post — comments + likes
+    // 4. Process ALL 5 posts (re-check for new interactions every time)
     for (const post of posts) {
       const postId = post.id || post.shortCode || post.url;
-      if (!postId || processedPostIds.has(postId)) continue;
+      if (!postId) continue;
 
-      totalNewPosts++;
+      totalPostsProcessed++;
+
+      // Get ALL existing comment_ids for this post to deduplicate
+      const { data: existingLogs } = await supabase
+        .from("engagement_logs")
+        .select("comment_id")
+        .eq("tenant_id", tenant_id)
+        .eq("post_id", postId);
+      const existingIds = new Set((existingLogs || []).map((l: any) => l.comment_id));
+
+      const engagementInserts: any[] = [];
 
       // --- COMMENTS ---
       const comments = post.latestComments || post.comments || [];
       console.log(`[${tenant_id}] Post ${postId}: ${comments.length} comentários`);
 
-      const commentIds = comments.map((c: any) => c.id || c.pk || `${postId}_${c.text?.substring(0, 20)}`).filter(Boolean);
-      let existingCommentIds = new Set<string>();
-      if (commentIds.length > 0) {
-        const { data: existingComments } = await supabase
-          .from("engagement_logs")
-          .select("comment_id")
-          .eq("tenant_id", tenant_id)
-          .in("comment_id", commentIds);
-        existingCommentIds = new Set((existingComments || []).map((c: any) => c.comment_id));
-      }
-
-      const engagementInserts: any[] = [];
-
       for (const comment of comments) {
         const commentId = comment.id || comment.pk || `${postId}_${comment.text?.substring(0, 20)}`;
-        if (!commentId || existingCommentIds.has(commentId)) continue;
-        totalNewComments++;
+        if (!commentId || existingIds.has(commentId)) continue;
 
+        totalNewComments++;
         const commenterHandle = (comment.ownerUsername || comment.owner?.username || "").toLowerCase().trim();
         if (!commenterHandle) continue;
 
@@ -160,9 +145,8 @@ Deno.serve(async (req) => {
         const commentText = (comment.text || "").toLowerCase();
         const mentionsDeputy = commentText.includes(`@${instagramHandle.toLowerCase()}`);
         const score = mentionsDeputy ? 10 : 5;
-        const tipo = mentionsDeputy ? "mencao" : "comentario";
 
-        totalMatches++;
+        totalCommentMatches++;
         engagementInserts.push({
           tenant_id,
           leader_id: leader.id,
@@ -170,14 +154,15 @@ Deno.serve(async (req) => {
           post_id: postId,
           comment_id: commentId,
           comment_text: (comment.text || "").substring(0, 500),
-          tipo_interacao: tipo,
+          tipo_interacao: mentionsDeputy ? "mencao" : "comentario",
           score,
         });
       }
 
-      // --- LIKES via Apify Likers Scraper ---
+      // --- LIKES via Likers Scraper ---
       const postUrl = post.url || `https://www.instagram.com/p/${post.shortCode}/`;
       try {
+        console.log(`[${tenant_id}] Buscando likers do post ${postId}...`);
         const likersRes = await fetch(
           `https://api.apify.com/v2/acts/instaprism~instagram-likers-scraper/run-sync-get-dataset-items?token=${apifyToken}`,
           {
@@ -202,8 +187,8 @@ Deno.serve(async (req) => {
               const leader = leaderMap.get(likerHandle);
               if (!leader) continue;
 
-              const likeCommentId = `like_${postId}_${likerHandle}`;
-              if (existingCommentIds.has(likeCommentId)) continue;
+              const likeId = `like_${postId}_${likerHandle}`;
+              if (existingIds.has(likeId)) continue;
 
               totalLikeMatches++;
               engagementInserts.push({
@@ -211,7 +196,7 @@ Deno.serve(async (req) => {
                 leader_id: leader.id,
                 instagram_username: likerHandle,
                 post_id: postId,
-                comment_id: likeCommentId,
+                comment_id: likeId,
                 comment_text: null,
                 tipo_interacao: "curtida",
                 score: 2,
@@ -219,13 +204,13 @@ Deno.serve(async (req) => {
             }
           }
         } else {
-          console.error(`[${tenant_id}] Likers error for post ${postId}: ${likersRes.status}`);
+          console.error(`[${tenant_id}] Likers error for ${postId}: ${likersRes.status}`);
         }
       } catch (likerErr) {
-        console.error(`[${tenant_id}] Likers fetch error for post ${postId}:`, likerErr);
+        console.error(`[${tenant_id}] Likers fetch error for ${postId}:`, likerErr);
       }
 
-      // Insert all engagement logs (comments + likes)
+      // Insert new engagement logs
       if (engagementInserts.length > 0) {
         const { error: insertErr } = await supabase
           .from("engagement_logs")
@@ -235,29 +220,30 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Mark post as processed
+      // Upsert processed post record
       await supabase
         .from("engagement_processed_posts")
-        .insert({
+        .upsert({
           tenant_id,
           post_id: postId,
           post_url: post.url || null,
           post_caption: (post.caption || "").substring(0, 500),
           post_timestamp: post.timestamp ? new Date(post.timestamp).toISOString() : null,
           comments_count: comments.length,
-        });
+          processed_at: new Date().toISOString(),
+        }, { onConflict: "tenant_id,post_id" });
     }
 
-    // 6. Update sync status
+    // 5. Update sync status
     await updateSyncStatus(supabase, tenant_id, "ok", null);
 
     const result = {
       message: "Sincronização concluída",
-      posts_processados: totalNewPosts,
-      comentarios_analisados: totalNewComments,
-      matches_comentarios: totalMatches,
+      posts_processados: totalPostsProcessed,
+      comentarios_novos: totalNewComments,
+      matches_comentarios: totalCommentMatches,
       matches_curtidas: totalLikeMatches,
-      matches_encontrados: totalMatches + totalLikeMatches,
+      matches_encontrados: totalCommentMatches + totalLikeMatches,
     };
 
     console.log(`[${tenant_id}] Resultado:`, result);
