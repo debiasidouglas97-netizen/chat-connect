@@ -6,8 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Instagram, Save, RefreshCw, Eye, EyeOff, Activity, Wallet } from "lucide-react";
 import { useEngagementConfig, useSyncEngagement } from "@/hooks/use-engagement";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+interface ApifyBalance {
+  remaining_usd?: number;
+  prepaid_usd?: number;
+  monthly_usage_usd?: number;
+  usage_total_usd?: number;
+  plan_description?: string;
+}
 
 export default function EngagementConfigCard() {
   const { config, isLoading, upsert } = useEngagementConfig();
@@ -17,8 +26,9 @@ export default function EngagementConfigCard() {
   const [apifyApiKey, setApifyApiKey] = useState("");
   const [frequencia, setFrequencia] = useState("24h");
   const [showKey, setShowKey] = useState(false);
-  const [apifyBalance, setApifyBalance] = useState<number | null>(null);
+  const [balance, setBalance] = useState<ApifyBalance | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -28,53 +38,52 @@ export default function EngagementConfigCard() {
     }
   }, [config]);
 
-  // Fetch balance when API key is available
+  // Auto-fetch balance when key is loaded from config
   useEffect(() => {
-    if (apifyApiKey && apifyApiKey.length > 10) {
-      fetchBalance(apifyApiKey);
-    } else {
-      setApifyBalance(null);
+    if (config?.apify_api_key && config.apify_api_key.length > 10) {
+      fetchBalance(config.apify_api_key);
     }
-  }, [apifyApiKey]);
+  }, [config?.apify_api_key]);
 
   const fetchBalance = async (key: string) => {
     setBalanceLoading(true);
+    setBalanceError(false);
     try {
-      const res = await fetch(`https://api.apify.com/v2/users/me?token=${key}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/apify-balance`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token || ""}`,
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ apify_api_key: key }),
+      });
+
       if (res.ok) {
         const data = await res.json();
-        const balance = data?.data?.plan?.usageUsd?.remainingUsd 
-          ?? data?.data?.proxy?.groups?.[0]?.availableCount 
-          ?? null;
-        // Try different paths for balance
-        const planData = data?.data?.plan;
-        const monthlyUsage = planData?.monthlyUsageUsd;
-        const limitUsd = planData?.limitUsd;
-        
-        if (monthlyUsage !== undefined && limitUsd !== undefined) {
-          setApifyBalance(Math.max(0, limitUsd - monthlyUsage));
-        } else if (data?.data?.plan?.remainingUsageUsd !== undefined) {
-          setApifyBalance(data.data.plan.remainingUsageUsd);
-        } else {
-          // Fallback: show prepaid balance if available
-          const prepaid = data?.data?.plan?.prepaidUsd;
-          if (prepaid !== undefined) {
-            setApifyBalance(prepaid);
-          } else {
-            setApifyBalance(null);
-          }
-        }
+        setBalance(data);
       } else {
-        setApifyBalance(null);
+        setBalanceError(true);
       }
     } catch {
-      setApifyBalance(null);
+      setBalanceError(true);
     } finally {
       setBalanceLoading(false);
     }
   };
 
+  const displayBalance = () => {
+    if (!balance) return null;
+    const value = balance.remaining_usd ?? balance.prepaid_usd;
+    if (value === undefined) return null;
+    return value;
+  };
+
   if (isLoading) return null;
+
+  const balanceValue = displayBalance();
 
   return (
     <Card>
@@ -122,45 +131,75 @@ export default function EngagementConfigCard() {
               {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <div className="flex items-center justify-between mt-0.5">
+          <div className="flex items-center justify-between mt-1">
             <p className="text-[10px] text-muted-foreground">
               Obtenha em{" "}
               <a href="https://console.apify.com/account/integrations" target="_blank" rel="noopener" className="text-primary underline">
                 console.apify.com
               </a>
             </p>
-            {/* Apify Balance */}
-            {apifyApiKey && apifyApiKey.length > 10 && (
+          </div>
+        </div>
+
+        {/* Apify Balance Card */}
+        {apifyApiKey && apifyApiKey.length > 10 && (
+          <div className="rounded-lg border border-border p-3 space-y-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <Wallet className="h-3 w-3 text-muted-foreground" />
-                {balanceLoading ? (
-                  <span className="text-[10px] text-muted-foreground animate-pulse">Consultando saldo...</span>
-                ) : apifyBalance !== null ? (
-                  <Badge 
-                    variant="outline" 
-                    className={`text-[10px] h-5 px-1.5 ${
-                      apifyBalance > 5 
-                        ? "bg-[#E6F4EA] text-[#2E7D32] border-[#C8E6C9]" 
-                        : apifyBalance > 1 
-                          ? "bg-[#FFF4E5] text-[#B26A00] border-[#FFE0B2]" 
-                          : "bg-[#FDECEA] text-[#C62828] border-[#FFCDD2]"
-                    }`}
-                  >
-                    💰 Saldo: ${apifyBalance.toFixed(2)}
-                  </Badge>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fetchBalance(apifyApiKey)}
-                    className="text-[10px] text-primary underline hover:text-primary/80"
-                  >
-                    Ver saldo
-                  </button>
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium">Saldo Apify</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px]"
+                onClick={() => fetchBalance(apifyApiKey)}
+                disabled={balanceLoading}
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${balanceLoading ? "animate-spin" : ""}`} />
+                Atualizar
+              </Button>
+            </div>
+
+            {balanceLoading && (
+              <p className="text-xs text-muted-foreground animate-pulse">Consultando saldo...</p>
+            )}
+
+            {!balanceLoading && balanceError && (
+              <p className="text-xs text-destructive">Não foi possível consultar o saldo. Verifique a API Key.</p>
+            )}
+
+            {!balanceLoading && !balanceError && balance && (
+              <div className="flex items-center gap-3">
+                {balanceValue !== null && (
+                  <div className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
+                    balanceValue! > 5
+                      ? "bg-[#E6F4EA] text-[#2E7D32]"
+                      : balanceValue! > 1
+                        ? "bg-[#FFF4E5] text-[#B26A00]"
+                        : "bg-[#FDECEA] text-[#C62828]"
+                  }`}>
+                    💰 ${balanceValue!.toFixed(2)}
+                  </div>
+                )}
+                {balance.plan_description && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Plano: {balance.plan_description}
+                  </span>
+                )}
+                {balance.monthly_usage_usd !== undefined && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Uso mensal: ${balance.monthly_usage_usd.toFixed(2)}
+                  </span>
                 )}
               </div>
             )}
+
+            {!balanceLoading && !balanceError && !balance && (
+              <p className="text-xs text-muted-foreground">Clique em "Atualizar" para ver o saldo.</p>
+            )}
           </div>
-        </div>
+        )}
 
         <div>
           <Label>Frequência de sincronização</Label>
