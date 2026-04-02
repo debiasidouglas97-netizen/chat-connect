@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Instagram, Save, RefreshCw, Eye, EyeOff, Activity } from "lucide-react";
+import { Instagram, Save, RefreshCw, Eye, EyeOff, Activity, Wallet } from "lucide-react";
 import { useEngagementConfig, useSyncEngagement } from "@/hooks/use-engagement";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +17,8 @@ export default function EngagementConfigCard() {
   const [apifyApiKey, setApifyApiKey] = useState("");
   const [frequencia, setFrequencia] = useState("24h");
   const [showKey, setShowKey] = useState(false);
+  const [apifyBalance, setApifyBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -25,6 +27,52 @@ export default function EngagementConfigCard() {
       setFrequencia(config.frequencia_sincronizacao || "24h");
     }
   }, [config]);
+
+  // Fetch balance when API key is available
+  useEffect(() => {
+    if (apifyApiKey && apifyApiKey.length > 10) {
+      fetchBalance(apifyApiKey);
+    } else {
+      setApifyBalance(null);
+    }
+  }, [apifyApiKey]);
+
+  const fetchBalance = async (key: string) => {
+    setBalanceLoading(true);
+    try {
+      const res = await fetch(`https://api.apify.com/v2/users/me?token=${key}`);
+      if (res.ok) {
+        const data = await res.json();
+        const balance = data?.data?.plan?.usageUsd?.remainingUsd 
+          ?? data?.data?.proxy?.groups?.[0]?.availableCount 
+          ?? null;
+        // Try different paths for balance
+        const planData = data?.data?.plan;
+        const monthlyUsage = planData?.monthlyUsageUsd;
+        const limitUsd = planData?.limitUsd;
+        
+        if (monthlyUsage !== undefined && limitUsd !== undefined) {
+          setApifyBalance(Math.max(0, limitUsd - monthlyUsage));
+        } else if (data?.data?.plan?.remainingUsageUsd !== undefined) {
+          setApifyBalance(data.data.plan.remainingUsageUsd);
+        } else {
+          // Fallback: show prepaid balance if available
+          const prepaid = data?.data?.plan?.prepaidUsd;
+          if (prepaid !== undefined) {
+            setApifyBalance(prepaid);
+          } else {
+            setApifyBalance(null);
+          }
+        }
+      } else {
+        setApifyBalance(null);
+      }
+    } catch {
+      setApifyBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
 
   if (isLoading) return null;
 
@@ -38,7 +86,6 @@ export default function EngagementConfigCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Monitore interações das lideranças com o Instagram do deputado.
           O sistema busca os últimos 5 posts e cruza comentários e curtidas com lideranças cadastradas.
           Score: comentário +5, menção +10, curtida +2.
         </p>
@@ -75,12 +122,44 @@ export default function EngagementConfigCard() {
               {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Obtenha em{" "}
-            <a href="https://console.apify.com/account/integrations" target="_blank" rel="noopener" className="text-primary underline">
-              console.apify.com
-            </a>
-          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-[10px] text-muted-foreground">
+              Obtenha em{" "}
+              <a href="https://console.apify.com/account/integrations" target="_blank" rel="noopener" className="text-primary underline">
+                console.apify.com
+              </a>
+            </p>
+            {/* Apify Balance */}
+            {apifyApiKey && apifyApiKey.length > 10 && (
+              <div className="flex items-center gap-1.5">
+                <Wallet className="h-3 w-3 text-muted-foreground" />
+                {balanceLoading ? (
+                  <span className="text-[10px] text-muted-foreground animate-pulse">Consultando saldo...</span>
+                ) : apifyBalance !== null ? (
+                  <Badge 
+                    variant="outline" 
+                    className={`text-[10px] h-5 px-1.5 ${
+                      apifyBalance > 5 
+                        ? "bg-[#E6F4EA] text-[#2E7D32] border-[#C8E6C9]" 
+                        : apifyBalance > 1 
+                          ? "bg-[#FFF4E5] text-[#B26A00] border-[#FFE0B2]" 
+                          : "bg-[#FDECEA] text-[#C62828] border-[#FFCDD2]"
+                    }`}
+                  >
+                    💰 Saldo: ${apifyBalance.toFixed(2)}
+                  </Badge>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fetchBalance(apifyApiKey)}
+                    className="text-[10px] text-primary underline hover:text-primary/80"
+                  >
+                    Ver saldo
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
