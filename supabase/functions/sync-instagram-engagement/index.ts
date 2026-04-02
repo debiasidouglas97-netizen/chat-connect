@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const apifyToken = config.apify_api_key;
 
     // 2. Fetch last 50 posts via Instagram Scraper
-    console.log(`[${tenant_id}] Buscando últimos 50 posts de @${instagramHandle}`);
+    console.log(`[${tenant_id}] Buscando últimos 5 posts de @${instagramHandle}`);
 
     const apifyInput = {
       directUrls: [`https://www.instagram.com/${instagramHandle}/`],
