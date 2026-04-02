@@ -164,10 +164,14 @@ export function useSyncEngagement() {
       if (!res.ok) throw new Error(result.error || "Erro na sincronização");
       return result;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["engagement"] });
-      queryClient.invalidateQueries({ queryKey: ["engagement-config"] });
-      queryClient.invalidateQueries({ queryKey: ["engagement-scores-all"] });
+    onSuccess: async (data) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["engagement-config"] }),
+        queryClient.invalidateQueries({ queryKey: ["engagement-logs"] }),
+        queryClient.invalidateQueries({ queryKey: ["engagement-score"] }),
+        queryClient.invalidateQueries({ queryKey: ["engagement-scores-all"] }),
+      ]);
+
       toast.success(
         `Sincronização concluída! ${data.posts_processados} posts, ${data.matches_encontrados} interações (${data.matches_comentarios || 0} comentários, ${data.matches_curtidas || 0} curtidas)`
       );
