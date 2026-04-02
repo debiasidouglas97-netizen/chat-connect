@@ -64,7 +64,7 @@ export default function EngagementSection({ leaderId }: Props) {
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium text-foreground">@{log.instagram_username}</span>
                   <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                    {log.tipo_interacao === "mencao" ? "+10" : "+5"}
+                    {log.tipo_interacao === "mencao" ? "+10" : log.tipo_interacao === "curtida" ? "❤️ +2" : "+5"}
                   </Badge>
                 </div>
                 {log.comment_text && (

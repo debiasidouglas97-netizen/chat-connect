@@ -169,7 +169,7 @@ export function useSyncEngagement() {
       queryClient.invalidateQueries({ queryKey: ["engagement-config"] });
       queryClient.invalidateQueries({ queryKey: ["engagement-scores-all"] });
       toast.success(
-        `Sincronização concluída! ${data.posts_processados} posts, ${data.matches_encontrados} interações encontradas`
+        `Sincronização concluída! ${data.posts_processados} posts, ${data.matches_encontrados} interações (${data.matches_comentarios || 0} comentários, ${data.matches_curtidas || 0} curtidas)`
       );
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
