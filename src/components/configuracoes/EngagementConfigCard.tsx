@@ -39,7 +39,7 @@ export default function EngagementConfigCard() {
       <CardContent className="space-y-4">
         <p className="text-xs text-muted-foreground">
           Monitore interações das lideranças com o Instagram do deputado.
-          O sistema busca os últimos 50 posts e cruza comentários e curtidas com lideranças cadastradas.
+          O sistema busca os últimos 5 posts e cruza comentários e curtidas com lideranças cadastradas.
           Score: comentário +5, menção +10, curtida +2.
         </p>
 

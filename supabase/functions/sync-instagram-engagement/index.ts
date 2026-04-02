@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const apifyInput = {
       directUrls: [`https://www.instagram.com/${instagramHandle}/`],
       resultsType: "posts",
-      resultsLimit: 50,
+      resultsLimit: 5,
       addParentData: false,
     };
 
