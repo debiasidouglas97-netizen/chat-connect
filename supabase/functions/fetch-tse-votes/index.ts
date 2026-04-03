@@ -11,6 +11,39 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // CEPESP API for TSE voting data
 const CEPESP_BASE = "https://cepesp.io/api/consulta/athena";
 
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function handledFailure(error: string, extra: Record<string, unknown> = {}) {
+  return jsonResponse({ success: false, error, ...extra });
+}
+
+function safeJsonParse<T = unknown>(text: string): T | null {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+function isHtmlLikeResponse(contentType: string | null, text: string): boolean {
+  const sample = text.slice(0, 300).toLowerCase();
+  return Boolean(
+    contentType?.includes("text/html") ||
+    sample.includes("<!doctype html") ||
+    sample.includes("<html") ||
+    sample.includes("acesso rejeitado")
+  );
+}
+
+function extractSupportId(text: string): string | null {
+  return text.match(/suporte id\s*:\s*([0-9]+)/i)?.[1] ?? null;
+}
+
 // Normalize city name for matching (remove accents, lowercase, trim)
 function normalize(str: string): string {
   return str
@@ -51,9 +84,7 @@ Deno.serve(async (req) => {
   try {
     const { tenant_id } = await req.json();
     if (!tenant_id) {
-      return new Response(JSON.stringify({ error: "tenant_id required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "tenant_id required" }, 400);
     }
 
     const sb = createClient(supabaseUrl, supabaseKey);
@@ -66,15 +97,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (tErr || !tenant) {
-      return new Response(JSON.stringify({ error: "Tenant not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Tenant not found" }, 404);
     }
 
-    const nrCandidato = (tenant as any).nr_candidato_tse;
+    const nrCandidato = (tenant as any).nr_candidato_tse?.trim?.() || (tenant as any).nr_candidato_tse;
     if (!nrCandidato) {
-      return new Response(JSON.stringify({ error: "Número do candidato TSE não configurado. Configure em Configurações > Integrações." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return handledFailure("Número do candidato TSE não configurado. Configure em Configurações > Integrações.", {
+        missing_configuration: true,
       });
     }
 
@@ -82,28 +111,27 @@ Deno.serve(async (req) => {
     const uf = getUF((tenant as any).estado || "SP");
 
     // Use CEPESP API to query votes
-    // Step 1: Submit query
-    const queryParams = new URLSearchParams({
-      table: "votos",
-      anos: String(anoEleicao),
-      cargo: "6", // Deputado Federal
-      agregacao_regional: "6", // Município
-      uf_filter: uf,
-      "c[]": "NOME_MUNICIPIO",
-    });
-    // Need multiple c[] params
     const queryUrl = `${CEPESP_BASE}/query?table=votos&anos=${anoEleicao}&cargo=6&agregacao_regional=6&uf_filter=${uf}&c[]=NOME_MUNICIPIO&c[]=QTDE_VOTOS&c[]=NUMERO_CANDIDATO&numero_candidato_filter=${nrCandidato}`;
 
     console.log("Querying CEPESP:", queryUrl);
 
     const queryRes = await fetch(queryUrl);
-    if (!queryRes.ok) {
-      // Fallback: try direct TSE CDN approach
-      console.log("CEPESP query failed, trying fallback...");
+    const queryText = await queryRes.text();
+
+    if (!queryRes.ok || isHtmlLikeResponse(queryRes.headers.get("content-type"), queryText)) {
+      console.log("CEPESP query failed or returned HTML, trying fallback...", JSON.stringify({
+        status: queryRes.status,
+        support_id: extractSupportId(queryText),
+      }));
       return await fallbackTSE(sb, tenant_id, nrCandidato, anoEleicao, uf);
     }
 
-    const queryData = await queryRes.json();
+    const queryData = safeJsonParse<any>(queryText);
+    if (!queryData) {
+      console.log("CEPESP returned non-JSON payload, trying fallback...");
+      return await fallbackTSE(sb, tenant_id, nrCandidato, anoEleicao, uf);
+    }
+
     console.log("CEPESP response:", JSON.stringify(queryData).slice(0, 500));
 
     if (queryData.id) {
@@ -112,45 +140,47 @@ Deno.serve(async (req) => {
       for (let i = 0; i < 15; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const resultRes = await fetch(`${CEPESP_BASE}/result?id=${queryData.id}&format=json`);
-        if (resultRes.ok) {
-          const text = await resultRes.text();
-          if (text && text !== "null" && !text.includes("processing")) {
-            try {
-              resultData = JSON.parse(text);
-              break;
-            } catch { /* still processing */ }
+        const resultText = await resultRes.text();
+
+        if (!resultRes.ok || isHtmlLikeResponse(resultRes.headers.get("content-type"), resultText)) {
+          continue;
+        }
+
+        if (resultText && resultText !== "null" && !resultText.includes("processing")) {
+          const parsed = safeJsonParse<any>(resultText);
+          if (parsed) {
+            resultData = parsed;
+            break;
           }
         }
       }
 
       if (!resultData) {
-        return new Response(JSON.stringify({ error: "Consulta TSE ainda em processamento. Tente novamente em alguns minutos." }), {
-          status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return handledFailure("Consulta externa ainda em processamento. Tente novamente em alguns minutos.", {
+          pending: true,
         });
       }
 
       // Process results
       const updated = await processVotingData(sb, tenant_id, resultData);
-      return new Response(JSON.stringify({ success: true, cities_updated: updated }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true, cities_updated: updated });
     }
 
     // Direct response (synchronous)
     if (Array.isArray(queryData)) {
       const updated = await processVotingData(sb, tenant_id, queryData);
-      return new Response(JSON.stringify({ success: true, cities_updated: updated }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true, cities_updated: updated });
     }
 
     return await fallbackTSE(sb, tenant_id, nrCandidato, anoEleicao, uf);
 
   } catch (err: any) {
     console.error("Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({
+      success: false,
+      error: "Falha inesperada ao importar a votação.",
+      details: err?.message || String(err),
+    }, 500);
   }
 });
 
@@ -169,20 +199,31 @@ async function processVotingData(sb: any, tenantId: string, data: any[]): Promis
     cityMap.set(extractCityName(city.name), city.id);
   }
 
-  let updated = 0;
+  const voteTotals = new Map<string, number>();
   for (const row of data) {
-    const municipio = row.NOME_MUNICIPIO || row.nome_municipio || "";
-    const votos = parseInt(row.QTDE_VOTOS || row.qtde_votos || "0", 10);
-    const cityId = cityMap.get(normalize(municipio));
+    const municipio = row.NOME_MUNICIPIO || row.nome_municipio || row.NM_MUNICIPIO || "";
+    const votos = parseInt(
+      String(row.QTDE_VOTOS || row.qtde_votos || row.QT_VOTOS || row.qt_votos || row.VOTOS || row.votos || "0"),
+      10,
+    );
+    const normalizedCity = extractCityName(municipio);
 
-    if (cityId && votos > 0) {
-      const { error } = await sb
-        .from("cidades")
-        .update({ votos_2022: votos, updated_at: new Date().toISOString() })
-        .eq("id", cityId);
+    if (!normalizedCity || !Number.isFinite(votos) || votos <= 0) continue;
+    voteTotals.set(normalizedCity, (voteTotals.get(normalizedCity) || 0) + votos);
+  }
 
-      if (!error) updated++;
-    }
+  let updated = 0;
+  for (const [normalizedCity, votos] of voteTotals.entries()) {
+    const cityId = cityMap.get(normalizedCity);
+
+    if (!cityId) continue;
+
+    const { error } = await sb
+      .from("cidades")
+      .update({ votos_2022: votos, updated_at: new Date().toISOString() })
+      .eq("id", cityId);
+
+    if (!error) updated++;
   }
 
   return updated;
@@ -197,24 +238,30 @@ async function fallbackTSE(sb: any, tenantId: string, nrCandidato: string, ano: 
   console.log("Trying CEPESP TSE endpoint:", tseUrl);
 
   const res = await fetch(tseUrl);
-  if (!res.ok) {
-    return new Response(JSON.stringify({
-      error: "Não foi possível buscar dados do TSE. Verifique o número do candidato e tente novamente.",
-      details: `Status: ${res.status}`,
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const text = await res.text();
 
+  if (!res.ok || isHtmlLikeResponse(res.headers.get("content-type"), text)) {
+    const supportId = extractSupportId(text);
+    console.log("Automatic TSE source unavailable", JSON.stringify({
+      status: res.status,
+      support_id: supportId,
+    }));
+
+    return handledFailure(
+      "A fonte automática do TSE ficou indisponível neste momento porque o portal externo bloqueou a consulta. Tente novamente mais tarde.",
+      {
+        source: "tse",
+        blocked: true,
+        status: res.status,
+        support_id: supportId,
+      },
+    );
+  }
+
   // Parse CSV
-  const lines = text.split("\n").filter(l => l.trim());
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) {
-    return new Response(JSON.stringify({ error: "Nenhum dado encontrado para este candidato." }), {
-      status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return handledFailure("Nenhum dado encontrado para este candidato.");
   }
 
   const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
@@ -223,8 +270,9 @@ async function fallbackTSE(sb: any, tenantId: string, nrCandidato: string, ano: 
 
   if (munIdx === -1 || votosIdx === -1) {
     console.log("CSV headers:", headers);
-    return new Response(JSON.stringify({ error: "Formato de dados inesperado.", headers }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return handledFailure("A fonte automática devolveu um formato diferente do esperado.", {
+      source: "tse",
+      headers: headers.slice(0, 10),
     });
   }
 
@@ -237,7 +285,5 @@ async function fallbackTSE(sb: any, tenantId: string, nrCandidato: string, ano: 
   });
 
   const updated = await processVotingData(sb, tenantId, rows);
-  return new Response(JSON.stringify({ success: true, cities_updated: updated, total_rows: rows.length }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return jsonResponse({ success: true, cities_updated: updated, total_rows: rows.length });
 }
