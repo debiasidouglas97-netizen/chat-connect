@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
-  FileText, Users, MapPin, Landmark, AlertTriangle, TrendingUp,
+  FileText, Users, MapPin, Landmark,
   Plus, Calendar, Zap,
-  ArrowRight, CheckCircle2, Flame, Snowflake,
+  ArrowRight, CheckCircle2, Flame, Snowflake, AlertTriangle,
 } from "lucide-react";
 import { calcularScoreCidade, canViewRanking, type UserRole } from "@/lib/scoring";
 import { useMemo } from "react";
@@ -20,19 +20,13 @@ import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEventos } from "@/hooks/use-eventos";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
+import InteligenciaMandato from "@/components/dashboard/InteligenciaMandato";
 import NovoEventoDialog from "@/components/agenda/NovoEventoDialog";
 import CidadeFormDialog from "@/components/cidades/CidadeFormDialog";
 import type { Demanda } from "@/components/demandas/types";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
-const opportunities = [
-  { type: "warning", icon: AlertTriangle, text: "Guarujá está sem comunicação há 20 dias", action: "Agendar visita" },
-  { type: "success", icon: Landmark, text: "Nova emenda de R$ 3M liberada para Santos", action: "Ver detalhes" },
-  { type: "destructive", icon: FileText, text: "Peruíbe com baixa atuação — risco de perda de base", action: "Agir agora" },
-  { type: "info", icon: Users, text: "Bauru possui alta atividade — oportunidade de reforço", action: "Entrar em contato" },
-  { type: "warning", icon: AlertTriangle, text: "Itanhaém sem presença do deputado há 30 dias", action: "Planejar visita" },
-];
 
 const statusConfig = {
   alta: { icon: Flame, label: "Alta Prioridade", className: "bg-success/10 text-success border-success/20" },
@@ -202,44 +196,8 @@ export default function Index() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Opportunities */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Oportunidades do Dia
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs">{opportunities.length} alertas</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {opportunities.map((opp, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-                      opp.type === "warning" ? "bg-warning/10" :
-                      opp.type === "success" ? "bg-success/10" :
-                      opp.type === "destructive" ? "bg-destructive/10" : "bg-info/10"
-                    }`}>
-                      <opp.icon className={`h-4 w-4 ${
-                        opp.type === "warning" ? "text-warning" :
-                        opp.type === "success" ? "text-success" :
-                        opp.type === "destructive" ? "text-destructive" : "text-info"
-                      }`} />
-                    </div>
-                    <p className="text-sm text-foreground">{opp.text}</p>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-primary text-xs shrink-0">
-                    {opp.action}
-                    <ArrowRight className="h-3 w-3 ml-1" />
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Inteligência do Mandato */}
+        <InteligenciaMandato />
 
         {/* Quick Actions */}
         <Card>

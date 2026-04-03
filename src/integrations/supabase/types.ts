@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          created_at: string
+          descricao_bruta: string
+          descricao_ia: string | null
+          entidade: string
+          entidade_id: string | null
+          id: string
+          prioridade: string
+          tenant_id: string | null
+          tipo_evento: string
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao_bruta: string
+          descricao_ia?: string | null
+          entidade: string
+          entidade_id?: string | null
+          id?: string
+          prioridade?: string
+          tenant_id?: string | null
+          tipo_evento: string
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao_bruta?: string
+          descricao_ia?: string | null
+          entidade?: string
+          entidade_id?: string | null
+          id?: string
+          prioridade?: string
+          tenant_id?: string | null
+          tipo_evento?: string
+          usuario_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cidades: {
         Row: {
           comunicacao_recente: boolean
