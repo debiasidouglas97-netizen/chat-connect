@@ -101,6 +101,17 @@ export default function InteligenciaMandato() {
             );
           })
         )}
+        {!isLoading && logs.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {showAll ? "Mostrar menos" : "Ver tudo"}
+            <ArrowRight className={`h-3 w-3 ml-1 transition-transform ${showAll ? "rotate-180" : ""}`} />
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
