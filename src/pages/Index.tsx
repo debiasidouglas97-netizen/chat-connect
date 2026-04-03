@@ -101,15 +101,23 @@ export default function Index() {
     .toUpperCase();
 
   const handleSaveDemanda = async (demanda: Demanda) => {
-    if (addDemanda) await addDemanda(demanda);
+    await insertDemanda({
+      title: demanda.title,
+      city: demanda.city,
+      description: demanda.description,
+      priority: demanda.priority,
+      responsible: demanda.responsible,
+      origin: demanda.origin,
+      attachments: demanda.attachments_count,
+    });
   };
 
   const handleAddLideranca = async (l: any) => {
-    if (addLideranca) await addLideranca(l);
+    await insertLideranca(l);
   };
 
   const handleSaveEvento = async (data: any) => {
-    if (addEvento) await addEvento(data);
+    await insertEvento(data);
   };
 
   const handleSaveCidade = async (c: any) => {

@@ -19,9 +19,33 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCidades } from "@/hooks/use-cidades";
 import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
-import CidadeFormDialog from "@/components/cidades/CidadeFormDialog";
+import CidadeFormDialog, { fetchMunicipiosByUF, fetchPopulacoesBulk } from "@/components/cidades/CidadeFormDialog";
 
 const CURRENT_ROLE: UserRole = "deputado";
+
+const statusConfig = {
+  alta: { icon: Flame, label: "Alta", className: "bg-success/10 text-success border-success/20" },
+  atencao: { icon: AlertTriangle, label: "Atenção", className: "bg-warning/10 text-warning border-warning/20" },
+  baixa: { icon: Snowflake, label: "Baixa", className: "bg-info/10 text-info border-info/20" },
+};
+
+const FAIXAS_POPULACAO = [
+  { max: 50000, label: "Cidade pequena", bg: "#D1FAE5", border: "#A7F3D0", text: "#065F46" },
+  { max: 200000, label: "Cidade média", bg: "#DBEAFE", border: "#BFDBFE", text: "#1E40AF" },
+  { max: 500000, label: "Cidade grande", bg: "#FEF3C7", border: "#FDE68A", text: "#92400E" },
+  { max: 1000000, label: "Metrópole regional", bg: "#FED7AA", border: "#FDBA74", text: "#9A3412" },
+  { max: Infinity, label: "Metrópole", bg: "#FECACA", border: "#FCA5A5", text: "#991B1B" },
+];
+
+function parsePopulation(pop: string): number {
+  if (!pop || pop === "0") return 0;
+  return Number(pop.replace(/\./g, "").replace(/,/g, "")) || 0;
+}
+
+function getPopulationClass(pop: string) {
+  const num = parsePopulation(pop);
+  return FAIXAS_POPULACAO.find(f => num <= f.max) || FAIXAS_POPULACAO[0];
+}
 
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
