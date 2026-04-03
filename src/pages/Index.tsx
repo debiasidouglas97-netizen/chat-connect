@@ -49,9 +49,9 @@ export default function Index() {
   const { profile } = useDeputyProfile();
   const { cidades: cidadesRaw, insert: insertCidade } = useCidades();
   const { emendas } = useEmendas();
-  const { addDemanda } = useDemandas();
-  const { addLideranca } = useLiderancas();
-  const { addEvento } = useEventos();
+  const { insert: insertDemanda } = useDemandas();
+  const { insert: insertLideranca } = useLiderancas();
+  const { insert: insertEvento } = useEventos();
   const navigate = useNavigate();
 
   const [demandaOpen, setDemandaOpen] = useState(false);
