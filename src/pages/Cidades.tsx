@@ -409,6 +409,7 @@ export default function Cidades() {
                 <TableHead>Demandas</TableHead>
                 <TableHead>Lideranças</TableHead>
                 <TableHead>Emendas</TableHead>
+                <TableHead>Votos 2022</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
