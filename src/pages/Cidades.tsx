@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow, Vote } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -369,6 +369,18 @@ export default function Cidades() {
                       <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
                       <span>{c.regiao}</span>
                     </div>
+                    {(c as any).votos2022 > 0 && (
+                      <div className="flex items-center justify-end mt-1">
+                        <div className="text-right">
+                          <p className="text-2xl font-black italic" style={{ color: popClass.text }}>
+                            {((c as any).votos2022 as number).toLocaleString("pt-BR")}
+                          </p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider italic" style={{ color: popClass.text, opacity: 0.7 }}>
+                            Votos
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex gap-1 pt-1">
                       <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
                         <Pencil className="h-3 w-3" /> Editar
@@ -397,6 +409,7 @@ export default function Cidades() {
                 <TableHead>Demandas</TableHead>
                 <TableHead>Lideranças</TableHead>
                 <TableHead>Emendas</TableHead>
+                <TableHead>Votos 2022</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -445,6 +458,13 @@ export default function Cidades() {
                     <TableCell>{c.demandas}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
                     <TableCell>{c.emendas}</TableCell>
+                    <TableCell>
+                      {(c as any).votos2022 > 0 ? (
+                        <span className="font-bold">{((c as any).votos2022 as number).toLocaleString("pt-BR")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>

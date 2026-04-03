@@ -80,6 +80,7 @@ export type Database = {
           regiao: string
           tenant_id: string | null
           updated_at: string
+          votos_2022: number
         }
         Insert: {
           comunicacao_recente?: boolean
@@ -99,6 +100,7 @@ export type Database = {
           regiao: string
           tenant_id?: string | null
           updated_at?: string
+          votos_2022?: number
         }
         Update: {
           comunicacao_recente?: boolean
@@ -118,6 +120,7 @@ export type Database = {
           regiao?: string
           tenant_id?: string | null
           updated_at?: string
+          votos_2022?: number
         }
         Relationships: [
           {
@@ -1516,6 +1519,7 @@ export type Database = {
       }
       tenants: {
         Row: {
+          ano_eleicao: number
           camara_deputado_id: number | null
           cpf: string | null
           created_at: string
@@ -1532,6 +1536,7 @@ export type Database = {
           id: string
           nome: string
           nome_parlamentar: string | null
+          nr_candidato_tse: string | null
           partido: string | null
           status: string
           telefone: string | null
@@ -1540,6 +1545,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ano_eleicao?: number
           camara_deputado_id?: number | null
           cpf?: string | null
           created_at?: string
@@ -1556,6 +1562,7 @@ export type Database = {
           id?: string
           nome: string
           nome_parlamentar?: string | null
+          nr_candidato_tse?: string | null
           partido?: string | null
           status?: string
           telefone?: string | null
@@ -1564,6 +1571,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ano_eleicao?: number
           camara_deputado_id?: number | null
           cpf?: string | null
           created_at?: string
@@ -1580,6 +1588,7 @@ export type Database = {
           id?: string
           nome?: string
           nome_parlamentar?: string | null
+          nr_candidato_tse?: string | null
           partido?: string | null
           status?: string
           telefone?: string | null
