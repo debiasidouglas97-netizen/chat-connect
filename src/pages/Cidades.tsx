@@ -458,6 +458,13 @@ export default function Cidades() {
                     <TableCell>{c.demandas}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
                     <TableCell>{c.emendas}</TableCell>
+                    <TableCell>
+                      {(c as any).votos2022 > 0 ? (
+                        <span className="font-bold">{((c as any).votos2022 as number).toLocaleString("pt-BR")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
