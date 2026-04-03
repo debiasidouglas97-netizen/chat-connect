@@ -104,11 +104,11 @@ export default function Index() {
     await insertDemanda({
       title: demanda.title,
       city: demanda.city,
+      col: demanda.col,
       description: demanda.description,
       priority: demanda.priority,
       responsible: demanda.responsible,
       origin: demanda.origin,
-      attachments: demanda.attachments_count,
     });
   };
 
