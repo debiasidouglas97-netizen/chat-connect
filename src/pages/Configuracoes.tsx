@@ -211,18 +211,20 @@ export default function Configuracoes() {
     }
   }, [profile]);
 
-  // Load telegram bot config from tenant
+  // Load telegram bot config and TSE config from tenant
   useEffect(() => {
     if (tenantId) {
       supabase
         .from("tenants")
-        .select("telegram_bot_token, telegram_bot_username")
+        .select("telegram_bot_token, telegram_bot_username, nr_candidato_tse, ano_eleicao")
         .eq("id", tenantId)
         .single()
         .then(({ data }) => {
           if (data) {
             setTelegramBotToken((data as any).telegram_bot_token || "");
             setTelegramBotUsername((data as any).telegram_bot_username || "");
+            setNrCandidatoTse((data as any).nr_candidato_tse || "");
+            setAnoEleicao(String((data as any).ano_eleicao || "2022"));
           }
         });
     }
