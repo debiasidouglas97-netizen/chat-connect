@@ -16,6 +16,7 @@ interface CidadeRow {
   engajamento: number;
   liderancas: number;
   emendas: number;
+  votos_2022: number;
   tenant_id: string | null;
 }
 
