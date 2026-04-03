@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,8 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   FileText, Users, MapPin, Landmark, AlertTriangle, TrendingUp,
-  Plus, Calendar, MessageSquare, Flame, Snowflake, Zap,
-  ArrowRight, CheckCircle2,
+  Plus, Calendar, Zap,
+  ArrowRight, CheckCircle2, Flame, Snowflake,
 } from "lucide-react";
 import { calcularScoreCidade, canViewRanking, type UserRole } from "@/lib/scoring";
 import { useMemo } from "react";
@@ -14,14 +15,16 @@ import { useNavigate } from "react-router-dom";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { useCidades } from "@/hooks/use-cidades";
 import { useEmendas } from "@/hooks/use-emendas";
+import { useDemandas } from "@/hooks/use-demandas";
+import { useLiderancas } from "@/hooks/use-liderancas";
+import { useEventos } from "@/hooks/use-eventos";
+import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
+import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
+import NovoEventoDialog from "@/components/agenda/NovoEventoDialog";
+import CidadeFormDialog from "@/components/cidades/CidadeFormDialog";
+import type { Demanda } from "@/components/demandas/types";
 
-// Simulated current role — will be replaced by real auth
 const CURRENT_ROLE: UserRole = "deputado";
-
-const kpis = [
-  { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
-  { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
-];
 
 const opportunities = [
   { type: "warning", icon: AlertTriangle, text: "Guarujá está sem comunicação há 20 dias", action: "Agendar visita" },
@@ -37,11 +40,25 @@ const statusConfig = {
   baixa: { icon: Snowflake, label: "Baixa Atuação", className: "bg-info/10 text-info border-info/20" },
 };
 
+const kpis = [
+  { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
+  { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
+];
+
 export default function Index() {
   const { profile } = useDeputyProfile();
-  const { cidades: cidadesRaw } = useCidades();
+  const { cidades: cidadesRaw, insert: insertCidade } = useCidades();
   const { emendas } = useEmendas();
+  const { addDemanda } = useDemandas();
+  const { addLideranca } = useLiderancas();
+  const { addEvento } = useEventos();
   const navigate = useNavigate();
+
+  const [demandaOpen, setDemandaOpen] = useState(false);
+  const [liderancaOpen, setLiderancaOpen] = useState(false);
+  const [eventoOpen, setEventoOpen] = useState(false);
+  const [cidadeOpen, setCidadeOpen] = useState(false);
+
   const cidadesComScore = useMemo(
     () => cidadesRaw.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
     [cidadesRaw]
@@ -61,9 +78,7 @@ export default function Index() {
   const totalEmendas = emendas.length;
   const totalValorEmendas = useMemo(() => {
     const total = emendas.reduce((sum, e) => {
-      const num = parseFloat(
-        e.valor.replace(/[R$\s.]/g, "").replace(",", ".")
-      );
+      const num = parseFloat(e.valor.replace(/[R$\s.]/g, "").replace(",", "."));
       return sum + (isNaN(num) ? 0 : num);
     }, 0);
     if (total >= 1_000_000) return `R$ ${(total / 1_000_000).toFixed(1).replace(".", ",")}M total`;
@@ -84,6 +99,29 @@ export default function Index() {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
+
+  const handleSaveDemanda = async (demanda: Demanda) => {
+    if (addDemanda) await addDemanda(demanda);
+  };
+
+  const handleAddLideranca = async (l: any) => {
+    if (addLideranca) await addLideranca(l);
+  };
+
+  const handleSaveEvento = async (data: any) => {
+    if (addEvento) await addEvento(data);
+  };
+
+  const handleSaveCidade = async (c: any) => {
+    await insertCidade(c);
+  };
+
+  const quickActions = [
+    { label: "Nova Demanda", icon: Plus, onClick: () => setDemandaOpen(true), bg: "bg-[hsl(48_60%_95%)]", hoverBg: "hover:bg-[hsl(48_60%_90%)]", iconColor: "text-[hsl(48_70%_40%)]" },
+    { label: "Nova Liderança", icon: Users, onClick: () => setLiderancaOpen(true), bg: "bg-[hsl(210_50%_95%)]", hoverBg: "hover:bg-[hsl(210_50%_90%)]", iconColor: "text-[hsl(210_50%_40%)]" },
+    { label: "Registrar Visita", icon: Calendar, onClick: () => setEventoOpen(true), bg: "bg-[hsl(145_40%_95%)]", hoverBg: "hover:bg-[hsl(145_40%_90%)]", iconColor: "text-[hsl(145_40%_35%)]" },
+    { label: "Adicionar Cidade", icon: MapPin, onClick: () => setCidadeOpen(true), bg: "bg-[hsl(280_40%_95%)]", hoverBg: "hover:bg-[hsl(280_40%_90%)]", iconColor: "text-[hsl(280_40%_40%)]" },
+  ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -125,11 +163,7 @@ export default function Index() {
             </CardContent>
           </Card>
         ))}
-        {/* Emendas Cadastradas — dynamic & clickable */}
-        <Card
-          className="hover:shadow-md transition-shadow border-0 bg-[hsl(210_60%_92%)] cursor-pointer"
-          onClick={() => navigate("/emendas")}
-        >
+        <Card className="hover:shadow-md transition-shadow border-0 bg-[hsl(210_60%_92%)] cursor-pointer" onClick={() => navigate("/emendas")}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -143,11 +177,7 @@ export default function Index() {
             </div>
           </CardContent>
         </Card>
-        {/* Cidades Atendidas — dynamic & clickable */}
-        <Card
-          className="hover:shadow-md transition-shadow border-0 bg-[hsl(145_50%_92%)] cursor-pointer"
-          onClick={() => navigate("/cidades")}
-        >
+        <Card className="hover:shadow-md transition-shadow border-0 bg-[hsl(145_50%_92%)] cursor-pointer" onClick={() => navigate("/cidades")}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -212,23 +242,21 @@ export default function Index() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full justify-start gap-2" variant="outline">
-              <Plus className="h-4 w-4" /> Nova Demanda
-            </Button>
-            <Button className="w-full justify-start gap-2" variant="outline">
-              <Users className="h-4 w-4" /> Nova Liderança
-            </Button>
-            <Button className="w-full justify-start gap-2" variant="outline">
-              <Calendar className="h-4 w-4" /> Registrar Visita
-            </Button>
-            <Button className="w-full justify-start gap-2" variant="outline">
-              <MessageSquare className="h-4 w-4" /> Enviar Mensagem
-            </Button>
+            {quickActions.map((action) => (
+              <button
+                key={action.label}
+                onClick={action.onClick}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent ${action.bg} ${action.hoverBg} transition-colors text-left`}
+              >
+                <action.icon className={`h-4 w-4 ${action.iconColor}`} />
+                <span className="text-sm font-medium text-foreground">{action.label}</span>
+              </button>
+            ))}
           </CardContent>
         </Card>
       </div>
 
-      {/* City Ranking — only for authorized roles */}
+      {/* City Ranking */}
       {showRanking && (
         <Card>
           <CardHeader className="pb-3">
@@ -237,7 +265,7 @@ export default function Index() {
                 <MapPin className="h-5 w-5 text-primary" />
                 Ranking de Cidades
               </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs text-primary">
+              <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => navigate("/cidades")}>
                 Ver todas <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </div>
@@ -275,6 +303,17 @@ export default function Index() {
           </CardContent>
         </Card>
       )}
+
+      {/* Dialogs */}
+      <NovaDemandaDialog open={demandaOpen} onOpenChange={setDemandaOpen} onSave={handleSaveDemanda} />
+      <NovaLiderancaDialog open={liderancaOpen} onOpenChange={setLiderancaOpen} onAdd={handleAddLideranca} />
+      <NovoEventoDialog open={eventoOpen} onOpenChange={setEventoOpen} onSave={handleSaveEvento} />
+      <CidadeFormDialog
+        open={cidadeOpen}
+        onOpenChange={setCidadeOpen}
+        onSave={handleSaveCidade}
+        onBatchSave={async (cities) => { for (const c of cities) await insertCidade(c); }}
+      />
     </div>
   );
 }
