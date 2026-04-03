@@ -16,6 +16,7 @@ export interface CidadeBase {
   engajamento: number; // 0-100 raw engagement metric
   liderancas: number;
   emendas: number;
+  votos2022?: number;
 }
 
 export interface CidadeComScore extends CidadeBase {
