@@ -577,6 +577,112 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
 
+          {/* TSE Voting Data */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                🗳️ Dados Eleitorais (TSE)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Configure o número do candidato no TSE para importar automaticamente a votação por cidade.
+                O número é o mesmo usado na urna eletrônica (ex: 1234).
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Número do Candidato (TSE)</Label>
+                  <Input
+                    value={nrCandidatoTse}
+                    onChange={e => setNrCandidatoTse(e.target.value)}
+                    placeholder="Ex: 1234"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Número de urna utilizado na eleição</p>
+                </div>
+                <div>
+                  <Label>Ano da Eleição</Label>
+                  <select
+                    value={anoEleicao}
+                    onChange={e => setAnoEleicao(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="2022">2022</option>
+                    <option value="2018">2018</option>
+                    <option value="2014">2014</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={async () => {
+                    if (!tenantId) return;
+                    setSavingTse(true);
+                    try {
+                      const { error } = await supabase
+                        .from("tenants")
+                        .update({
+                          nr_candidato_tse: nrCandidatoTse.trim() || null,
+                          ano_eleicao: parseInt(anoEleicao) || 2022,
+                        } as any)
+                        .eq("id", tenantId);
+                      if (error) throw error;
+                      toast.success("Configuração TSE salva!");
+                    } catch (e: any) {
+                      toast.error("Erro ao salvar: " + e.message);
+                    } finally {
+                      setSavingTse(false);
+                    }
+                  }}
+                  disabled={savingTse}
+                  className="gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {savingTse ? "Salvando..." : "Salvar"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  disabled={!nrCandidatoTse.trim() || syncingVotes}
+                  onClick={async () => {
+                    if (!tenantId) return;
+                    setSyncingVotes(true);
+                    try {
+                      // Save first
+                      await supabase
+                        .from("tenants")
+                        .update({
+                          nr_candidato_tse: nrCandidatoTse.trim(),
+                          ano_eleicao: parseInt(anoEleicao) || 2022,
+                        } as any)
+                        .eq("id", tenantId);
+
+                      const res = await supabase.functions.invoke("fetch-tse-votes", {
+                        body: { tenant_id: tenantId },
+                      });
+                      if (res.error) throw res.error;
+                      const data = res.data;
+                      if (data?.error) {
+                        toast.error(data.error);
+                      } else {
+                        toast.success(`✅ Votação importada! ${data?.cities_updated || 0} cidades atualizadas.`);
+                      }
+                    } catch (e: any) {
+                      toast.error("Erro ao buscar votos: " + (e.message || "Erro desconhecido"));
+                    } finally {
+                      setSyncingVotes(false);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${syncingVotes ? "animate-spin" : ""}`} />
+                  {syncingVotes ? "Buscando votos..." : "Importar votação"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <StreamConfigCard />
           <EngagementConfigCard />
         </TabsContent>
