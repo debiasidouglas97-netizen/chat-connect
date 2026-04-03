@@ -369,6 +369,18 @@ export default function Cidades() {
                       <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
                       <span>{c.regiao}</span>
                     </div>
+                    {(c as any).votos2022 > 0 && (
+                      <div className="flex items-center justify-end mt-1">
+                        <div className="text-right">
+                          <p className="text-2xl font-black italic" style={{ color: popClass.text }}>
+                            {((c as any).votos2022 as number).toLocaleString("pt-BR")}
+                          </p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider italic" style={{ color: popClass.text, opacity: 0.7 }}>
+                            Votos
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex gap-1 pt-1">
                       <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
                         <Pencil className="h-3 w-3" /> Editar
