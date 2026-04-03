@@ -141,6 +141,10 @@ export default function Configuracoes() {
   const [showToken, setShowToken] = useState(false);
   const [savingTelegram, setSavingTelegram] = useState(false);
   const [testingBot, setTestingBot] = useState(false);
+  const [nrCandidatoTse, setNrCandidatoTse] = useState("");
+  const [anoEleicao, setAnoEleicao] = useState("2022");
+  const [savingTse, setSavingTse] = useState(false);
+  const [syncingVotes, setSyncingVotes] = useState(false);
 
   const [form, setForm] = useState({
     full_name: "",
