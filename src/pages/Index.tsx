@@ -20,6 +20,7 @@ import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEventos } from "@/hooks/use-eventos";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
+import InteligenciaMandato from "@/components/dashboard/InteligenciaMandato";
 import NovoEventoDialog from "@/components/agenda/NovoEventoDialog";
 import CidadeFormDialog from "@/components/cidades/CidadeFormDialog";
 import type { Demanda } from "@/components/demandas/types";
