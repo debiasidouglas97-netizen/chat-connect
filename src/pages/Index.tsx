@@ -27,13 +27,6 @@ import type { Demanda } from "@/components/demandas/types";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
-const opportunities = [
-  { type: "warning", icon: AlertTriangle, text: "Guarujá está sem comunicação há 20 dias", action: "Agendar visita" },
-  { type: "success", icon: Landmark, text: "Nova emenda de R$ 3M liberada para Santos", action: "Ver detalhes" },
-  { type: "destructive", icon: FileText, text: "Peruíbe com baixa atuação — risco de perda de base", action: "Agir agora" },
-  { type: "info", icon: Users, text: "Bauru possui alta atividade — oportunidade de reforço", action: "Entrar em contato" },
-  { type: "warning", icon: AlertTriangle, text: "Itanhaém sem presença do deputado há 30 dias", action: "Planejar visita" },
-];
 
 const statusConfig = {
   alta: { icon: Flame, label: "Alta Prioridade", className: "bg-success/10 text-success border-success/20" },
