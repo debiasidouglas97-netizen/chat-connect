@@ -28,7 +28,8 @@ const prioridadeBadge: Record<string, string> = {
 };
 
 export default function InteligenciaMandato() {
-  const { logs, isLoading, processAI, isProcessing } = useActivityLogs(10);
+  const [showAll, setShowAll] = useState(false);
+  const { logs, isLoading, processAI, isProcessing } = useActivityLogs(showAll ? 50 : 5);
 
   // Auto-process AI descriptions for logs that don't have them
   useEffect(() => {
