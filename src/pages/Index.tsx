@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
-  FileText, Users, MapPin, Landmark, AlertTriangle, TrendingUp,
+  FileText, Users, MapPin, Landmark,
   Plus, Calendar, Zap,
-  ArrowRight, CheckCircle2, Flame, Snowflake,
+  ArrowRight, CheckCircle2, Flame, Snowflake, AlertTriangle,
 } from "lucide-react";
 import { calcularScoreCidade, canViewRanking, type UserRole } from "@/lib/scoring";
 import { useMemo } from "react";
