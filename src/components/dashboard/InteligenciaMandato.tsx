@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,8 @@ const prioridadeBadge: Record<string, string> = {
 };
 
 export default function InteligenciaMandato() {
-  const { logs, isLoading, processAI, isProcessing } = useActivityLogs(10);
+  const [showAll, setShowAll] = useState(false);
+  const { logs, isLoading, processAI, isProcessing } = useActivityLogs(showAll ? 50 : 5);
 
   // Auto-process AI descriptions for logs that don't have them
   useEffect(() => {
@@ -99,6 +100,17 @@ export default function InteligenciaMandato() {
               </div>
             );
           })
+        )}
+        {!isLoading && logs.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {showAll ? "Mostrar menos" : "Ver tudo"}
+            <ArrowRight className={`h-3 w-3 ml-1 transition-transform ${showAll ? "rotate-180" : ""}`} />
+          </Button>
         )}
       </CardContent>
     </Card>
