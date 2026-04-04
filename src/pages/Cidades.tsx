@@ -480,14 +480,26 @@ export default function Cidades() {
                         <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
                       </Badge>
                     </TableCell>
-                    {showScore && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={c.score} className="h-2 w-16" />
-                          <span className="text-sm font-bold">{c.score}</span>
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell>
+                      {(() => {
+                        const votos = (c as any).votos2022 || 0;
+                        const pop = parseInt(String(c.population).replace(/\D/g, ""), 10) || 1;
+                        const pct = Math.min(100, (votos / pop) * 100);
+                        return votos > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <Progress value={pct} className="h-2 w-16" />
+                            <span className="text-sm font-bold">{pct.toFixed(1)}%</span>
+                          </div>
+                        ) : (
+                          showScore ? (
+                            <div className="flex items-center gap-2">
+                              <Progress value={c.score} className="h-2 w-16" />
+                              <span className="text-sm font-bold">{c.score}</span>
+                            </div>
+                          ) : <span className="text-muted-foreground">-</span>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>{c.demandas}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
                     <TableCell>{c.emendas}</TableCell>
