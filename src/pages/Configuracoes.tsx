@@ -669,7 +669,6 @@ export default function Configuracoes() {
                         .single();
 
                       const uf = tenantInfo?.estado || form.state || "SP";
-                      // Convert full state name to UF code
                       const stateToUf: Record<string, string> = {
                         "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM",
                         "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF",
@@ -683,23 +682,14 @@ export default function Configuracoes() {
                       };
                       const ufCode = uf.length === 2 ? uf.toUpperCase() : (stateToUf[uf] || "SP");
 
-                      // Download and parse TSE data in browser
-                      const votes = await downloadAndParseTSEVotes(
-                        nrCandidatoTse.trim(),
-                        ufCode,
-                        parseInt(anoEleicao) || 2022,
-                        (msg) => setSyncProgress(msg),
-                      );
-
-                      if (Object.keys(votes).length === 0) {
-                        toast.warning("Nenhum voto encontrado para este candidato.");
-                        return;
-                      }
-
-                      // Send votes to edge function for DB update
-                      setSyncProgress("Salvando no banco de dados...");
+                      setSyncProgress("Baixando dados do TSE...");
                       const res = await supabase.functions.invoke("fetch-tse-votes", {
-                        body: { tenant_id: tenantId, votes },
+                        body: {
+                          tenant_id: tenantId,
+                          nr_candidato: nrCandidatoTse.trim(),
+                          uf: ufCode,
+                          ano: parseInt(anoEleicao) || 2022,
+                        },
                       });
 
                       if (res.error) throw res.error;
