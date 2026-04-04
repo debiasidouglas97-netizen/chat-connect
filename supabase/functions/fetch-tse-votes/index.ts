@@ -42,10 +42,14 @@ function getUF(state: string): string {
   return STATE_TO_UF[normalize(state)] || state.toUpperCase();
 }
 
+const FETCH_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+};
+
 /** Read bytes from a URL using HTTP Range requests */
 async function fetchRange(url: string, start: number, end: number): Promise<Uint8Array> {
   const res = await fetch(url, {
-    headers: { Range: `bytes=${start}-${end}` },
+    headers: { ...FETCH_HEADERS, Range: `bytes=${start}-${end}` },
   });
   if (!res.ok && res.status !== 206) {
     throw new Error(`Range request failed: ${res.status}`);
