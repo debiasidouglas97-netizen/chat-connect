@@ -380,12 +380,20 @@ export default function Cidades() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {showScore && (
-                      <div className="flex items-center gap-2">
-                        <Progress value={c.score} className="h-2 flex-1" />
-                        <span className="text-sm font-bold w-8 text-right" style={{ color: popClass.text }}>{c.score}</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const votos = (c as any).votos2022 || 0;
+                      const pop = parseInt(String(c.population).replace(/\D/g, ""), 10) || 1;
+                      const pct = Math.min(100, (votos / pop) * 100);
+                      const hasPct = votos > 0;
+                      return (
+                        <div className="flex items-center gap-2">
+                          <Progress value={hasPct ? pct : (showScore ? c.score : 0)} className="h-2 flex-1" />
+                          <span className="text-sm font-bold w-8 text-right" style={{ color: popClass.text }}>
+                            {hasPct ? `${pct.toFixed(1)}%` : (showScore ? c.score : "-")}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
                       <span className="font-semibold">Pop: {c.population}</span>
                       <span>Peso: {c.peso}/10</span>
@@ -472,14 +480,26 @@ export default function Cidades() {
                         <cfg.icon className="h-3 w-3 mr-1" /> {cfg.label}
                       </Badge>
                     </TableCell>
-                    {showScore && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={c.score} className="h-2 w-16" />
-                          <span className="text-sm font-bold">{c.score}</span>
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell>
+                      {(() => {
+                        const votos = (c as any).votos2022 || 0;
+                        const pop = parseInt(String(c.population).replace(/\D/g, ""), 10) || 1;
+                        const pct = Math.min(100, (votos / pop) * 100);
+                        return votos > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <Progress value={pct} className="h-2 w-16" />
+                            <span className="text-sm font-bold">{pct.toFixed(1)}%</span>
+                          </div>
+                        ) : (
+                          showScore ? (
+                            <div className="flex items-center gap-2">
+                              <Progress value={c.score} className="h-2 w-16" />
+                              <span className="text-sm font-bold">{c.score}</span>
+                            </div>
+                          ) : <span className="text-muted-foreground">-</span>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>{c.demandas}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
                     <TableCell>{c.emendas}</TableCell>
