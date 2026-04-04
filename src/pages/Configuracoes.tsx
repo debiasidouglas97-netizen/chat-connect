@@ -146,6 +146,7 @@ export default function Configuracoes() {
   const [anoEleicao, setAnoEleicao] = useState("2022");
   const [savingTse, setSavingTse] = useState(false);
   const [syncingVotes, setSyncingVotes] = useState(false);
+  const [syncProgress, setSyncProgress] = useState("");
 
   const [form, setForm] = useState({
     full_name: "",
