@@ -249,6 +249,27 @@ export default function Cidades() {
                <TooltipContent>
                  {sortField !== "liderancas" ? "Ordenar por lideranças (maior → menor)" : sortDir === "desc" ? "Ordenar por lideranças (menor → maior)" : "Voltar ao score"}
                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button
+                   variant={sortField === "votos" ? "default" : "outline"}
+                   className="gap-2"
+                   onClick={() => {
+                     if (sortField !== "votos") { setSortField("votos"); setSortDir("desc"); }
+                     else if (sortDir === "desc") { setSortDir("asc"); }
+                     else { setSortField("none"); }
+                   }}
+                 >
+                   {sortField === "votos" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   Votos
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent>
+                 {sortField !== "votos" ? "Ordenar por votação (maior → menor)" : sortDir === "desc" ? "Ordenar por votação (menor → maior)" : "Voltar ao score"}
+               </TooltipContent>
              </Tooltip>
            </TooltipProvider>
           <div className="flex border rounded-md">
