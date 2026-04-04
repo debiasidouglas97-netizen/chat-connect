@@ -8,8 +8,7 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// CEPESP API for TSE voting data
-const CEPESP_BASE = "https://cepesp.io/api/consulta/athena";
+const TSE_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -18,33 +17,6 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function handledFailure(error: string, extra: Record<string, unknown> = {}) {
-  return jsonResponse({ success: false, error, ...extra });
-}
-
-function safeJsonParse<T = unknown>(text: string): T | null {
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
-}
-
-function isHtmlLikeResponse(contentType: string | null, text: string): boolean {
-  const sample = text.slice(0, 300).toLowerCase();
-  return Boolean(
-    contentType?.includes("text/html") ||
-    sample.includes("<!doctype html") ||
-    sample.includes("<html") ||
-    sample.includes("acesso rejeitado")
-  );
-}
-
-function extractSupportId(text: string): string | null {
-  return text.match(/suporte id\s*:\s*([0-9]+)/i)?.[1] ?? null;
-}
-
-// Normalize city name for matching (remove accents, lowercase, trim)
 function normalize(str: string): string {
   return str
     .normalize("NFD")
@@ -53,12 +25,6 @@ function normalize(str: string): string {
     .trim();
 }
 
-// Extract city name without UF suffix (e.g. "Santos/SP" → "santos")
-function extractCityName(name: string): string {
-  return normalize(name.split("/")[0]);
-}
-
-// Map full state name to UF code
 const STATE_TO_UF: Record<string, string> = {
   "acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM",
   "bahia": "BA", "ceara": "CE", "distrito federal": "DF",
@@ -74,6 +40,193 @@ const STATE_TO_UF: Record<string, string> = {
 function getUF(state: string): string {
   if (state.length === 2) return state.toUpperCase();
   return STATE_TO_UF[normalize(state)] || state.toUpperCase();
+}
+
+/** Read bytes from a URL using HTTP Range requests */
+async function fetchRange(url: string, start: number, end: number): Promise<Uint8Array> {
+  const res = await fetch(url, {
+    headers: { Range: `bytes=${start}-${end}` },
+  });
+  if (!res.ok && res.status !== 206) {
+    throw new Error(`Range request failed: ${res.status}`);
+  }
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+/** Parse ZIP central directory to find a specific file entry */
+async function findZipEntry(url: string, totalSize: number, targetName: string) {
+  // Read last 64KB to find End of Central Directory
+  const eocdSize = Math.min(65536, totalSize);
+  const eocdData = await fetchRange(url, totalSize - eocdSize, totalSize - 1);
+
+  // Find EOCD signature (0x06054b50)
+  let eocdPos = -1;
+  for (let i = eocdData.length - 22; i >= 0; i--) {
+    if (eocdData[i] === 0x50 && eocdData[i + 1] === 0x4b &&
+        eocdData[i + 2] === 0x05 && eocdData[i + 3] === 0x06) {
+      eocdPos = i;
+      break;
+    }
+  }
+  if (eocdPos === -1) throw new Error("ZIP EOCD not found");
+
+  const view = new DataView(eocdData.buffer, eocdData.byteOffset);
+  const cdSize = view.getUint32(eocdPos + 12, true);
+  const cdOffset = view.getUint32(eocdPos + 16, true);
+
+  // Read central directory
+  const cdData = await fetchRange(url, cdOffset, cdOffset + cdSize - 1);
+  const cdView = new DataView(cdData.buffer, cdData.byteOffset);
+
+  let pos = 0;
+  const targetUpper = targetName.toUpperCase();
+  while (pos < cdData.length - 46) {
+    if (cdData[pos] !== 0x50 || cdData[pos + 1] !== 0x4b ||
+        cdData[pos + 2] !== 0x01 || cdData[pos + 3] !== 0x02) break;
+
+    const compMethod = cdView.getUint16(pos + 10, true);
+    const compSize = cdView.getUint32(pos + 20, true);
+    const uncompSize = cdView.getUint32(pos + 24, true);
+    const fnameLen = cdView.getUint16(pos + 28, true);
+    const extraLen = cdView.getUint16(pos + 30, true);
+    const commentLen = cdView.getUint16(pos + 32, true);
+    const localOffset = cdView.getUint32(pos + 42, true);
+
+    const fname = new TextDecoder().decode(cdData.slice(pos + 46, pos + 46 + fnameLen));
+
+    if (fname.toUpperCase().includes(targetUpper)) {
+      return { fname, compSize, uncompSize, localOffset, compMethod };
+    }
+
+    pos += 46 + fnameLen + extraLen + commentLen;
+  }
+
+  return null;
+}
+
+/** Process the compressed CSV data in chunks, filtering for the target candidate */
+async function processVotesFromZip(
+  zipUrl: string,
+  entry: { compSize: number; localOffset: number; compMethod: number },
+  nrCandidato: string,
+): Promise<Map<string, number>> {
+  // Read local file header to get data offset
+  const headerData = await fetchRange(zipUrl, entry.localOffset, entry.localOffset + 300);
+  const hView = new DataView(headerData.buffer, headerData.byteOffset);
+  const fnameLen = hView.getUint16(26, true);
+  const extraLen = hView.getUint16(28, true);
+  const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
+
+  const votes = new Map<string, number>();
+  const chunkSize = 8 * 1024 * 1024; // 8MB chunks
+
+  // We need to decompress using DecompressionStream (Web API available in Deno)
+  // Download all compressed data and decompress
+  // For large files, we process in chunks to avoid memory issues
+
+  let headerCols: string[] | null = null;
+  let nrCandIdx = -1;
+  let nmMunIdx = -1;
+  let qtVotosIdx = -1;
+  let partialLine = "";
+
+  for (let start = 0; start < entry.compSize; start += chunkSize) {
+    const end = Math.min(start + chunkSize - 1, entry.compSize - 1);
+    const compChunk = await fetchRange(zipUrl, dataOffset + start, dataOffset + end);
+
+    // Create a DecompressionStream for this chunk
+    // We need to accumulate and decompress the full stream
+    // Since DecompressionStream expects a complete stream, we'll accumulate
+    // Actually, let's use a different approach - accumulate all compressed data
+    // and decompress at once. For states with ~90MB this might be tight on memory.
+
+    // Alternative: Use raw inflate via DecompressionStream with "raw" format
+    // We'll process line by line from decompressed output
+
+    // For now, let's download the entire compressed file and decompress
+    break; // We'll use a different approach below
+  }
+
+  // Download full compressed data (up to ~90MB for SP)
+  // Process in streaming fashion using DecompressionStream
+  console.log(`Downloading ${(entry.compSize / 1024 / 1024).toFixed(1)}MB of compressed data...`);
+
+  const compressedChunks: Uint8Array[] = [];
+  let totalDownloaded = 0;
+
+  for (let start = 0; start < entry.compSize; start += chunkSize) {
+    const end = Math.min(start + chunkSize - 1, entry.compSize - 1);
+    const chunk = await fetchRange(zipUrl, dataOffset + start, dataOffset + end);
+    compressedChunks.push(chunk);
+    totalDownloaded += chunk.length;
+    console.log(`  Downloaded ${(totalDownloaded / 1024 / 1024).toFixed(1)}MB / ${(entry.compSize / 1024 / 1024).toFixed(1)}MB`);
+  }
+
+  // Combine chunks
+  const fullCompressed = new Uint8Array(totalDownloaded);
+  let offset = 0;
+  for (const chunk of compressedChunks) {
+    fullCompressed.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  // Decompress using DecompressionStream with "deflate-raw" format
+  const ds = new DecompressionStream("deflate-raw");
+  const writer = ds.writable.getWriter();
+  const reader = ds.readable.getReader();
+
+  // Write compressed data in background
+  const writePromise = (async () => {
+    const writeChunkSize = 1024 * 1024; // 1MB write chunks
+    for (let i = 0; i < fullCompressed.length; i += writeChunkSize) {
+      const slice = fullCompressed.subarray(i, Math.min(i + writeChunkSize, fullCompressed.length));
+      await writer.write(slice);
+    }
+    await writer.close();
+  })();
+
+  // Read and process decompressed data
+  const decoder = new TextDecoder("latin1");
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const text = partialLine + decoder.decode(value, { stream: true });
+    const lines = text.split("\n");
+    partialLine = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const cols = trimmed.split(";").map(c => c.replace(/"/g, ""));
+
+      if (!headerCols) {
+        headerCols = cols;
+        nrCandIdx = cols.indexOf("NR_CANDIDATO");
+        nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+        qtVotosIdx = cols.indexOf("QT_VOTOS_NOMINAIS");
+        if (nrCandIdx === -1 || nmMunIdx === -1 || qtVotosIdx === -1) {
+          throw new Error(`Colunas não encontradas: NR_CANDIDATO=${nrCandIdx}, NM_MUNICIPIO=${nmMunIdx}, QT_VOTOS_NOMINAIS=${qtVotosIdx}`);
+        }
+        continue;
+      }
+
+      if (cols.length <= Math.max(nrCandIdx, nmMunIdx, qtVotosIdx)) continue;
+
+      if (cols[nrCandIdx] === nrCandidato) {
+        const mun = normalize(cols[nmMunIdx]);
+        const v = parseInt(cols[qtVotosIdx], 10);
+        if (mun && Number.isFinite(v) && v > 0) {
+          votes.set(mun, (votes.get(mun) || 0) + v);
+        }
+      }
+    }
+  }
+
+  await writePromise;
+  return votes;
 }
 
 Deno.serve(async (req) => {
@@ -92,198 +245,115 @@ Deno.serve(async (req) => {
     // Get tenant info
     const { data: tenant, error: tErr } = await sb
       .from("tenants")
-      .select("nr_candidato_tse, ano_eleicao, estado, nome_parlamentar, nome")
+      .select("nr_candidato_tse, ano_eleicao, estado")
       .eq("id", tenant_id)
       .single();
 
     if (tErr || !tenant) {
-      return jsonResponse({ error: "Tenant not found" }, 404);
+      return jsonResponse({ error: "Tenant não encontrado" }, 404);
     }
 
-    const nrCandidato = (tenant as any).nr_candidato_tse?.trim?.() || (tenant as any).nr_candidato_tse;
+    const nrCandidato = String(tenant.nr_candidato_tse || "").trim();
     if (!nrCandidato) {
-      return handledFailure("Número do candidato TSE não configurado. Configure em Configurações > Integrações.", {
+      return jsonResponse({
+        error: "Número do candidato TSE não configurado. Configure em Configurações > Integrações.",
         missing_configuration: true,
+      }, 400);
+    }
+
+    const anoEleicao = tenant.ano_eleicao || 2022;
+    const uf = getUF(tenant.estado || "SP");
+
+    // Step 1: Get ZIP file size
+    const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${anoEleicao}.zip`;
+    console.log(`Checking ZIP: ${zipUrl}`);
+
+    const headRes = await fetch(zipUrl, { method: "HEAD" });
+    if (!headRes.ok) {
+      return jsonResponse({
+        error: `Arquivo do TSE não encontrado para o ano ${anoEleicao}.`,
+        status: headRes.status,
+      }, 500);
+    }
+
+    const totalSize = parseInt(headRes.headers.get("Content-Length") || "0", 10);
+    if (!totalSize) {
+      return jsonResponse({ error: "Não foi possível determinar o tamanho do arquivo do TSE." }, 500);
+    }
+
+    console.log(`ZIP size: ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
+
+    // Step 2: Find the state-specific CSV in the ZIP
+    const targetFile = `_${uf}.csv`;
+    console.log(`Looking for file containing "${targetFile}" in ZIP...`);
+
+    const entry = await findZipEntry(zipUrl, totalSize, targetFile);
+    if (!entry) {
+      return jsonResponse({
+        error: `Arquivo de votação para ${uf} não encontrado no ZIP do TSE.`,
+      }, 500);
+    }
+
+    console.log(`Found: ${entry.fname} (${(entry.compSize / 1024 / 1024).toFixed(1)}MB compressed)`);
+
+    if (entry.compMethod !== 8) {
+      return jsonResponse({
+        error: "Formato de compressão não suportado.",
+      }, 500);
+    }
+
+    // Step 3: Download and process votes
+    console.log(`Processing votes for candidate ${nrCandidato} in ${uf}...`);
+    const votesMap = await processVotesFromZip(zipUrl, entry, nrCandidato);
+
+    console.log(`Found votes in ${votesMap.size} municipalities`);
+
+    if (votesMap.size === 0) {
+      return jsonResponse({
+        success: true,
+        cities_updated: 0,
+        message: `Nenhum voto encontrado para o candidato ${nrCandidato} em ${uf} (${anoEleicao}).`,
       });
     }
 
-    const anoEleicao = (tenant as any).ano_eleicao || 2022;
-    const uf = getUF((tenant as any).estado || "SP");
+    // Step 4: Update cities in database
+    const { data: cities } = await sb
+      .from("cidades")
+      .select("id, name")
+      .eq("tenant_id", tenant_id);
 
-    // Use CEPESP API to query votes
-    const queryUrl = `${CEPESP_BASE}/query?table=votos&anos=${anoEleicao}&cargo=6&agregacao_regional=6&uf_filter=${uf}&c[]=NOME_MUNICIPIO&c[]=QTDE_VOTOS&c[]=NUMERO_CANDIDATO&numero_candidato_filter=${nrCandidato}`;
-
-    console.log("Querying CEPESP:", queryUrl);
-
-    const queryRes = await fetch(queryUrl);
-    const queryText = await queryRes.text();
-
-    if (!queryRes.ok || isHtmlLikeResponse(queryRes.headers.get("content-type"), queryText)) {
-      console.log("CEPESP query failed or returned HTML, trying fallback...", JSON.stringify({
-        status: queryRes.status,
-        support_id: extractSupportId(queryText),
-      }));
-      return await fallbackTSE(sb, tenant_id, nrCandidato, anoEleicao, uf);
+    if (!cities || cities.length === 0) {
+      return jsonResponse({ success: true, cities_updated: 0, message: "Nenhuma cidade cadastrada." });
     }
 
-    const queryData = safeJsonParse<any>(queryText);
-    if (!queryData) {
-      console.log("CEPESP returned non-JSON payload, trying fallback...");
-      return await fallbackTSE(sb, tenant_id, nrCandidato, anoEleicao, uf);
-    }
-
-    console.log("CEPESP response:", JSON.stringify(queryData).slice(0, 500));
-
-    if (queryData.id) {
-      // Async query - need to poll for result
-      let resultData: any = null;
-      for (let i = 0; i < 15; i++) {
-        await new Promise(r => setTimeout(r, 3000));
-        const resultRes = await fetch(`${CEPESP_BASE}/result?id=${queryData.id}&format=json`);
-        const resultText = await resultRes.text();
-
-        if (!resultRes.ok || isHtmlLikeResponse(resultRes.headers.get("content-type"), resultText)) {
-          continue;
-        }
-
-        if (resultText && resultText !== "null" && !resultText.includes("processing")) {
-          const parsed = safeJsonParse<any>(resultText);
-          if (parsed) {
-            resultData = parsed;
-            break;
-          }
-        }
+    let updated = 0;
+    for (const city of cities) {
+      const cityName = normalize(city.name.split("/")[0]);
+      const votos = votesMap.get(cityName);
+      if (votos !== undefined && votos > 0) {
+        const { error } = await sb
+          .from("cidades")
+          .update({ votos_2022: votos, updated_at: new Date().toISOString() })
+          .eq("id", city.id);
+        if (!error) updated++;
       }
-
-      if (!resultData) {
-        return handledFailure("Consulta externa ainda em processamento. Tente novamente em alguns minutos.", {
-          pending: true,
-        });
-      }
-
-      // Process results
-      const updated = await processVotingData(sb, tenant_id, resultData);
-      return jsonResponse({ success: true, cities_updated: updated });
     }
 
-    // Direct response (synchronous)
-    if (Array.isArray(queryData)) {
-      const updated = await processVotingData(sb, tenant_id, queryData);
-      return jsonResponse({ success: true, cities_updated: updated });
-    }
+    console.log(`Updated ${updated} cities out of ${cities.length}`);
 
-    return await fallbackTSE(sb, tenant_id, nrCandidato, anoEleicao, uf);
+    return jsonResponse({
+      success: true,
+      cities_updated: updated,
+      total_cities: cities.length,
+      tse_municipalities: votesMap.size,
+    });
 
   } catch (err: any) {
     console.error("Error:", err);
     return jsonResponse({
       success: false,
-      error: "Falha inesperada ao importar a votação.",
+      error: "Falha ao importar votação do TSE.",
       details: err?.message || String(err),
     }, 500);
   }
 });
-
-async function processVotingData(sb: any, tenantId: string, data: any[]): Promise<number> {
-  // Get all cities for this tenant
-  const { data: cities } = await sb
-    .from("cidades")
-    .select("id, name")
-    .eq("tenant_id", tenantId);
-
-  if (!cities || cities.length === 0) return 0;
-
-  // Build lookup map
-  const cityMap = new Map<string, string>();
-  for (const city of cities) {
-    cityMap.set(extractCityName(city.name), city.id);
-  }
-
-  const voteTotals = new Map<string, number>();
-  for (const row of data) {
-    const municipio = row.NOME_MUNICIPIO || row.nome_municipio || row.NM_MUNICIPIO || "";
-    const votos = parseInt(
-      String(row.QTDE_VOTOS || row.qtde_votos || row.QT_VOTOS || row.qt_votos || row.VOTOS || row.votos || "0"),
-      10,
-    );
-    const normalizedCity = extractCityName(municipio);
-
-    if (!normalizedCity || !Number.isFinite(votos) || votos <= 0) continue;
-    voteTotals.set(normalizedCity, (voteTotals.get(normalizedCity) || 0) + votos);
-  }
-
-  let updated = 0;
-  for (const [normalizedCity, votos] of voteTotals.entries()) {
-    const cityId = cityMap.get(normalizedCity);
-
-    if (!cityId) continue;
-
-    const { error } = await sb
-      .from("cidades")
-      .update({ votos_2022: votos, updated_at: new Date().toISOString() })
-      .eq("id", cityId);
-
-    if (!error) updated++;
-  }
-
-  return updated;
-}
-
-async function fallbackTSE(sb: any, tenantId: string, nrCandidato: string, ano: number, uf: string) {
-  // Try direct TSE CDN CSV download
-  // File: votacao_candidato_munzona_YYYY_UF.csv inside a ZIP
-  // Since we can't unzip in edge function easily, try the CEPESP tse endpoint
-  const tseUrl = `https://cepesp.io/api/consulta/tse?anos=${ano}&cargo=6&agregacao_regional=6&uf_filter=${uf}&agregacao_politica=2&numero_candidato_filter=${nrCandidato}`;
-
-  console.log("Trying CEPESP TSE endpoint:", tseUrl);
-
-  const res = await fetch(tseUrl);
-  const text = await res.text();
-
-  if (!res.ok || isHtmlLikeResponse(res.headers.get("content-type"), text)) {
-    const supportId = extractSupportId(text);
-    console.log("Automatic TSE source unavailable", JSON.stringify({
-      status: res.status,
-      support_id: supportId,
-    }));
-
-    return handledFailure(
-      "A fonte automática do TSE ficou indisponível neste momento porque o portal externo bloqueou a consulta. Tente novamente mais tarde.",
-      {
-        source: "tse",
-        blocked: true,
-        status: res.status,
-        support_id: supportId,
-      },
-    );
-  }
-
-  // Parse CSV
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) {
-    return handledFailure("Nenhum dado encontrado para este candidato.");
-  }
-
-  const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
-  const munIdx = headers.findIndex(h => h.includes("MUNICIPIO") || h.includes("NM_MUNICIPIO") || h.includes("NOME_MUNICIPIO"));
-  const votosIdx = headers.findIndex(h => h.includes("QTDE_VOTOS") || h.includes("QT_VOTOS") || h.includes("VOTOS"));
-
-  if (munIdx === -1 || votosIdx === -1) {
-    console.log("CSV headers:", headers);
-    return handledFailure("A fonte automática devolveu um formato diferente do esperado.", {
-      source: "tse",
-      headers: headers.slice(0, 10),
-    });
-  }
-
-  const rows = lines.slice(1).map(line => {
-    const cols = line.split(",").map(c => c.replace(/"/g, "").trim());
-    return {
-      NOME_MUNICIPIO: cols[munIdx] || "",
-      QTDE_VOTOS: cols[votosIdx] || "0",
-    };
-  });
-
-  const updated = await processVotingData(sb, tenantId, rows);
-  return jsonResponse({ success: true, cities_updated: updated, total_rows: rows.length });
-}
