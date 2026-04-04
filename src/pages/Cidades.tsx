@@ -59,7 +59,7 @@ export default function Cidades() {
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [detailCity, setDetailCity] = useState<any | null>(null);
 
-  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos">("none");
+  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos" | "conversao">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
   const allCidades = useMemo(
@@ -90,6 +90,15 @@ export default function Cidades() {
       return [...filtered].sort((a, b) => sortDir === "desc"
         ? ((b as any).votos2022 || 0) - ((a as any).votos2022 || 0)
         : ((a as any).votos2022 || 0) - ((b as any).votos2022 || 0));
+    } else if (sortField === "conversao") {
+      const getConversao = (c: any) => {
+        const votos = c.votos2022 || 0;
+        const pop = parseInt(String(c.population).replace(/\D/g, ""), 10) || 1;
+        return (votos / pop) * 100;
+      };
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? getConversao(b) - getConversao(a)
+        : getConversao(a) - getConversao(b));
     }
     return [...filtered].sort((a, b) => b.score - a.score);
   }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
@@ -267,10 +276,30 @@ export default function Cidades() {
                    Votos
                  </Button>
                </TooltipTrigger>
-               <TooltipContent>
-                 {sortField !== "votos" ? "Ordenar por votação (maior → menor)" : sortDir === "desc" ? "Ordenar por votação (menor → maior)" : "Voltar ao score"}
-               </TooltipContent>
-             </Tooltip>
+                <TooltipContent>
+                  {sortField !== "votos" ? "Ordenar por votação (maior → menor)" : sortDir === "desc" ? "Ordenar por votação (menor → maior)" : "Voltar ao score"}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={sortField === "conversao" ? "default" : "outline"}
+                    className="gap-2"
+                    onClick={() => {
+                      if (sortField !== "conversao") { setSortField("conversao"); setSortDir("desc"); }
+                      else if (sortDir === "desc") { setSortDir("asc"); }
+                      else { setSortField("none"); }
+                    }}
+                  >
+                    {sortField === "conversao" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                    % Conversão
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {sortField !== "conversao" ? "Ordenar por conversão de votos (maior → menor)" : sortDir === "desc" ? "Ordenar por conversão (menor → maior)" : "Voltar ao score"}
+                </TooltipContent>
+              </Tooltip>
            </TooltipProvider>
           <div className="flex border rounded-md">
             <Button
