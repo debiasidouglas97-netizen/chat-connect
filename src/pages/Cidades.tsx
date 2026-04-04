@@ -59,7 +59,7 @@ export default function Cidades() {
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [detailCity, setDetailCity] = useState<any | null>(null);
 
-  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas">("none");
+  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
   const allCidades = useMemo(
@@ -86,6 +86,10 @@ export default function Cidades() {
       return [...filtered].sort((a, b) => sortDir === "desc"
         ? b.liderancas - a.liderancas
         : a.liderancas - b.liderancas);
+    } else if (sortField === "votos") {
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? ((b as any).votos2022 || 0) - ((a as any).votos2022 || 0)
+        : ((a as any).votos2022 || 0) - ((b as any).votos2022 || 0));
     }
     return [...filtered].sort((a, b) => b.score - a.score);
   }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
@@ -244,6 +248,27 @@ export default function Cidades() {
                </TooltipTrigger>
                <TooltipContent>
                  {sortField !== "liderancas" ? "Ordenar por lideranças (maior → menor)" : sortDir === "desc" ? "Ordenar por lideranças (menor → maior)" : "Voltar ao score"}
+               </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button
+                   variant={sortField === "votos" ? "default" : "outline"}
+                   className="gap-2"
+                   onClick={() => {
+                     if (sortField !== "votos") { setSortField("votos"); setSortDir("desc"); }
+                     else if (sortDir === "desc") { setSortDir("asc"); }
+                     else { setSortField("none"); }
+                   }}
+                 >
+                   {sortField === "votos" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                   Votos
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent>
+                 {sortField !== "votos" ? "Ordenar por votação (maior → menor)" : sortDir === "desc" ? "Ordenar por votação (menor → maior)" : "Voltar ao score"}
                </TooltipContent>
              </Tooltip>
            </TooltipProvider>
