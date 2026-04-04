@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
     const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${anoEleicao}.zip`;
     console.log(`Checking ZIP: ${zipUrl}`);
 
-    const headRes = await fetch(zipUrl, { method: "HEAD" });
+    const headRes = await fetch(zipUrl, { method: "HEAD", headers: FETCH_HEADERS });
     if (!headRes.ok) {
       return jsonResponse({
         error: `Arquivo do TSE não encontrado para o ano ${anoEleicao}.`,
