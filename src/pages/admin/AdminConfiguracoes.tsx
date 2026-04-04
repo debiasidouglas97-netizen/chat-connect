@@ -39,8 +39,8 @@ export default function AdminConfiguracoes() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith(".csv")) {
-      toast.error("Apenas arquivos CSV são aceitos.");
+    if (!file.name.endsWith(".csv") && !file.name.endsWith(".csv.gz")) {
+      toast.error("Apenas arquivos CSV ou CSV.GZ são aceitos.");
       return;
     }
 
