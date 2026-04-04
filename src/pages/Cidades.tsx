@@ -86,6 +86,10 @@ export default function Cidades() {
       return [...filtered].sort((a, b) => sortDir === "desc"
         ? b.liderancas - a.liderancas
         : a.liderancas - b.liderancas);
+    } else if (sortField === "votos") {
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? ((b as any).votos2022 || 0) - ((a as any).votos2022 || 0)
+        : ((a as any).votos2022 || 0) - ((b as any).votos2022 || 0));
     }
     return [...filtered].sort((a, b) => b.score - a.score);
   }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
