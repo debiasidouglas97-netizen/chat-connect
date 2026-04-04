@@ -29,45 +29,80 @@ function buildProxyUrl(url: string) {
   return `https://${projectId}.supabase.co/functions/v1/stream-proxy?url=${encodeURIComponent(url)}`;
 }
 
-async function fetchRange(url: string, start: number, end: number): Promise<ArrayBuffer> {
-  const res = await fetch(buildProxyUrl(url), {
+async function fetchRangeViaProxy(url: string, start: number, end: number): Promise<Response> {
+  const session = (await supabase.auth.getSession()).data.session;
+  return fetch(buildProxyUrl(url), {
     headers: {
       Range: `bytes=${start}-${end}`,
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ""}`,
+      Authorization: `Bearer ${session?.access_token || ""}`,
     },
   });
+}
 
-  if (!res.ok && res.status !== 206) {
-    const details = await res.text().catch(() => "");
-    throw new Error(`Erro ao baixar dados do TSE (HTTP ${res.status})${details ? `: ${details}` : ""}`);
+async function fetchRangeDirect(url: string, start: number, end: number): Promise<Response> {
+  return fetch(url, {
+    headers: { Range: `bytes=${start}-${end}` },
+  });
+}
+
+let useDirectFetch = false;
+
+async function fetchRange(url: string, start: number, end: number): Promise<ArrayBuffer> {
+  let res: Response;
+  
+  if (!useDirectFetch) {
+    try {
+      res = await fetchRangeViaProxy(url, start, end);
+      if (res.ok || res.status === 206) return res.arrayBuffer();
+    } catch {
+      // proxy failed, try direct
+    }
+    // Try direct as fallback
+    try {
+      res = await fetchRangeDirect(url, start, end);
+      if (res.ok || res.status === 206) {
+        useDirectFetch = true; // proxy broken, switch to direct for remaining requests
+        return res.arrayBuffer();
+      }
+    } catch {
+      // both failed
+    }
+    throw new Error("Não foi possível baixar dados do TSE. Verifique sua conexão.");
   }
 
+  // Direct mode (proxy already failed earlier)
+  res = await fetchRangeDirect(url, start, end);
+  if (!res.ok && res.status !== 206) {
+    throw new Error(`Erro ao baixar dados do TSE (HTTP ${res.status})`);
+  }
   return res.arrayBuffer();
 }
 
 async function getRemoteFileSize(url: string): Promise<number> {
-  const res = await fetch(buildProxyUrl(url), {
-    headers: {
-      Range: "bytes=0-3",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ""}`,
-    },
-  });
+  // Try direct first (TSE CDN supports range from browsers)
+  const strategies: Array<() => Promise<Response>> = [
+    () => fetchRangeDirect(url, 0, 3),
+    () => fetchRangeViaProxy(url, 0, 3),
+  ];
 
-  if (!res.ok && res.status !== 206) {
-    const details = await res.text().catch(() => "");
-    throw new Error(`Não foi possível acessar o arquivo do TSE (HTTP ${res.status})${details ? `: ${details}` : ""}`);
+  for (const strategy of strategies) {
+    try {
+      const res = await strategy();
+      if (!res.ok && res.status !== 206) continue;
+      const cr = res.headers.get("content-range") || res.headers.get("Content-Range") || "";
+      const match = cr.match(/\/(\d+)/);
+      if (match) {
+        await res.arrayBuffer();
+        if (strategy === strategies[0]) useDirectFetch = true;
+        return parseInt(match[1], 10);
+      }
+    } catch {
+      continue;
+    }
   }
 
-  const cr = res.headers.get("content-range") || res.headers.get("Content-Range") || "";
-  const match = cr.match(/\/(\d+)/);
-  if (!match) {
-    throw new Error("Não foi possível determinar o tamanho do arquivo do TSE");
-  }
-
-  await res.arrayBuffer();
-  return parseInt(match[1], 10);
+  throw new Error("Não foi possível acessar o arquivo do TSE. Tente novamente.");
 }
 
 async function findZipEntry(url: string, totalSize: number, targetName: string): Promise<ZipEntry | null> {
@@ -132,6 +167,7 @@ export async function downloadAndParseTSEVotes(
   onProgress?: (msg: string) => void,
 ): Promise<Record<string, number>> {
   const log = onProgress || (() => {});
+  useDirectFetch = false; // reset for each new download
   const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${ano}.zip`;
 
   log("Verificando arquivo do TSE...");
