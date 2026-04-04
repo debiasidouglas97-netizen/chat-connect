@@ -167,6 +167,7 @@ export async function downloadAndParseTSEVotes(
   onProgress?: (msg: string) => void,
 ): Promise<Record<string, number>> {
   const log = onProgress || (() => {});
+  useDirectFetch = false; // reset for each new download
   const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${ano}.zip`;
 
   log("Verificando arquivo do TSE...");
