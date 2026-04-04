@@ -682,14 +682,23 @@ export default function Configuracoes() {
                       };
                       const ufCode = uf.length === 2 ? uf.toUpperCase() : (stateToUf[uf] || "SP");
 
-                      setSyncProgress("Baixando dados do TSE...");
+                      // Download and parse TSE data in browser (TSE CDN has CORS enabled)
+                      const votes = await downloadAndParseTSEVotes(
+                        nrCandidatoTse.trim(),
+                        ufCode,
+                        parseInt(anoEleicao) || 2022,
+                        (msg) => setSyncProgress(msg),
+                      );
+
+                      if (Object.keys(votes).length === 0) {
+                        toast.warning("Nenhum voto encontrado para este candidato.");
+                        return;
+                      }
+
+                      // Send votes to edge function for DB update
+                      setSyncProgress("Salvando no banco de dados...");
                       const res = await supabase.functions.invoke("fetch-tse-votes", {
-                        body: {
-                          tenant_id: tenantId,
-                          nr_candidato: nrCandidatoTse.trim(),
-                          uf: ufCode,
-                          ano: parseInt(anoEleicao) || 2022,
-                        },
+                        body: { tenant_id: tenantId, votes },
                       });
 
                       if (res.error) throw res.error;
