@@ -18,6 +18,7 @@ import UserManagement from "@/components/configuracoes/UserManagement";
 import EngagementConfigCard from "@/components/configuracoes/EngagementConfigCard";
 import { useStreamConfig } from "@/hooks/use-stream-config";
 import { toast } from "sonner";
+import { downloadAndParseTSEVotes } from "@/lib/tse-parser";
 
 const REGIONS_OPTIONS = [
   "Baixada Santista", "Região de Bauru", "Interior de SP", "Grande São Paulo",
