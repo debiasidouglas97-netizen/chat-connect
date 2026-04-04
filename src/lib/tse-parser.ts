@@ -160,6 +160,78 @@ async function findZipEntry(url: string, totalSize: number, targetName: string):
   return null;
 }
 
+// Parse a CSV text (or stream) filtering by candidate number
+function parseCsvText(
+  text: string,
+  nrCandidato: string,
+  log: (msg: string) => void,
+): Record<string, number> {
+  const votes: Record<string, number> = {};
+  const lines = text.split("\n");
+  let headerCols: string[] | null = null;
+  let nrCandIdx = -1, nmMunIdx = -1, qtVotosIdx = -1;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const cols = trimmed.split(";").map((c) => c.replace(/"/g, ""));
+
+    if (!headerCols) {
+      headerCols = cols;
+      nrCandIdx = cols.indexOf("NR_CANDIDATO");
+      nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+      qtVotosIdx = cols.indexOf("QT_VOTOS_NOMINAIS");
+      if (nrCandIdx === -1 || nmMunIdx === -1 || qtVotosIdx === -1) {
+        throw new Error("Formato de CSV inesperado do TSE");
+      }
+      continue;
+    }
+
+    if (cols.length <= Math.max(nrCandIdx, nmMunIdx, qtVotosIdx)) continue;
+    if (cols[nrCandIdx] === nrCandidato) {
+      const mun = normalize(cols[nmMunIdx]);
+      const v = parseInt(cols[qtVotosIdx], 10);
+      if (mun && Number.isFinite(v) && v > 0) {
+        votes[mun] = (votes[mun] || 0) + v;
+      }
+    }
+  }
+
+  log(`Encontrados votos em ${Object.keys(votes).length} municípios`);
+  return votes;
+}
+
+// Try to load CSV from Supabase storage first
+async function tryLoadFromStorage(
+  uf: string,
+  ano: number,
+  nrCandidato: string,
+  log: (msg: string) => void,
+): Promise<Record<string, number> | null> {
+  const fileName = `votacao_${ano}_${uf}.csv`;
+  log(`Verificando arquivo local (${fileName})...`);
+
+  try {
+    const { data } = supabase.storage.from("tse-data").getPublicUrl(fileName);
+    if (!data?.publicUrl) return null;
+
+    const res = await fetch(data.publicUrl);
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "";
+    // Storage returns XML error for missing files
+    if (contentType.includes("xml") || contentType.includes("html")) return null;
+
+    log("Arquivo encontrado no sistema! Processando...");
+    const text = await res.text();
+    if (!text || text.length < 100 || !text.includes("NR_CANDIDATO")) return null;
+
+    return parseCsvText(text, nrCandidato, log);
+  } catch {
+    return null;
+  }
+}
+
 export async function downloadAndParseTSEVotes(
   nrCandidato: string,
   uf: string,
@@ -167,14 +239,19 @@ export async function downloadAndParseTSEVotes(
   onProgress?: (msg: string) => void,
 ): Promise<Record<string, number>> {
   const log = onProgress || (() => {});
-  useDirectFetch = false; // reset for each new download
+
+  // 1. Try storage first
+  const storageResult = await tryLoadFromStorage(uf, ano, nrCandidato, log);
+  if (storageResult) return storageResult;
+
+  // 2. Fall back to TSE CDN download
+  useDirectFetch = false;
   const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${ano}.zip`;
 
-  log("Verificando arquivo do TSE...");
+  log("Baixando do TSE (pode demorar)...");
   const totalSize = await getRemoteFileSize(zipUrl);
 
-  log(`Localizando dados de ${uf}...
-`);
+  log(`Localizando dados de ${uf}...`);
   const entry = await findZipEntry(zipUrl, totalSize, `_${uf}.csv`);
   if (!entry) throw new Error(`Dados de ${uf} não encontrados no arquivo do TSE`);
   if (entry.compMethod !== 8) throw new Error("Formato de compressão não suportado");
@@ -186,8 +263,7 @@ export async function downloadAndParseTSEVotes(
   const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
 
   const compSizeMB = (entry.compSize / 1024 / 1024).toFixed(0);
-  log(`Baixando ${compSizeMB}MB de dados do TSE...
-`);
+  log(`Baixando ${compSizeMB}MB de dados do TSE...`);
 
   const chunkSize = 4 * 1024 * 1024;
   const compressedChunks: Uint8Array[] = [];
