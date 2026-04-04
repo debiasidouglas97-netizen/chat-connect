@@ -59,7 +59,7 @@ export default function Cidades() {
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [detailCity, setDetailCity] = useState<any | null>(null);
 
-  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas">("none");
+  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
   const allCidades = useMemo(
