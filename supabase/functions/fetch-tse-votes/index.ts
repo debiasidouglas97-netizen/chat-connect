@@ -8,6 +8,15 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const TSE_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona";
+
+const BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+  "Accept": "*/*",
+  "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8",
+  "Referer": "https://www.tse.jus.br/",
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -16,12 +25,71 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function normalize(str: string): string {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
+
+// ── ZIP helpers ──
+
+async function fetchRange(url: string, start: number, end: number): Promise<ArrayBuffer> {
+  const res = await fetch(url, {
+    headers: { ...BROWSER_HEADERS, Range: `bytes=${start}-${end}` },
+  });
+  if (!res.ok && res.status !== 206) throw new Error(`TSE HTTP ${res.status}`);
+  return res.arrayBuffer();
+}
+
+interface ZipEntry {
+  compSize: number;
+  uncompSize: number;
+  localOffset: number;
+  compMethod: number;
+}
+
+async function findZipEntry(url: string, totalSize: number, targetName: string): Promise<ZipEntry | null> {
+  const eocdSize = Math.min(65536, totalSize);
+  const eocdBuf = await fetchRange(url, totalSize - eocdSize, totalSize - 1);
+  const eocdData = new Uint8Array(eocdBuf);
+
+  let eocdPos = -1;
+  for (let i = eocdData.length - 22; i >= 0; i--) {
+    if (eocdData[i] === 0x50 && eocdData[i + 1] === 0x4b &&
+        eocdData[i + 2] === 0x05 && eocdData[i + 3] === 0x06) {
+      eocdPos = i;
+      break;
+    }
+  }
+  if (eocdPos === -1) throw new Error("ZIP inválido");
+
+  const view = new DataView(eocdBuf, eocdPos);
+  const cdSize = view.getUint32(12, true);
+  const cdOffset = view.getUint32(16, true);
+
+  const cdBuf = await fetchRange(url, cdOffset, cdOffset + cdSize - 1);
+  const cdData = new Uint8Array(cdBuf);
+  const cdView = new DataView(cdBuf);
+
+  let pos = 0;
+  const target = targetName.toUpperCase();
+  while (pos < cdData.length - 46) {
+    if (cdData[pos] !== 0x50 || cdData[pos + 1] !== 0x4b ||
+        cdData[pos + 2] !== 0x01 || cdData[pos + 3] !== 0x02) break;
+    const compMethod = cdView.getUint16(pos + 10, true);
+    const compSize = cdView.getUint32(pos + 20, true);
+    const uncompSize = cdView.getUint32(pos + 24, true);
+    const fnameLen = cdView.getUint16(pos + 28, true);
+    const extraLen = cdView.getUint16(pos + 30, true);
+    const commentLen = cdView.getUint16(pos + 32, true);
+    const localOffset = cdView.getUint32(pos + 42, true);
+    const fname = new TextDecoder().decode(cdData.slice(pos + 46, pos + 46 + fnameLen));
+    if (fname.toUpperCase().includes(target)) {
+      return { compSize, uncompSize, localOffset, compMethod };
+    }
+    pos += 46 + fnameLen + extraLen + commentLen;
+  }
+  return null;
+}
+
+// ── Main ──
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,59 +98,127 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { tenant_id, votes } = body;
 
-    if (!tenant_id) {
-      return jsonResponse({ error: "tenant_id required" }, 400);
+    // Mode 1: receive pre-parsed votes (legacy / browser-side)
+    if (body.votes && body.tenant_id) {
+      return await updateCities(body.tenant_id, body.votes);
     }
 
-    if (!votes || typeof votes !== "object" || Object.keys(votes).length === 0) {
-      return jsonResponse({ error: "votes data required (object: { city_name: vote_count })" }, 400);
+    // Mode 2: download from TSE server-side
+    const { tenant_id, nr_candidato, uf, ano } = body;
+    if (!tenant_id || !nr_candidato || !uf) {
+      return jsonResponse({ error: "tenant_id, nr_candidato e uf são obrigatórios." }, 400);
     }
 
-    const sb = createClient(supabaseUrl, supabaseKey);
+    const year = ano || 2022;
+    const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${year}.zip`;
 
-    // Get all cities for this tenant
-    const { data: cities, error: citiesErr } = await sb
-      .from("cidades")
-      .select("id, name")
-      .eq("tenant_id", tenant_id);
+    console.log(`Fetching TSE data: ${zipUrl} for candidate ${nr_candidato} in ${uf}`);
 
-    if (citiesErr || !cities || cities.length === 0) {
-      return jsonResponse({ success: true, cities_updated: 0, message: "Nenhuma cidade cadastrada." });
+    // Step 1: HEAD to get size
+    const headRes = await fetch(zipUrl, { method: "HEAD", headers: BROWSER_HEADERS });
+    if (!headRes.ok) {
+      // Check if we got HTML (WAF block)
+      const ct = headRes.headers.get("content-type") || "";
+      if (ct.includes("html")) {
+        return jsonResponse({ error: "TSE CDN bloqueou a requisição. Tente novamente mais tarde." }, 502);
+      }
+      return jsonResponse({ error: `Arquivo TSE não encontrado (HTTP ${headRes.status})` }, 502);
     }
+    const totalSize = parseInt(headRes.headers.get("Content-Length") || "0", 10);
+    if (!totalSize) return jsonResponse({ error: "Tamanho do arquivo TSE indeterminado" }, 502);
 
-    // Build normalized vote lookup
-    const voteMap = new Map<string, number>();
-    for (const [cityName, count] of Object.entries(votes)) {
-      const normalized = normalize(cityName);
-      if (typeof count === "number" && count > 0) {
-        voteMap.set(normalized, (voteMap.get(normalized) || 0) + count);
+    console.log(`ZIP total size: ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
+
+    // Step 2: Find state CSV in ZIP
+    const entry = await findZipEntry(zipUrl, totalSize, `_${uf}.csv`);
+    if (!entry) return jsonResponse({ error: `Dados de ${uf} não encontrados no ZIP do TSE` }, 404);
+    if (entry.compMethod !== 8) return jsonResponse({ error: "Formato de compressão não suportado" }, 500);
+
+    console.log(`Found entry: compressed=${(entry.compSize / 1024 / 1024).toFixed(1)}MB`);
+
+    // Step 3: Get local header to find data offset
+    const headerBuf = await fetchRange(zipUrl, entry.localOffset, entry.localOffset + 300);
+    const hView = new DataView(headerBuf);
+    const fnameLen = hView.getUint16(26, true);
+    const extraLen = hView.getUint16(28, true);
+    const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
+
+    // Step 4: Download compressed data
+    console.log("Downloading compressed data...");
+    const compBuf = await fetchRange(zipUrl, dataOffset, dataOffset + entry.compSize - 1);
+    const compressed = new Uint8Array(compBuf);
+
+    // Step 5: Decompress
+    console.log("Decompressing...");
+    const ds = new DecompressionStream("deflate-raw");
+    const writer = ds.writable.getWriter();
+    const reader = ds.readable.getReader();
+
+    const writePromise = (async () => {
+      const chunkSize = 512 * 1024;
+      for (let i = 0; i < compressed.length; i += chunkSize) {
+        await writer.write(compressed.subarray(i, Math.min(i + chunkSize, compressed.length)));
+      }
+      await writer.close();
+    })();
+
+    // Step 6: Parse CSV streaming
+    const votes: Record<string, number> = {};
+    const decoder = new TextDecoder("latin1");
+    let partialLine = "";
+    let headerCols: string[] | null = null;
+    let nrCandIdx = -1, nmMunIdx = -1, qtVotosIdx = -1;
+    let linesProcessed = 0;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const text = partialLine + decoder.decode(value, { stream: true });
+      const lines = text.split("\n");
+      partialLine = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const cols = trimmed.split(";").map(c => c.replace(/"/g, ""));
+
+        if (!headerCols) {
+          headerCols = cols;
+          nrCandIdx = cols.indexOf("NR_CANDIDATO");
+          nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+          qtVotosIdx = cols.indexOf("QT_VOTOS_NOMINAIS");
+          if (nrCandIdx === -1 || nmMunIdx === -1 || qtVotosIdx === -1) {
+            throw new Error("Formato CSV inesperado do TSE");
+          }
+          continue;
+        }
+
+        if (cols.length <= Math.max(nrCandIdx, nmMunIdx, qtVotosIdx)) continue;
+        if (cols[nrCandIdx] === nr_candidato) {
+          const mun = normalize(cols[nmMunIdx]);
+          const v = parseInt(cols[qtVotosIdx], 10);
+          if (mun && Number.isFinite(v) && v > 0) {
+            votes[mun] = (votes[mun] || 0) + v;
+          }
+        }
+        linesProcessed++;
       }
     }
 
-    // Match and update
-    let updated = 0;
-    for (const city of cities) {
-      const cityName = normalize(city.name.split("/")[0]);
-      const votos = voteMap.get(cityName);
-      if (votos !== undefined && votos > 0) {
-        const { error } = await sb
-          .from("cidades")
-          .update({ votos_2022: votos, updated_at: new Date().toISOString() })
-          .eq("id", city.id);
-        if (!error) updated++;
-      }
+    await writePromise;
+
+    console.log(`Parsed ${linesProcessed} lines, found votes in ${Object.keys(votes).length} municipalities`);
+
+    if (Object.keys(votes).length === 0) {
+      return jsonResponse({
+        success: true,
+        cities_updated: 0,
+        message: "Nenhum voto encontrado para este candidato/estado.",
+      });
     }
 
-    console.log(`Updated ${updated} cities out of ${cities.length} (${voteMap.size} TSE municipalities)`);
-
-    return jsonResponse({
-      success: true,
-      cities_updated: updated,
-      total_cities: cities.length,
-      tse_municipalities: voteMap.size,
-    });
+    return await updateCities(tenant_id, votes);
 
   } catch (err: any) {
     console.error("Error:", err);
@@ -93,3 +229,46 @@ Deno.serve(async (req) => {
     }, 500);
   }
 });
+
+async function updateCities(tenantId: string, votes: Record<string, number>) {
+  const sb = createClient(supabaseUrl, supabaseKey);
+
+  const { data: cities, error: citiesErr } = await sb
+    .from("cidades")
+    .select("id, name")
+    .eq("tenant_id", tenantId);
+
+  if (citiesErr || !cities || cities.length === 0) {
+    return jsonResponse({ success: true, cities_updated: 0, message: "Nenhuma cidade cadastrada." });
+  }
+
+  const voteMap = new Map<string, number>();
+  for (const [cityName, count] of Object.entries(votes)) {
+    const n = normalize(cityName);
+    if (typeof count === "number" && count > 0) {
+      voteMap.set(n, (voteMap.get(n) || 0) + count);
+    }
+  }
+
+  let updated = 0;
+  for (const city of cities) {
+    const cityName = normalize(city.name.split("/")[0]);
+    const votos = voteMap.get(cityName);
+    if (votos !== undefined && votos > 0) {
+      const { error } = await sb
+        .from("cidades")
+        .update({ votos_2022: votos, updated_at: new Date().toISOString() })
+        .eq("id", city.id);
+      if (!error) updated++;
+    }
+  }
+
+  console.log(`Updated ${updated} cities out of ${cities.length}`);
+
+  return jsonResponse({
+    success: true,
+    cities_updated: updated,
+    total_cities: cities.length,
+    tse_municipalities: voteMap.size,
+  });
+}
