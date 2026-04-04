@@ -650,8 +650,9 @@ export default function Configuracoes() {
                   onClick={async () => {
                     if (!tenantId) return;
                     setSyncingVotes(true);
+                    setSyncProgress("Preparando...");
                     try {
-                      // Save first
+                      // Save config first
                       await supabase
                         .from("tenants")
                         .update({
@@ -660,9 +661,47 @@ export default function Configuracoes() {
                         } as any)
                         .eq("id", tenantId);
 
+                      // Get tenant estado
+                      const { data: tenantInfo } = await supabase
+                        .from("tenants")
+                        .select("estado")
+                        .eq("id", tenantId)
+                        .single();
+
+                      const uf = tenantInfo?.estado || form.state || "SP";
+                      // Convert full state name to UF code
+                      const stateToUf: Record<string, string> = {
+                        "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM",
+                        "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF",
+                        "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA",
+                        "Mato Grosso": "MT", "Mato Grosso do Sul": "MS", "Minas Gerais": "MG",
+                        "Pará": "PA", "Paraíba": "PB", "Paraná": "PR", "Pernambuco": "PE",
+                        "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
+                        "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR",
+                        "Santa Catarina": "SC", "São Paulo": "SP", "Sergipe": "SE",
+                        "Tocantins": "TO",
+                      };
+                      const ufCode = uf.length === 2 ? uf.toUpperCase() : (stateToUf[uf] || "SP");
+
+                      // Download and parse TSE data in browser
+                      const votes = await downloadAndParseTSEVotes(
+                        nrCandidatoTse.trim(),
+                        ufCode,
+                        parseInt(anoEleicao) || 2022,
+                        (msg) => setSyncProgress(msg),
+                      );
+
+                      if (Object.keys(votes).length === 0) {
+                        toast.warning("Nenhum voto encontrado para este candidato.");
+                        return;
+                      }
+
+                      // Send votes to edge function for DB update
+                      setSyncProgress("Salvando no banco de dados...");
                       const res = await supabase.functions.invoke("fetch-tse-votes", {
-                        body: { tenant_id: tenantId },
+                        body: { tenant_id: tenantId, votes },
                       });
+
                       if (res.error) throw res.error;
                       const data = res.data;
                       if (data?.error) {
@@ -671,15 +710,16 @@ export default function Configuracoes() {
                         toast.success(`✅ Votação importada! ${data?.cities_updated || 0} cidades atualizadas.`);
                       }
                     } catch (e: any) {
-                      toast.error("Erro ao buscar votos: " + (e.message || "Erro desconhecido"));
+                      toast.error("Erro ao importar votos: " + (e.message || "Erro desconhecido"));
                     } finally {
                       setSyncingVotes(false);
+                      setSyncProgress("");
                     }
                   }}
                   className="gap-2"
                 >
                   <RefreshCw className={`h-4 w-4 ${syncingVotes ? "animate-spin" : ""}`} />
-                  {syncingVotes ? "Buscando votos..." : "Importar votação"}
+                  {syncingVotes ? (syncProgress || "Importando...") : "Importar votação"}
                 </Button>
               </div>
             </CardContent>
