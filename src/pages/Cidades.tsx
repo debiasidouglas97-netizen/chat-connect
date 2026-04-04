@@ -276,10 +276,30 @@ export default function Cidades() {
                    Votos
                  </Button>
                </TooltipTrigger>
-               <TooltipContent>
-                 {sortField !== "votos" ? "Ordenar por votação (maior → menor)" : sortDir === "desc" ? "Ordenar por votação (menor → maior)" : "Voltar ao score"}
-               </TooltipContent>
-             </Tooltip>
+                <TooltipContent>
+                  {sortField !== "votos" ? "Ordenar por votação (maior → menor)" : sortDir === "desc" ? "Ordenar por votação (menor → maior)" : "Voltar ao score"}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={sortField === "conversao" ? "default" : "outline"}
+                    className="gap-2"
+                    onClick={() => {
+                      if (sortField !== "conversao") { setSortField("conversao"); setSortDir("desc"); }
+                      else if (sortDir === "desc") { setSortDir("asc"); }
+                      else { setSortField("none"); }
+                    }}
+                  >
+                    {sortField === "conversao" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                    % Conversão
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {sortField !== "conversao" ? "Ordenar por conversão de votos (maior → menor)" : sortDir === "desc" ? "Ordenar por conversão (menor → maior)" : "Voltar ao score"}
+                </TooltipContent>
+              </Tooltip>
            </TooltipProvider>
           <div className="flex border rounded-md">
             <Button
