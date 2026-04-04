@@ -1,7 +1,10 @@
 /**
- * Utility to download and parse TSE voting data directly in the browser.
- * The TSE CDN blocks cloud IPs, so we must download from the user's browser.
+ * Utility to download and parse TSE voting data in the browser.
+ * The preview environment may block direct access to the TSE CDN,
+ * so downloads go through the lightweight stream-proxy edge function.
  */
+
+import { supabase } from "@/integrations/supabase/client";
 
 const TSE_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona";
 
@@ -21,14 +24,50 @@ interface ZipEntry {
   compMethod: number;
 }
 
+function buildProxyUrl(url: string) {
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  return `https://${projectId}.supabase.co/functions/v1/stream-proxy?url=${encodeURIComponent(url)}`;
+}
+
 async function fetchRange(url: string, start: number, end: number): Promise<ArrayBuffer> {
-  const res = await fetch(url, {
-    headers: { Range: `bytes=${start}-${end}` },
+  const res = await fetch(buildProxyUrl(url), {
+    headers: {
+      Range: `bytes=${start}-${end}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ""}`,
+    },
   });
+
   if (!res.ok && res.status !== 206) {
-    throw new Error(`Erro ao baixar dados do TSE (HTTP ${res.status})`);
+    const details = await res.text().catch(() => "");
+    throw new Error(`Erro ao baixar dados do TSE (HTTP ${res.status})${details ? `: ${details}` : ""}`);
   }
+
   return res.arrayBuffer();
+}
+
+async function getRemoteFileSize(url: string): Promise<number> {
+  const res = await fetch(buildProxyUrl(url), {
+    headers: {
+      Range: "bytes=0-3",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ""}`,
+    },
+  });
+
+  if (!res.ok && res.status !== 206) {
+    const details = await res.text().catch(() => "");
+    throw new Error(`Não foi possível acessar o arquivo do TSE (HTTP ${res.status})${details ? `: ${details}` : ""}`);
+  }
+
+  const cr = res.headers.get("content-range") || res.headers.get("Content-Range") || "";
+  const match = cr.match(/\/(\d+)/);
+  if (!match) {
+    throw new Error("Não foi possível determinar o tamanho do arquivo do TSE");
+  }
+
+  await res.arrayBuffer();
+  return parseInt(match[1], 10);
 }
 
 async function findZipEntry(url: string, totalSize: number, targetName: string): Promise<ZipEntry | null> {
@@ -38,8 +77,12 @@ async function findZipEntry(url: string, totalSize: number, targetName: string):
 
   let eocdPos = -1;
   for (let i = eocdData.length - 22; i >= 0; i--) {
-    if (eocdData[i] === 0x50 && eocdData[i + 1] === 0x4b &&
-        eocdData[i + 2] === 0x05 && eocdData[i + 3] === 0x06) {
+    if (
+      eocdData[i] === 0x50 &&
+      eocdData[i + 1] === 0x4b &&
+      eocdData[i + 2] === 0x05 &&
+      eocdData[i + 3] === 0x06
+    ) {
       eocdPos = i;
       break;
     }
@@ -57,8 +100,12 @@ async function findZipEntry(url: string, totalSize: number, targetName: string):
   let pos = 0;
   const target = targetName.toUpperCase();
   while (pos < cdData.length - 46) {
-    if (cdData[pos] !== 0x50 || cdData[pos + 1] !== 0x4b ||
-        cdData[pos + 2] !== 0x01 || cdData[pos + 3] !== 0x02) break;
+    if (
+      cdData[pos] !== 0x50 ||
+      cdData[pos + 1] !== 0x4b ||
+      cdData[pos + 2] !== 0x01 ||
+      cdData[pos + 3] !== 0x02
+    ) break;
 
     const compMethod = cdView.getUint16(pos + 10, true);
     const compSize = cdView.getUint32(pos + 20, true);
@@ -74,6 +121,7 @@ async function findZipEntry(url: string, totalSize: number, targetName: string):
     }
     pos += 46 + fnameLen + extraLen + commentLen;
   }
+
   return null;
 }
 
@@ -84,53 +132,28 @@ export async function downloadAndParseTSEVotes(
   onProgress?: (msg: string) => void,
 ): Promise<Record<string, number>> {
   const log = onProgress || (() => {});
-
   const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${ano}.zip`;
 
-  // Step 1: Get file size using a small Range request (more reliable than HEAD for CORS)
   log("Verificando arquivo do TSE...");
-  let totalSize = 0;
-  try {
-    const probeRes = await fetch(zipUrl, {
-      headers: { Range: "bytes=0-3" },
-    });
-    if (!probeRes.ok && probeRes.status !== 206) {
-      throw new Error(`HTTP ${probeRes.status}`);
-    }
-    const cr = probeRes.headers.get("Content-Range") || "";
-    const match = cr.match(/\/(\d+)/);
-    if (match) {
-      totalSize = parseInt(match[1], 10);
-    } else {
-      // Fallback: try Content-Length from a regular GET with abort
-      const fallbackRes = await fetch(zipUrl, { method: "GET" });
-      totalSize = parseInt(fallbackRes.headers.get("Content-Length") || "0", 10);
-      // Abort the body download
-      await fallbackRes.body?.cancel();
-    }
-  } catch (err: any) {
-    throw new Error(`Não foi possível acessar o CDN do TSE: ${err.message}`);
-  }
-  if (!totalSize) throw new Error("Não foi possível determinar o tamanho do arquivo");
+  const totalSize = await getRemoteFileSize(zipUrl);
 
-  // Step 2: Find state file in ZIP
-  log(`Localizando dados de ${uf}...`);
+  log(`Localizando dados de ${uf}...
+`);
   const entry = await findZipEntry(zipUrl, totalSize, `_${uf}.csv`);
   if (!entry) throw new Error(`Dados de ${uf} não encontrados no arquivo do TSE`);
   if (entry.compMethod !== 8) throw new Error("Formato de compressão não suportado");
 
-  // Step 3: Get data offset
   const headerBuf = await fetchRange(zipUrl, entry.localOffset, entry.localOffset + 300);
   const hView = new DataView(headerBuf);
   const fnameLen = hView.getUint16(26, true);
   const extraLen = hView.getUint16(28, true);
   const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
 
-  // Step 4: Download compressed data in chunks and decompress
   const compSizeMB = (entry.compSize / 1024 / 1024).toFixed(0);
-  log(`Baixando ${compSizeMB}MB de dados do TSE...`);
+  log(`Baixando ${compSizeMB}MB de dados do TSE...
+`);
 
-  const chunkSize = 4 * 1024 * 1024; // 4MB chunks
+  const chunkSize = 4 * 1024 * 1024;
   const compressedChunks: Uint8Array[] = [];
   let totalDownloaded = 0;
 
@@ -143,7 +166,6 @@ export async function downloadAndParseTSEVotes(
     log(`Baixando... ${pct}%`);
   }
 
-  // Combine chunks
   const fullCompressed = new Uint8Array(totalDownloaded);
   let offset = 0;
   for (const chunk of compressedChunks) {
@@ -151,13 +173,11 @@ export async function downloadAndParseTSEVotes(
     offset += chunk.length;
   }
 
-  // Step 5: Decompress using browser's DecompressionStream
   log("Processando dados...");
   const ds = new DecompressionStream("deflate-raw");
   const writer = ds.writable.getWriter();
   const reader = ds.readable.getReader();
 
-  // Write compressed data in background
   const writeChunkSize = 512 * 1024;
   const writePromise = (async () => {
     for (let i = 0; i < fullCompressed.length; i += writeChunkSize) {
@@ -166,7 +186,6 @@ export async function downloadAndParseTSEVotes(
     await writer.close();
   })();
 
-  // Step 6: Parse CSV and filter for candidate
   const votes: Record<string, number> = {};
   const decoder = new TextDecoder("latin1");
   let partialLine = "";
@@ -188,7 +207,7 @@ export async function downloadAndParseTSEVotes(
       const trimmed = line.trim();
       if (!trimmed) continue;
 
-      const cols = trimmed.split(";").map(c => c.replace(/"/g, ""));
+      const cols = trimmed.split(";").map((c) => c.replace(/"/g, ""));
 
       if (!headerCols) {
         headerCols = cols;
@@ -219,7 +238,6 @@ export async function downloadAndParseTSEVotes(
   }
 
   await writePromise;
-
   log(`Encontrados votos em ${Object.keys(votes).length} municípios`);
   return votes;
 }
