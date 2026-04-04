@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminDeputados from "./pages/admin/AdminDeputados";
-
+import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
 const queryClient = new QueryClient();
 
 const App = () => (
