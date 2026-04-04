@@ -8,13 +8,16 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const TSE_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona";
+// Mirror hosted on GitHub (cepesp-data) — more reliable than TSE CDN from cloud
+const TSE_MIRRORS = [
+  "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona",
+  "https://raw.githubusercontent.com/cepesp-data/tse_dados/main/votacao_candidato_munzona",
+];
 
 const BROWSER_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
   "Accept": "*/*",
-  "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8",
-  "Referer": "https://www.tse.jus.br/",
+  "Accept-Language": "pt-BR,pt;q=0.9",
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -30,24 +33,29 @@ function normalize(str: string): string {
 
 // ── ZIP helpers ──
 
-async function fetchRange(url: string, start: number, end: number): Promise<ArrayBuffer> {
+async function fetchRangeFromUrl(url: string, start: number, end: number): Promise<ArrayBuffer> {
   const res = await fetch(url, {
     headers: { ...BROWSER_HEADERS, Range: `bytes=${start}-${end}` },
   });
-  if (!res.ok && res.status !== 206) throw new Error(`TSE HTTP ${res.status}`);
+  if (!res.ok && res.status !== 206) {
+    const text = await res.text();
+    if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+      throw new Error("WAF_BLOCKED");
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
   return res.arrayBuffer();
 }
 
 interface ZipEntry {
   compSize: number;
-  uncompSize: number;
   localOffset: number;
   compMethod: number;
 }
 
 async function findZipEntry(url: string, totalSize: number, targetName: string): Promise<ZipEntry | null> {
   const eocdSize = Math.min(65536, totalSize);
-  const eocdBuf = await fetchRange(url, totalSize - eocdSize, totalSize - 1);
+  const eocdBuf = await fetchRangeFromUrl(url, totalSize - eocdSize, totalSize - 1);
   const eocdData = new Uint8Array(eocdBuf);
 
   let eocdPos = -1;
@@ -64,7 +72,7 @@ async function findZipEntry(url: string, totalSize: number, targetName: string):
   const cdSize = view.getUint32(12, true);
   const cdOffset = view.getUint32(16, true);
 
-  const cdBuf = await fetchRange(url, cdOffset, cdOffset + cdSize - 1);
+  const cdBuf = await fetchRangeFromUrl(url, cdOffset, cdOffset + cdSize - 1);
   const cdData = new Uint8Array(cdBuf);
   const cdView = new DataView(cdBuf);
 
@@ -75,18 +83,141 @@ async function findZipEntry(url: string, totalSize: number, targetName: string):
         cdData[pos + 2] !== 0x01 || cdData[pos + 3] !== 0x02) break;
     const compMethod = cdView.getUint16(pos + 10, true);
     const compSize = cdView.getUint32(pos + 20, true);
-    const uncompSize = cdView.getUint32(pos + 24, true);
     const fnameLen = cdView.getUint16(pos + 28, true);
     const extraLen = cdView.getUint16(pos + 30, true);
     const commentLen = cdView.getUint16(pos + 32, true);
     const localOffset = cdView.getUint32(pos + 42, true);
     const fname = new TextDecoder().decode(cdData.slice(pos + 46, pos + 46 + fnameLen));
     if (fname.toUpperCase().includes(target)) {
-      return { compSize, uncompSize, localOffset, compMethod };
+      return { compSize, localOffset, compMethod };
     }
     pos += 46 + fnameLen + extraLen + commentLen;
   }
   return null;
+}
+
+async function downloadAndParseTSE(nr_candidato: string, uf: string, ano: number): Promise<Record<string, number>> {
+  const zipFile = `votacao_candidato_munzona_${ano}.zip`;
+
+  let zipUrl = "";
+  let totalSize = 0;
+
+  // Try each mirror
+  for (const base of TSE_MIRRORS) {
+    const url = `${base}/${zipFile}`;
+    try {
+      const headRes = await fetch(url, { method: "HEAD", headers: BROWSER_HEADERS });
+      const ct = headRes.headers.get("content-type") || "";
+      if (headRes.ok && !ct.includes("html")) {
+        totalSize = parseInt(headRes.headers.get("Content-Length") || "0", 10);
+        if (totalSize > 0) {
+          zipUrl = url;
+          break;
+        }
+      }
+      // Try GET with small range instead of HEAD
+      const rangeRes = await fetch(url, {
+        headers: { ...BROWSER_HEADERS, Range: "bytes=0-3" },
+      });
+      if ((rangeRes.ok || rangeRes.status === 206)) {
+        const bytes = new Uint8Array(await rangeRes.arrayBuffer());
+        if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
+          // It's a valid ZIP, get size from content-range
+          const cr = rangeRes.headers.get("Content-Range") || "";
+          const match = cr.match(/\/(\d+)/);
+          if (match) {
+            totalSize = parseInt(match[1], 10);
+            zipUrl = url;
+            break;
+          }
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  if (!zipUrl || !totalSize) {
+    throw new Error("Não foi possível acessar os dados do TSE. Todos os mirrors estão indisponíveis.");
+  }
+
+  console.log(`Using: ${zipUrl} (${(totalSize / 1024 / 1024).toFixed(1)}MB)`);
+
+  // Find state CSV in ZIP
+  const entry = await findZipEntry(zipUrl, totalSize, `_${uf}.csv`);
+  if (!entry) throw new Error(`Dados de ${uf} não encontrados no ZIP do TSE`);
+  if (entry.compMethod !== 8) throw new Error("Formato de compressão não suportado");
+
+  // Get data offset from local file header
+  const headerBuf = await fetchRangeFromUrl(zipUrl, entry.localOffset, entry.localOffset + 300);
+  const hView = new DataView(headerBuf);
+  const fnameLen = hView.getUint16(26, true);
+  const extraLen = hView.getUint16(28, true);
+  const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
+
+  // Download compressed data
+  console.log(`Downloading ${(entry.compSize / 1024 / 1024).toFixed(1)}MB compressed data...`);
+  const compBuf = await fetchRangeFromUrl(zipUrl, dataOffset, dataOffset + entry.compSize - 1);
+  const compressed = new Uint8Array(compBuf);
+
+  // Decompress
+  console.log("Decompressing...");
+  const ds = new DecompressionStream("deflate-raw");
+  const writer = ds.writable.getWriter();
+  const reader = ds.readable.getReader();
+
+  const writePromise = (async () => {
+    const chunkSize = 512 * 1024;
+    for (let i = 0; i < compressed.length; i += chunkSize) {
+      await writer.write(compressed.subarray(i, Math.min(i + chunkSize, compressed.length)));
+    }
+    await writer.close();
+  })();
+
+  // Parse CSV
+  const votes: Record<string, number> = {};
+  const decoder = new TextDecoder("latin1");
+  let partialLine = "";
+  let headerCols: string[] | null = null;
+  let nrCandIdx = -1, nmMunIdx = -1, qtVotosIdx = -1;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const text = partialLine + decoder.decode(value, { stream: true });
+    const lines = text.split("\n");
+    partialLine = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const cols = trimmed.split(";").map(c => c.replace(/"/g, ""));
+
+      if (!headerCols) {
+        headerCols = cols;
+        nrCandIdx = cols.indexOf("NR_CANDIDATO");
+        nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+        qtVotosIdx = cols.indexOf("QT_VOTOS_NOMINAIS");
+        if (nrCandIdx === -1 || nmMunIdx === -1 || qtVotosIdx === -1) {
+          throw new Error("Formato CSV inesperado");
+        }
+        continue;
+      }
+
+      if (cols.length <= Math.max(nrCandIdx, nmMunIdx, qtVotosIdx)) continue;
+      if (cols[nrCandIdx] === nr_candidato) {
+        const mun = normalize(cols[nmMunIdx]);
+        const v = parseInt(cols[qtVotosIdx], 10);
+        if (mun && Number.isFinite(v) && v > 0) {
+          votes[mun] = (votes[mun] || 0) + v;
+        }
+      }
+    }
+  }
+
+  await writePromise;
+  console.log(`Found votes in ${Object.keys(votes).length} municipalities`);
+  return votes;
 }
 
 // ── Main ──
@@ -99,116 +230,29 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // Mode 1: receive pre-parsed votes (legacy / browser-side)
+    // Mode 1: receive pre-parsed votes (legacy)
     if (body.votes && body.tenant_id) {
       return await updateCities(body.tenant_id, body.votes);
     }
 
-    // Mode 2: download from TSE server-side
+    // Mode 2: server-side download
     const { tenant_id, nr_candidato, uf, ano } = body;
     if (!tenant_id || !nr_candidato || !uf) {
       return jsonResponse({ error: "tenant_id, nr_candidato e uf são obrigatórios." }, 400);
     }
 
-    const year = ano || 2022;
-    const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${year}.zip`;
-
-    console.log(`Fetching TSE data: ${zipUrl} for candidate ${nr_candidato} in ${uf}`);
-
-    // Step 1: HEAD to get size
-    const headRes = await fetch(zipUrl, { method: "HEAD", headers: BROWSER_HEADERS });
-    if (!headRes.ok) {
-      // Check if we got HTML (WAF block)
-      const ct = headRes.headers.get("content-type") || "";
-      if (ct.includes("html")) {
-        return jsonResponse({ error: "TSE CDN bloqueou a requisição. Tente novamente mais tarde." }, 502);
+    let votes: Record<string, number>;
+    try {
+      votes = await downloadAndParseTSE(nr_candidato, uf, ano || 2022);
+    } catch (err: any) {
+      if (err.message === "WAF_BLOCKED" || err.message?.includes("mirrors")) {
+        return jsonResponse({
+          error: "Não foi possível acessar os dados do TSE. O CDN está bloqueando requisições de servidores em nuvem. Use a importação manual por CSV.",
+          fallback: "csv_upload",
+        }, 502);
       }
-      return jsonResponse({ error: `Arquivo TSE não encontrado (HTTP ${headRes.status})` }, 502);
+      throw err;
     }
-    const totalSize = parseInt(headRes.headers.get("Content-Length") || "0", 10);
-    if (!totalSize) return jsonResponse({ error: "Tamanho do arquivo TSE indeterminado" }, 502);
-
-    console.log(`ZIP total size: ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
-
-    // Step 2: Find state CSV in ZIP
-    const entry = await findZipEntry(zipUrl, totalSize, `_${uf}.csv`);
-    if (!entry) return jsonResponse({ error: `Dados de ${uf} não encontrados no ZIP do TSE` }, 404);
-    if (entry.compMethod !== 8) return jsonResponse({ error: "Formato de compressão não suportado" }, 500);
-
-    console.log(`Found entry: compressed=${(entry.compSize / 1024 / 1024).toFixed(1)}MB`);
-
-    // Step 3: Get local header to find data offset
-    const headerBuf = await fetchRange(zipUrl, entry.localOffset, entry.localOffset + 300);
-    const hView = new DataView(headerBuf);
-    const fnameLen = hView.getUint16(26, true);
-    const extraLen = hView.getUint16(28, true);
-    const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
-
-    // Step 4: Download compressed data
-    console.log("Downloading compressed data...");
-    const compBuf = await fetchRange(zipUrl, dataOffset, dataOffset + entry.compSize - 1);
-    const compressed = new Uint8Array(compBuf);
-
-    // Step 5: Decompress
-    console.log("Decompressing...");
-    const ds = new DecompressionStream("deflate-raw");
-    const writer = ds.writable.getWriter();
-    const reader = ds.readable.getReader();
-
-    const writePromise = (async () => {
-      const chunkSize = 512 * 1024;
-      for (let i = 0; i < compressed.length; i += chunkSize) {
-        await writer.write(compressed.subarray(i, Math.min(i + chunkSize, compressed.length)));
-      }
-      await writer.close();
-    })();
-
-    // Step 6: Parse CSV streaming
-    const votes: Record<string, number> = {};
-    const decoder = new TextDecoder("latin1");
-    let partialLine = "";
-    let headerCols: string[] | null = null;
-    let nrCandIdx = -1, nmMunIdx = -1, qtVotosIdx = -1;
-    let linesProcessed = 0;
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const text = partialLine + decoder.decode(value, { stream: true });
-      const lines = text.split("\n");
-      partialLine = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        const cols = trimmed.split(";").map(c => c.replace(/"/g, ""));
-
-        if (!headerCols) {
-          headerCols = cols;
-          nrCandIdx = cols.indexOf("NR_CANDIDATO");
-          nmMunIdx = cols.indexOf("NM_MUNICIPIO");
-          qtVotosIdx = cols.indexOf("QT_VOTOS_NOMINAIS");
-          if (nrCandIdx === -1 || nmMunIdx === -1 || qtVotosIdx === -1) {
-            throw new Error("Formato CSV inesperado do TSE");
-          }
-          continue;
-        }
-
-        if (cols.length <= Math.max(nrCandIdx, nmMunIdx, qtVotosIdx)) continue;
-        if (cols[nrCandIdx] === nr_candidato) {
-          const mun = normalize(cols[nmMunIdx]);
-          const v = parseInt(cols[qtVotosIdx], 10);
-          if (mun && Number.isFinite(v) && v > 0) {
-            votes[mun] = (votes[mun] || 0) + v;
-          }
-        }
-        linesProcessed++;
-      }
-    }
-
-    await writePromise;
-
-    console.log(`Parsed ${linesProcessed} lines, found votes in ${Object.keys(votes).length} municipalities`);
 
     if (Object.keys(votes).length === 0) {
       return jsonResponse({
@@ -262,8 +306,6 @@ async function updateCities(tenantId: string, votes: Record<string, number>) {
       if (!error) updated++;
     }
   }
-
-  console.log(`Updated ${updated} cities out of ${cities.length}`);
 
   return jsonResponse({
     success: true,
