@@ -48,6 +48,7 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="deputados" element={<AdminDeputados />} />
+              <Route path="configuracoes" element={<AdminConfiguracoes />} />
             </Route>
 
             {/* Protected tenant routes */}

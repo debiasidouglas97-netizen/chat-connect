@@ -3,11 +3,12 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Shield, Users, LogOut, LayoutDashboard } from "lucide-react";
+import { Shield, Users, LogOut, LayoutDashboard, Settings } from "lucide-react";
 
 const adminNav = [
   { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { label: "Deputados", path: "/admin/deputados", icon: Users },
+  { label: "Configurações", path: "/admin/configuracoes", icon: Settings },
 ];
 
 export default function AdminLayout() {
