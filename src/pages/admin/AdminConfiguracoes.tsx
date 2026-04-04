@@ -161,7 +161,7 @@ export default function AdminConfiguracoes() {
               <Input
                 id="tse-upload"
                 type="file"
-                accept=".csv"
+                accept=".csv,.gz"
                 className="hidden"
                 onChange={handleUpload}
                 disabled={uploading || !selectedState}
