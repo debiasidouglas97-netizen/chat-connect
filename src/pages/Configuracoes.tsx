@@ -682,24 +682,41 @@ export default function Configuracoes() {
                       };
                       const ufCode = uf.length === 2 ? uf.toUpperCase() : (stateToUf[uf] || "SP");
 
-                      // Download and parse TSE data in browser (TSE CDN has CORS enabled)
-                      const votes = await downloadAndParseTSEVotes(
-                        nrCandidatoTse.trim(),
-                        ufCode,
-                        parseInt(anoEleicao) || 2022,
-                        (msg) => setSyncProgress(msg),
-                      );
-
-                      if (Object.keys(votes).length === 0) {
-                        toast.warning("Nenhum voto encontrado para este candidato.");
-                        return;
-                      }
-
-                      // Send votes to edge function for DB update
-                      setSyncProgress("Salvando no banco de dados...");
-                      const res = await supabase.functions.invoke("fetch-tse-votes", {
-                        body: { tenant_id: tenantId, votes },
+                      // Try server-side download first (edge function)
+                      setSyncProgress("Baixando dados do TSE...");
+                      let res = await supabase.functions.invoke("fetch-tse-votes", {
+                        body: {
+                          tenant_id: tenantId,
+                          nr_candidato: nrCandidatoTse.trim(),
+                          uf: ufCode,
+                          ano: parseInt(anoEleicao) || 2022,
+                        },
                       });
+
+                      // If server-side was WAF-blocked, fall back to browser download
+                      if (res.data?.fallback === "csv_upload") {
+                        setSyncProgress("Servidor bloqueado, tentando pelo navegador...");
+                        try {
+                          const votes = await downloadAndParseTSEVotes(
+                            nrCandidatoTse.trim(),
+                            ufCode,
+                            parseInt(anoEleicao) || 2022,
+                            (msg) => setSyncProgress(msg),
+                          );
+
+                          if (Object.keys(votes).length === 0) {
+                            toast.warning("Nenhum voto encontrado para este candidato.");
+                            return;
+                          }
+
+                          setSyncProgress("Salvando no banco de dados...");
+                          res = await supabase.functions.invoke("fetch-tse-votes", {
+                            body: { tenant_id: tenantId, votes },
+                          });
+                        } catch (browserErr: any) {
+                          throw new Error("Não foi possível acessar o TSE nem pelo servidor nem pelo navegador. Tente novamente mais tarde.");
+                        }
+                      }
 
                       if (res.error) throw res.error;
                       const data = res.data;
