@@ -87,13 +87,30 @@ export async function downloadAndParseTSEVotes(
 
   const zipUrl = `${TSE_CDN}/votacao_candidato_munzona_${ano}.zip`;
 
-  // Step 1: Get file size
+  // Step 1: Get file size using a small Range request (more reliable than HEAD for CORS)
   log("Verificando arquivo do TSE...");
-  const headRes = await fetch(zipUrl, { method: "HEAD" });
-  if (!headRes.ok) {
-    throw new Error(`Arquivo do TSE não encontrado para ${ano} (HTTP ${headRes.status})`);
+  let totalSize = 0;
+  try {
+    const probeRes = await fetch(zipUrl, {
+      headers: { Range: "bytes=0-3" },
+    });
+    if (!probeRes.ok && probeRes.status !== 206) {
+      throw new Error(`HTTP ${probeRes.status}`);
+    }
+    const cr = probeRes.headers.get("Content-Range") || "";
+    const match = cr.match(/\/(\d+)/);
+    if (match) {
+      totalSize = parseInt(match[1], 10);
+    } else {
+      // Fallback: try Content-Length from a regular GET with abort
+      const fallbackRes = await fetch(zipUrl, { method: "GET" });
+      totalSize = parseInt(fallbackRes.headers.get("Content-Length") || "0", 10);
+      // Abort the body download
+      await fallbackRes.body?.cancel();
+    }
+  } catch (err: any) {
+    throw new Error(`Não foi possível acessar o CDN do TSE: ${err.message}`);
   }
-  const totalSize = parseInt(headRes.headers.get("Content-Length") || "0", 10);
   if (!totalSize) throw new Error("Não foi possível determinar o tamanho do arquivo");
 
   // Step 2: Find state file in ZIP
