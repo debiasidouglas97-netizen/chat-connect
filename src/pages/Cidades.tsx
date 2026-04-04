@@ -90,6 +90,15 @@ export default function Cidades() {
       return [...filtered].sort((a, b) => sortDir === "desc"
         ? ((b as any).votos2022 || 0) - ((a as any).votos2022 || 0)
         : ((a as any).votos2022 || 0) - ((b as any).votos2022 || 0));
+    } else if (sortField === "conversao") {
+      const getConversao = (c: any) => {
+        const votos = c.votos2022 || 0;
+        const pop = parseInt(String(c.population).replace(/\D/g, ""), 10) || 1;
+        return (votos / pop) * 100;
+      };
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? getConversao(b) - getConversao(a)
+        : getConversao(a) - getConversao(b));
     }
     return [...filtered].sort((a, b) => b.score - a.score);
   }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
