@@ -669,7 +669,6 @@ export default function Configuracoes() {
                         .single();
 
                       const uf = tenantInfo?.estado || form.state || "SP";
-                      // Convert full state name to UF code
                       const stateToUf: Record<string, string> = {
                         "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM",
                         "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF",
@@ -683,7 +682,7 @@ export default function Configuracoes() {
                       };
                       const ufCode = uf.length === 2 ? uf.toUpperCase() : (stateToUf[uf] || "SP");
 
-                      // Download and parse TSE data in browser
+                      // Download and parse TSE data in browser (TSE CDN has CORS enabled)
                       const votes = await downloadAndParseTSEVotes(
                         nrCandidatoTse.trim(),
                         ufCode,
