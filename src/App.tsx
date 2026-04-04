@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminDeputados from "./pages/admin/AdminDeputados";
-
+import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -48,6 +48,7 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="deputados" element={<AdminDeputados />} />
+              <Route path="configuracoes" element={<AdminConfiguracoes />} />
             </Route>
 
             {/* Protected tenant routes */}
