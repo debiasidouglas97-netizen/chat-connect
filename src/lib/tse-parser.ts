@@ -47,62 +47,62 @@ async function fetchRangeDirect(url: string, start: number, end: number): Promis
 }
 
 let useDirectFetch = false;
+type FetchMode = "direct" | "proxy";
+
+async function fetchRangeWithFallback(
+  url: string,
+  start: number,
+  end: number,
+  preferDirect = useDirectFetch,
+): Promise<Response> {
+  const attempts: Array<{ mode: FetchMode; run: () => Promise<Response> }> = preferDirect
+    ? [
+        { mode: "direct", run: () => fetchRangeDirect(url, start, end) },
+        { mode: "direct", run: () => fetchRangeDirect(url, start, end) },
+        { mode: "proxy", run: () => fetchRangeViaProxy(url, start, end) },
+      ]
+    : [
+        { mode: "proxy", run: () => fetchRangeViaProxy(url, start, end) },
+        { mode: "direct", run: () => fetchRangeDirect(url, start, end) },
+        { mode: "direct", run: () => fetchRangeDirect(url, start, end) },
+      ];
+
+  let lastError = "Tente novamente.";
+
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt.run();
+      if (res.ok || res.status === 206) {
+        useDirectFetch = attempt.mode === "direct";
+        return res;
+      }
+
+      const details = await res.text().catch(() => "");
+      lastError = `${attempt.mode} HTTP ${res.status}${details ? `: ${details.slice(0, 120)}` : ""}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  throw new Error(`Não foi possível baixar dados do TSE. ${lastError}`);
+}
 
 async function fetchRange(url: string, start: number, end: number): Promise<ArrayBuffer> {
-  let res: Response;
-  
-  if (!useDirectFetch) {
-    try {
-      res = await fetchRangeViaProxy(url, start, end);
-      if (res.ok || res.status === 206) return res.arrayBuffer();
-    } catch {
-      // proxy failed, try direct
-    }
-    // Try direct as fallback
-    try {
-      res = await fetchRangeDirect(url, start, end);
-      if (res.ok || res.status === 206) {
-        useDirectFetch = true; // proxy broken, switch to direct for remaining requests
-        return res.arrayBuffer();
-      }
-    } catch {
-      // both failed
-    }
-    throw new Error("Não foi possível baixar dados do TSE. Verifique sua conexão.");
-  }
-
-  // Direct mode (proxy already failed earlier)
-  res = await fetchRangeDirect(url, start, end);
-  if (!res.ok && res.status !== 206) {
-    throw new Error(`Erro ao baixar dados do TSE (HTTP ${res.status})`);
-  }
+  const res = await fetchRangeWithFallback(url, start, end);
   return res.arrayBuffer();
 }
 
 async function getRemoteFileSize(url: string): Promise<number> {
-  // Try direct first (TSE CDN supports range from browsers)
-  const strategies: Array<() => Promise<Response>> = [
-    () => fetchRangeDirect(url, 0, 3),
-    () => fetchRangeViaProxy(url, 0, 3),
-  ];
+  const res = await fetchRangeWithFallback(url, 0, 3, true);
 
-  for (const strategy of strategies) {
-    try {
-      const res = await strategy();
-      if (!res.ok && res.status !== 206) continue;
-      const cr = res.headers.get("content-range") || res.headers.get("Content-Range") || "";
-      const match = cr.match(/\/(\d+)/);
-      if (match) {
-        await res.arrayBuffer();
-        if (strategy === strategies[0]) useDirectFetch = true;
-        return parseInt(match[1], 10);
-      }
-    } catch {
-      continue;
-    }
+  const cr = res.headers.get("content-range") || res.headers.get("Content-Range") || "";
+  const match = cr.match(/\/(\d+)/);
+  if (!match) {
+    throw new Error("Não foi possível determinar o tamanho do arquivo do TSE");
   }
 
-  throw new Error("Não foi possível acessar o arquivo do TSE. Tente novamente.");
+  await res.arrayBuffer();
+  return parseInt(match[1], 10);
 }
 
 async function findZipEntry(url: string, totalSize: number, targetName: string): Promise<ZipEntry | null> {
