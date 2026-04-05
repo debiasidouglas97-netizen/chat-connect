@@ -169,7 +169,7 @@ export default function Mapa() {
   }, [mappableCities, search]);
 
   useEffect(() => {
-    if (!markersLayerRef.current) return;
+    if (!mapReady || !markersLayerRef.current) return;
 
     markersLayerRef.current.clearLayers();
     markersRef.current = {};
@@ -199,7 +199,7 @@ export default function Mapa() {
     if (focusedCityId && markersRef.current[focusedCityId]) {
       markersRef.current[focusedCityId].openTooltip();
     }
-  }, [mappableCities, focusedCityId]);
+  }, [mapReady, mappableCities, focusedCityId]);
 
   const geocodeCities = async (cities: CidadeWithCoords[], estado: string) => {
     setGeocoding(true);
