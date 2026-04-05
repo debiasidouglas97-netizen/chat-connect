@@ -18,6 +18,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCidades } from "@/hooks/use-cidades";
+import { useTenant } from "@/hooks/use-tenant";
+import { supabase } from "@/integrations/supabase/client";
+import { downloadAndParseTSEVotes } from "@/lib/tse-parser";
 import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
 import CidadeFormDialog, { fetchMunicipiosByUF, fetchPopulacoesBulk } from "@/components/cidades/CidadeFormDialog";
 
