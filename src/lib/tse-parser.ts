@@ -208,28 +208,117 @@ async function tryLoadFromStorage(
   nrCandidato: string,
   log: (msg: string) => void,
 ): Promise<Record<string, number> | null> {
-  const fileName = `votacao_${ano}_${uf}.csv`;
-  log(`Verificando arquivo local (${fileName})...`);
+  const candidates = [
+    `votacao_${ano}_${uf}.csv.gz`,
+    `votacao_${ano}_${uf}.zip`,
+    `votacao_${ano}_${uf}.csv`,
+  ];
 
-  try {
-    const { data } = supabase.storage.from("tse-data").getPublicUrl(fileName);
-    if (!data?.publicUrl) return null;
+  for (const fileName of candidates) {
+    log(`Verificando ${fileName}...`);
+    try {
+      const { data } = supabase.storage.from("tse-data").getPublicUrl(fileName);
+      if (!data?.publicUrl) continue;
 
-    const res = await fetch(data.publicUrl);
-    if (!res.ok) return null;
+      const res = await fetch(data.publicUrl);
+      if (!res.ok) continue;
 
-    const contentType = res.headers.get("content-type") || "";
-    // Storage returns XML error for missing files
-    if (contentType.includes("xml") || contentType.includes("html")) return null;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("xml") || contentType.includes("html")) continue;
 
-    log("Arquivo encontrado no sistema! Processando...");
-    const text = await res.text();
-    if (!text || text.length < 100 || !text.includes("NR_CANDIDATO")) return null;
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength < 100) continue;
 
-    return parseCsvText(text, nrCandidato, log);
-  } catch {
-    return null;
+      let text: string;
+
+      if (fileName.endsWith(".gz")) {
+        log("Descompactando .gz...");
+        const ds = new DecompressionStream("gzip");
+        const writer = ds.writable.getWriter();
+        writer.write(new Uint8Array(buf));
+        writer.close();
+        const reader = ds.readable.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const merged = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) { merged.set(c, off); off += c.length; }
+        text = new TextDecoder("latin1").decode(merged);
+      } else if (fileName.endsWith(".zip")) {
+        log("Extraindo CSV do ZIP...");
+        text = await extractCsvFromZipBuffer(new Uint8Array(buf), uf);
+      } else {
+        text = new TextDecoder("latin1").decode(buf);
+      }
+
+      if (!text || !text.includes("NR_CANDIDATO")) continue;
+
+      log("Arquivo encontrado no sistema! Processando...");
+      return parseCsvText(text, nrCandidato, log);
+    } catch {
+      continue;
+    }
   }
+  return null;
+}
+
+async function extractCsvFromZipBuffer(zipData: Uint8Array, uf: string): Promise<string> {
+  const view = new DataView(zipData.buffer);
+  let eocdPos = -1;
+  for (let i = zipData.length - 22; i >= 0; i--) {
+    if (zipData[i] === 0x50 && zipData[i+1] === 0x4b && zipData[i+2] === 0x05 && zipData[i+3] === 0x06) {
+      eocdPos = i; break;
+    }
+  }
+  if (eocdPos === -1) throw new Error("ZIP inválido");
+
+  const cdSize = view.getUint32(eocdPos + 12, true);
+  const cdOffset = view.getUint32(eocdPos + 16, true);
+  const target = `_${uf.toUpperCase()}.CSV`;
+
+  let pos = cdOffset;
+  while (pos < cdOffset + cdSize) {
+    if (zipData[pos] !== 0x50 || zipData[pos+1] !== 0x4b) break;
+    const compMethod = view.getUint16(pos + 10, true);
+    const compSize = view.getUint32(pos + 20, true);
+    const fnameLen = view.getUint16(pos + 28, true);
+    const extraLen = view.getUint16(pos + 30, true);
+    const commentLen = view.getUint16(pos + 32, true);
+    const localOffset = view.getUint32(pos + 42, true);
+    const fname = new TextDecoder().decode(zipData.slice(pos + 46, pos + 46 + fnameLen));
+
+    if (fname.toUpperCase().includes(target)) {
+      const lFnameLen = view.getUint16(localOffset + 26, true);
+      const lExtraLen = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + lFnameLen + lExtraLen;
+      const compressed = zipData.slice(dataStart, dataStart + compSize);
+
+      if (compMethod === 0) {
+        return new TextDecoder("latin1").decode(compressed);
+      }
+      if (compMethod === 8) {
+        const ds = new DecompressionStream("deflate-raw");
+        const w = ds.writable.getWriter();
+        w.write(compressed); w.close();
+        const r = ds.readable.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) { const { value, done } = await r.read(); if (done) break; chunks.push(value); }
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const merged = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) { merged.set(c, off); off += c.length; }
+        return new TextDecoder("latin1").decode(merged);
+      }
+      throw new Error("Método de compressão não suportado");
+    }
+    pos += 46 + fnameLen + extraLen + commentLen;
+  }
+  throw new Error(`CSV de ${uf} não encontrado no ZIP`);
 }
 
 export async function downloadAndParseTSEVotes(
