@@ -84,6 +84,7 @@ export default function Mapa() {
   const [geocoding, setGeocoding] = useState(false);
   const [focusedCityId, setFocusedCityId] = useState<string | null>(null);
   const [detailCity, setDetailCity] = useState<CidadeWithCoords | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (!tenantId) return;
