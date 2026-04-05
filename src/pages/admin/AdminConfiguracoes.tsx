@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Trash2, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Upload, FileText, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -19,15 +18,14 @@ const YEARS = ["2022", "2018", "2014"];
 
 export default function AdminConfiguracoes() {
   const queryClient = useQueryClient();
-  const [uploading, setUploading] = useState(false);
+  const [uploadingState, setUploadingState] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState("2022");
-  const [selectedState, setSelectedState] = useState("");
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ["tse-data-files"],
     queryFn: async () => {
       const { data, error } = await supabase.storage.from("tse-data").list("", {
-        limit: 100,
+        limit: 200,
         sortBy: { column: "name", order: "asc" },
       });
       if (error) throw error;
@@ -35,61 +33,87 @@ export default function AdminConfiguracoes() {
     },
   });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const getFileForState = (uf: string) => {
+    return files.find((f: any) => {
+      const name = f.name.toLowerCase();
+      const ufLower = uf.toLowerCase();
+      const year = selectedYear;
+      return (
+        name.includes(`_${year}_${ufLower}`) ||
+        name.includes(`_${ufLower}_${year}`) ||
+        name.includes(`votacao_${year}_${ufLower}`)
+      );
+    });
+  };
+
+  const handleUpload = async (uf: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith(".csv") && !file.name.endsWith(".csv.gz")) {
-      toast.error("Apenas arquivos CSV ou CSV.GZ são aceitos.");
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const allowed = ["csv", "gz", "zip"];
+    if (!ext || !allowed.includes(ext)) {
+      toast.error("Apenas arquivos CSV, CSV.GZ ou ZIP são aceitos.");
       return;
     }
 
-    const uf = selectedState || file.name.match(/_([A-Z]{2})\.csv/i)?.[1]?.toUpperCase();
-    const year = selectedYear || "2022";
+    setUploadingState(uf);
 
-    if (!uf || !STATES.includes(uf)) {
-      toast.error("Selecione o estado ou use um arquivo com a UF no nome (ex: votacao_RJ.csv).");
-      return;
-    }
-
-    const storageName = `votacao_${year}_${uf}.csv`;
-
-    setUploading(true);
     try {
-      // Remove existing file if any
-      await supabase.storage.from("tse-data").remove([storageName]);
+      // Determine storage name based on file type
+      let storageName: string;
+      if (file.name.endsWith(".csv.gz") || file.name.endsWith(".gz")) {
+        storageName = `votacao_${selectedYear}_${uf}.csv.gz`;
+      } else if (file.name.endsWith(".zip")) {
+        storageName = `votacao_${selectedYear}_${uf}.zip`;
+      } else {
+        storageName = `votacao_${selectedYear}_${uf}.csv`;
+      }
+
+      // Remove any existing files for this state/year
+      const possibleNames = [
+        `votacao_${selectedYear}_${uf}.csv`,
+        `votacao_${selectedYear}_${uf}.csv.gz`,
+        `votacao_${selectedYear}_${uf}.zip`,
+      ];
+      await supabase.storage.from("tse-data").remove(possibleNames);
+
+      const contentType = file.name.endsWith(".zip")
+        ? "application/zip"
+        : file.name.endsWith(".gz")
+        ? "application/gzip"
+        : "text/csv";
 
       const { error } = await supabase.storage
         .from("tse-data")
-        .upload(storageName, file, {
-          contentType: "text/csv",
-          upsert: true,
-        });
+        .upload(storageName, file, { contentType, upsert: true });
 
       if (error) throw error;
 
-      toast.success(`✅ Arquivo ${storageName} enviado com sucesso!`);
+      toast.success(`✅ ${uf} — arquivo enviado com sucesso!`);
       queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
     } catch (err: any) {
-      toast.error("Erro ao enviar: " + (err.message || "Erro desconhecido"));
+      toast.error(`Erro ao enviar ${uf}: ${err.message || "Erro desconhecido"}`);
     } finally {
-      setUploading(false);
+      setUploadingState(null);
       e.target.value = "";
     }
   };
 
-  const handleDelete = async (fileName: string) => {
+  const handleDelete = async (uf: string) => {
+    const possibleNames = [
+      `votacao_${selectedYear}_${uf}.csv`,
+      `votacao_${selectedYear}_${uf}.csv.gz`,
+      `votacao_${selectedYear}_${uf}.zip`,
+    ];
     try {
-      const { error } = await supabase.storage.from("tse-data").remove([fileName]);
-      if (error) throw error;
-      toast.success(`Arquivo ${fileName} removido.`);
+      await supabase.storage.from("tse-data").remove(possibleNames);
+      toast.success(`Dados de ${uf} removidos.`);
       queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
     } catch (err: any) {
       toast.error("Erro ao remover: " + err.message);
     }
   };
-
-  const tseFiles = files.filter((f: any) => f.name.startsWith("votacao_"));
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -107,8 +131,8 @@ export default function AdminConfiguracoes() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Faça upload dos arquivos CSV de votação do TSE por estado. 
-            Baixe o arquivo ZIP em{" "}
+            Faça upload dos arquivos CSV (ou compactados .csv.gz / .zip) de votação do TSE por estado.
+            Baixe em{" "}
             <a
               href="https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona/votacao_candidato_munzona_2022.zip"
               target="_blank"
@@ -117,10 +141,10 @@ export default function AdminConfiguracoes() {
             >
               cdn.tse.jus.br
             </a>
-            , extraia o CSV do estado desejado e envie aqui.
+            , extraia o CSV do estado desejado e envie aqui. Arquivos compactados são recomendados.
           </p>
 
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex items-end gap-3">
             <div className="space-y-1.5">
               <Label>Ano da Eleição</Label>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -134,78 +158,75 @@ export default function AdminConfiguracoes() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-1.5">
-              <Label>Estado (UF)</Label>
-              <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger className="w-28">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATES.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label
-                htmlFor="tse-upload"
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-md border cursor-pointer transition-colors
-                  ${uploading ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploading ? "Enviando..." : "Enviar CSV"}
-              </Label>
-              <Input
-                id="tse-upload"
-                type="file"
-                accept=".csv,.gz"
-                className="hidden"
-                onChange={handleUpload}
-                disabled={uploading || !selectedState}
-              />
-            </div>
           </div>
 
-          {!selectedState && (
-            <p className="text-xs text-amber-600">Selecione o estado antes de enviar o arquivo.</p>
-          )}
-
-          {/* Uploaded files list */}
+          {/* States grid */}
           <div className="border rounded-lg divide-y">
             {isLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">Carregando...</div>
-            ) : tseFiles.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Nenhum arquivo TSE enviado ainda.
-              </div>
             ) : (
-              tseFiles.map((f: any) => {
-                const match = f.name.match(/votacao_(\d+)_([A-Z]{2})\.csv/);
-                const year = match?.[1] || "?";
-                const state = match?.[2] || "?";
-                const sizeMB = ((f.metadata?.size || 0) / 1024 / 1024).toFixed(1);
+              STATES.map((uf) => {
+                const existingFile = getFileForState(uf);
+                const isUploading = uploadingState === uf;
+                const sizeMB = existingFile
+                  ? ((existingFile.metadata?.size || 0) / 1024 / 1024).toFixed(1)
+                  : null;
 
                 return (
-                  <div key={f.name} className="flex items-center gap-3 p-3">
-                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  <div key={uf} className="flex items-center gap-3 p-3">
+                    {existingFile ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                    )}
+
+                    <Badge variant={existingFile ? "default" : "outline"} className="w-10 justify-center text-xs">
+                      {uf}
+                    </Badge>
+
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{f.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {state} • Eleição {year} • {sizeMB}MB
-                      </p>
+                      {existingFile ? (
+                        <p className="text-xs text-muted-foreground">
+                          {existingFile.name} • {sizeMB}MB
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sem dados</p>
+                      )}
                     </div>
-                    <Badge variant="outline" className="text-xs">{state}</Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(f.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {existingFile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(uf)}
+                        >
+                          Remover
+                        </Button>
+                      )}
+
+                      <Label
+                        htmlFor={`upload-${uf}`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs cursor-pointer transition-colors
+                          ${isUploading ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
+                      >
+                        {isUploading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Upload className="h-3 w-3" />
+                        )}
+                        {isUploading ? "Enviando..." : existingFile ? "Substituir" : "Enviar"}
+                      </Label>
+                      <input
+                        id={`upload-${uf}`}
+                        type="file"
+                        accept=".csv,.gz,.zip"
+                        className="hidden"
+                        onChange={(e) => handleUpload(uf, e)}
+                        disabled={isUploading}
+                      />
+                    </div>
                   </div>
                 );
               })
