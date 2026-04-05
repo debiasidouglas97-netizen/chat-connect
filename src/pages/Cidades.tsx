@@ -18,6 +18,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCidades } from "@/hooks/use-cidades";
+import { useTenant } from "@/hooks/use-tenant";
+import { supabase } from "@/integrations/supabase/client";
+import { downloadAndParseTSEVotes } from "@/lib/tse-parser";
 import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
 import CidadeFormDialog, { fetchMunicipiosByUF, fetchPopulacoesBulk } from "@/components/cidades/CidadeFormDialog";
 
@@ -49,6 +52,7 @@ function getPopulationClass(pop: string) {
 
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
+  const { tenantId } = useTenant();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
@@ -107,6 +111,30 @@ export default function Cidades() {
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
   const showScore = canViewScore(CURRENT_ROLE);
 
+  const autoFetchVotes = async (cityNames: string[]) => {
+    if (!tenantId || cityNames.length === 0) return;
+    try {
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("nr_candidato_tse, estado, ano_eleicao")
+        .eq("id", tenantId)
+        .single();
+      if (!tenant?.nr_candidato_tse || !tenant?.estado) return;
+
+      const uf = tenant.estado;
+      const ano = tenant.ano_eleicao || 2022;
+      const votes = await downloadAndParseTSEVotes(tenant.nr_candidato_tse, uf, ano);
+      if (Object.keys(votes).length === 0) return;
+
+      // Call edge function to update DB with votes
+      await supabase.functions.invoke("fetch-tse-votes", {
+        body: { tenant_id: tenantId, votes },
+      });
+    } catch (err) {
+      console.error("Auto-fetch votes error:", err);
+    }
+  };
+
   const handleSave = async (c: CidadeBase) => {
     try {
       if (editingCity) {
@@ -115,6 +143,10 @@ export default function Cidades() {
       } else {
         await insert(c);
         toast.success("Cidade cadastrada");
+        // Auto-fetch votes in background
+        autoFetchVotes([c.name]).then(() => {
+          // Silently done - query will be invalidated
+        });
       }
       setEditingCity(undefined);
     } catch {
@@ -565,6 +597,7 @@ export default function Cidades() {
           for (const c of cities) {
             await insert(c);
           }
+          autoFetchVotes(cities.map(c => c.name));
         }}
         initial={editingCity}
       />
