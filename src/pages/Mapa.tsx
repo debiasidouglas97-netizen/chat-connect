@@ -84,6 +84,7 @@ export default function Mapa() {
   const [geocoding, setGeocoding] = useState(false);
   const [focusedCityId, setFocusedCityId] = useState<string | null>(null);
   const [detailCity, setDetailCity] = useState<CidadeWithCoords | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -139,6 +140,7 @@ export default function Mapa() {
 
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
+    setMapReady(true);
 
     return () => {
       markersLayerRef.current?.clearLayers();
@@ -146,6 +148,7 @@ export default function Mapa() {
       mapRef.current = null;
       markersLayerRef.current = null;
       markersRef.current = {};
+      setMapReady(false);
     };
   }, [tenantState]);
 
@@ -166,7 +169,7 @@ export default function Mapa() {
   }, [mappableCities, search]);
 
   useEffect(() => {
-    if (!markersLayerRef.current) return;
+    if (!mapReady || !markersLayerRef.current) return;
 
     markersLayerRef.current.clearLayers();
     markersRef.current = {};
@@ -196,7 +199,7 @@ export default function Mapa() {
     if (focusedCityId && markersRef.current[focusedCityId]) {
       markersRef.current[focusedCityId].openTooltip();
     }
-  }, [mappableCities, focusedCityId]);
+  }, [mapReady, mappableCities, focusedCityId]);
 
   const geocodeCities = async (cities: CidadeWithCoords[], estado: string) => {
     setGeocoding(true);
