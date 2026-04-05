@@ -597,6 +597,7 @@ export default function Cidades() {
           for (const c of cities) {
             await insert(c);
           }
+          autoFetchVotes(cities.map(c => c.name));
         }}
         initial={editingCity}
       />
