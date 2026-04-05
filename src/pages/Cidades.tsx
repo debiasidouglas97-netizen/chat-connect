@@ -111,6 +111,30 @@ export default function Cidades() {
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
   const showScore = canViewScore(CURRENT_ROLE);
 
+  const autoFetchVotes = async (cityNames: string[]) => {
+    if (!tenantId || cityNames.length === 0) return;
+    try {
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("nr_candidato_tse, estado, ano_eleicao")
+        .eq("id", tenantId)
+        .single();
+      if (!tenant?.nr_candidato_tse || !tenant?.estado) return;
+
+      const uf = tenant.estado;
+      const ano = tenant.ano_eleicao || 2022;
+      const votes = await downloadAndParseTSEVotes(tenant.nr_candidato_tse, uf, ano);
+      if (Object.keys(votes).length === 0) return;
+
+      // Call edge function to update DB with votes
+      await supabase.functions.invoke("fetch-tse-votes", {
+        body: { tenant_id: tenantId, votes },
+      });
+    } catch (err) {
+      console.error("Auto-fetch votes error:", err);
+    }
+  };
+
   const handleSave = async (c: CidadeBase) => {
     try {
       if (editingCity) {
@@ -119,6 +143,10 @@ export default function Cidades() {
       } else {
         await insert(c);
         toast.success("Cidade cadastrada");
+        // Auto-fetch votes in background
+        autoFetchVotes([c.name]).then(() => {
+          // Silently done - query will be invalidated
+        });
       }
       setEditingCity(undefined);
     } catch {
