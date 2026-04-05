@@ -140,6 +140,7 @@ export default function Mapa() {
 
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
+    setMapReady(true);
 
     return () => {
       markersLayerRef.current?.clearLayers();
@@ -147,6 +148,7 @@ export default function Mapa() {
       mapRef.current = null;
       markersLayerRef.current = null;
       markersRef.current = {};
+      setMapReady(false);
     };
   }, [tenantState]);
 
