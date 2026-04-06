@@ -56,8 +56,8 @@ export default function Index() {
   const totalProposicoes = proposicoes?.length ?? 0;
 
   const kpis = [
-    { label: "Demandas Abertas", value: demandasNovas, icon: FileText, change: "Coluna Nova do Kanban", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
-    { label: "Proposições", value: totalProposicoes, icon: Landmark, change: "Total cadastradas", bg: "bg-[hsl(30_70%_92%)]", iconBg: "bg-[hsl(30_70%_85%)]", iconColor: "text-[hsl(30_70%_35%)]" },
+    { label: "Demandas Abertas", value: demandasNovas, icon: FileText, change: "Coluna Nova do Kanban", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]", href: "/demandas" },
+    { label: "Proposições", value: totalProposicoes, icon: Landmark, change: "Total cadastradas", bg: "bg-[hsl(30_70%_92%)]", iconBg: "bg-[hsl(30_70%_85%)]", iconColor: "text-[hsl(30_70%_35%)]", href: "/proposicoes" },
   ];
   const navigate = useNavigate();
 
@@ -163,7 +163,7 @@ export default function Index() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className={`hover:shadow-md transition-shadow border-0 ${kpi.bg}`}>
+          <Card key={kpi.label} className={`hover:shadow-md transition-shadow border-0 cursor-pointer ${kpi.bg}`} onClick={() => navigate(kpi.href)}>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
