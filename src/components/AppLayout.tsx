@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { ChatAssistente } from "@/components/chat/ChatAssistente";
 
 export function AppLayout() {
   const { userAvatarUrl, userInitials } = useAuth();
@@ -46,6 +47,7 @@ export function AppLayout() {
           </main>
         </div>
       </div>
+      <ChatAssistente />
     </SidebarProvider>
   );
 }
