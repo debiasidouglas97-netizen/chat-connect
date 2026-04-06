@@ -18,6 +18,7 @@ import { useEmendas } from "@/hooks/use-emendas";
 import { useDemandas } from "@/hooks/use-demandas";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEventos } from "@/hooks/use-eventos";
+import { useProposicoes } from "@/hooks/use-proposicoes";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import InteligenciaMandato from "@/components/dashboard/InteligenciaMandato";
@@ -34,18 +35,30 @@ const statusConfig = {
   baixa: { icon: Snowflake, label: "Baixa Atuação", className: "bg-info/10 text-info border-info/20" },
 };
 
-const kpis = [
-  { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
-  { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
-];
+// KPIs are now dynamic — built inside the component
 
 export default function Index() {
   const { profile } = useDeputyProfile();
   const { cidades: cidadesRaw, insert: insertCidade } = useCidades();
   const { emendas } = useEmendas();
-  const { insert: insertDemanda } = useDemandas();
+  const { demandas: rawDemandas, insert: insertDemanda } = useDemandas();
   const { insert: insertLideranca } = useLiderancas();
   const { insert: insertEvento } = useEventos();
+  const { data: proposicoes } = useProposicoes();
+
+  const demandasNovas = useMemo(() => {
+    return rawDemandas.filter((d) => {
+      const col = d.col.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "_");
+      return col === "nova";
+    }).length;
+  }, [rawDemandas]);
+
+  const totalProposicoes = proposicoes?.length ?? 0;
+
+  const kpis = [
+    { label: "Demandas Abertas", value: demandasNovas, icon: FileText, change: "Coluna Nova do Kanban", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
+    { label: "Proposições", value: totalProposicoes, icon: Landmark, change: "Total cadastradas", bg: "bg-[hsl(30_70%_92%)]", iconBg: "bg-[hsl(30_70%_85%)]", iconColor: "text-[hsl(30_70%_35%)]" },
+  ];
   const navigate = useNavigate();
 
   const [demandaOpen, setDemandaOpen] = useState(false);
