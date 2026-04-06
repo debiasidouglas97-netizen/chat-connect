@@ -18,6 +18,7 @@ import { useEmendas } from "@/hooks/use-emendas";
 import { useDemandas } from "@/hooks/use-demandas";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEventos } from "@/hooks/use-eventos";
+import { useProposicoes } from "@/hooks/use-proposicoes";
 import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
 import InteligenciaMandato from "@/components/dashboard/InteligenciaMandato";
@@ -34,10 +35,7 @@ const statusConfig = {
   baixa: { icon: Snowflake, label: "Baixa Atuação", className: "bg-info/10 text-info border-info/20" },
 };
 
-const kpis = [
-  { label: "Demandas Abertas", value: 52, icon: FileText, change: "+5 esta semana", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
-  { label: "Demandas Resolvidas", value: 143, icon: CheckCircle2, change: "+18 este mês", bg: "bg-[hsl(145_50%_92%)]", iconBg: "bg-[hsl(145_50%_85%)]", iconColor: "text-[hsl(145_50%_35%)]" },
-];
+// KPIs are now dynamic — built inside the component
 
 export default function Index() {
   const { profile } = useDeputyProfile();
