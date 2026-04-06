@@ -44,7 +44,7 @@ export default function Index() {
   const { demandas: rawDemandas, insert: insertDemanda } = useDemandas();
   const { insert: insertLideranca } = useLiderancas();
   const { insert: insertEvento } = useEventos();
-  const { proposicoes } = useProposicoes();
+  const { data: proposicoes } = useProposicoes();
 
   const demandasNovas = useMemo(() => {
     return rawDemandas.filter((d) => {
