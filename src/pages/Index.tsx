@@ -67,7 +67,14 @@ export default function Index() {
   const [cidadeOpen, setCidadeOpen] = useState(false);
 
   const cidadesComScore = useMemo(
-    () => cidadesRaw.map(calcularScoreCidade).sort((a, b) => b.score - a.score),
+    () => {
+      const scored = cidadesRaw.map(calcularScoreCidade);
+      return scored.sort((a, b) => {
+        const popA = parseInt(a.population.replace(/\D/g, ""), 10) || 0;
+        const popB = parseInt(b.population.replace(/\D/g, ""), 10) || 0;
+        return popB - popA;
+      }).slice(0, 5);
+    },
     [cidadesRaw]
   );
 
