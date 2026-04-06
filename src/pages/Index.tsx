@@ -41,9 +41,24 @@ export default function Index() {
   const { profile } = useDeputyProfile();
   const { cidades: cidadesRaw, insert: insertCidade } = useCidades();
   const { emendas } = useEmendas();
-  const { insert: insertDemanda } = useDemandas();
+  const { demandas: rawDemandas, insert: insertDemanda } = useDemandas();
   const { insert: insertLideranca } = useLiderancas();
   const { insert: insertEvento } = useEventos();
+  const { proposicoes } = useProposicoes();
+
+  const demandasNovas = useMemo(() => {
+    return rawDemandas.filter((d) => {
+      const col = d.col.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "_");
+      return col === "nova";
+    }).length;
+  }, [rawDemandas]);
+
+  const totalProposicoes = proposicoes?.length ?? 0;
+
+  const kpis = [
+    { label: "Demandas Abertas", value: demandasNovas, icon: FileText, change: "Coluna Nova do Kanban", bg: "bg-[hsl(48_80%_92%)]", iconBg: "bg-[hsl(48_80%_85%)]", iconColor: "text-[hsl(48_80%_35%)]" },
+    { label: "Proposições", value: totalProposicoes, icon: Landmark, change: "Total cadastradas", bg: "bg-[hsl(30_70%_92%)]", iconBg: "bg-[hsl(30_70%_85%)]", iconColor: "text-[hsl(30_70%_35%)]" },
+  ];
   const navigate = useNavigate();
 
   const [demandaOpen, setDemandaOpen] = useState(false);
