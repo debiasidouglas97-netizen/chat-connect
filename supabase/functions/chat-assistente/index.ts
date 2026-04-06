@@ -99,7 +99,7 @@ async function gatherContext(supabase: any, tenantId: string, question: string) 
 
   // Conditionally load detailed data based on question intent
   const needsCidades = /cidad|voto|fraca|forte|foco|potencial|penetra|ipp|score|resum/i.test(q);
-  const needsLiderancas = /lideran|ativ|engaj|prefeito|inativ|resum/i.test(q);
+  const needsLiderancas = /lideran|ativ|engaj|prefeito|inativ|resum|tel|telefone|contato|whatsapp|email|instagram|facebook|youtube|quem|nome/i.test(q);
   const needsEmendas = /emenda|invest|valor|resum/i.test(q);
   const needsDemandas = /demanda|pendente|resolv|resum/i.test(q);
   const needsAgenda = /agenda|visit|evento|resum|há quanto/i.test(q);
@@ -123,7 +123,7 @@ async function gatherContext(supabase: any, tenantId: string, question: string) 
   if (needsLiderancas) {
     fetches.push(
       supabase.from("liderancas")
-        .select("name, cargo, cidade_principal, influencia, tipo, engajamento, classificacao_manual")
+        .select("name, cargo, cidade_principal, influencia, tipo, engajamento, classificacao_manual, phone, whatsapp, email, telegram_username, instagram, facebook, youtube")
         .eq("tenant_id", tenantId)
         .order("engajamento", { ascending: false })
         .limit(30)
