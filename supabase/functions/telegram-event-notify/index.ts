@@ -94,13 +94,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get telegram_contacts for this tenant only
+    // Get telegram_contacts — include tenant contacts AND contacts matching lideranca usernames
+    const liderancaUsernames = liderancasCity
+      .map((l: any) => (l.telegram_username || '').replace('@', '').toLowerCase().trim())
+      .filter((u: string) => u.length > 0);
+
     const { data: contacts } = await supabase
       .from('telegram_contacts')
-      .select('chat_id, username, lideranca_name')
-      .eq('tenant_id', tenantId);
+      .select('chat_id, username, lideranca_name, tenant_id');
 
-    if (!contacts || contacts.length === 0) {
+    // Filter contacts: must belong to tenant OR match a lideranca username
+    const relevantContacts = (contacts || []).filter((c: any) => {
+      if (c.tenant_id === tenantId) return true;
+      const cu = (c.username || '').toLowerCase().trim();
+      if (cu && liderancaUsernames.includes(cu)) return true;
+      return false;
+    });
+
+    if (relevantContacts.length === 0) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'No Telegram contacts found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
