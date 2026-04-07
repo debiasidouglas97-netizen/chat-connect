@@ -78,13 +78,22 @@ export default function Documentos() {
   };
 
   const handleDeleteCard = async (grupo: DocumentoGrupo) => {
-    if (grupo.origem !== "manual") return;
+    if (!confirm(`Remover "${grupo.titulo}" da central de documentos?`)) return;
     try {
       for (const arq of grupo.arquivos) {
-        await deleteManual.mutateAsync({ id: arq.id, storage_path: arq.storage_path });
+        if (grupo.origem === "manual") {
+          await deleteManual.mutateAsync({ id: arq.id, storage_path: arq.storage_path });
+        } else {
+          // Para demanda/emenda: remove apenas o anexo (storage + registro)
+          await supabase.storage.from(arq.bucket).remove([arq.storage_path]);
+          const table = grupo.origem === "demanda" ? "demanda_attachments" : "emenda_attachments";
+          await supabase.from(table).delete().eq("id", arq.id);
+        }
       }
       toast.success("Documento removido");
       setOpenGrupo(null);
+      // Refresh
+      window.location.reload();
     } catch {
       toast.error("Erro ao remover");
     }
@@ -165,6 +174,17 @@ export default function Documentos() {
                     </span>
                   </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCard(grupo);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
               </CardContent>
             </Card>
