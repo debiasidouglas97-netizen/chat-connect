@@ -2,101 +2,110 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/use-tenant";
 
-export interface DocumentoUnificado {
+export interface DocumentoArquivo {
   id: string;
-  titulo: string;
   file_name: string;
   file_size: number;
   file_type: string;
   storage_path: string;
   bucket: string;
-  origem: "emenda" | "demanda" | "manual";
-  origem_titulo: string;
   created_at: string;
+}
+
+export interface DocumentoGrupo {
+  key: string;
+  titulo: string;
+  origem: "emenda" | "demanda" | "manual";
+  origem_id: string;
+  arquivos: DocumentoArquivo[];
+  created_at: string; // oldest file date for sorting
 }
 
 export function useDocumentos() {
   const { tenantId } = useTenant();
   const qc = useQueryClient();
 
-  const { data: docs = [], isLoading } = useQuery({
+  const { data: grupos = [], isLoading } = useQuery({
     queryKey: ["documentos-unificados", tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
-      const result: DocumentoUnificado[] = [];
+      const grupoMap = new Map<string, DocumentoGrupo>();
 
-      // 1) Emenda attachments — busca por tenant_id OU via emendas do tenant
+      // 1) Emenda attachments
       const { data: tenantEmendas } = await supabase
         .from("emendas")
-        .select("id")
+        .select("id, titulo, cidade, tipo")
         .eq("tenant_id", tenantId!);
-      const emendaIds = (tenantEmendas || []).map((e) => e.id);
 
-      let emendaAtts: any[] = [];
-      if (emendaIds.length > 0) {
+      const emendaMap = new Map((tenantEmendas || []).map((e) => [e.id, e]));
+      const emendaIdList = (tenantEmendas || []).map((e) => e.id);
+
+      if (emendaIdList.length > 0) {
         const { data } = await supabase
           .from("emenda_attachments")
           .select("id, file_name, file_size, file_type, storage_path, created_at, emenda_id")
-          .in("emenda_id", emendaIds);
-        emendaAtts = data || [];
-      }
+          .in("emenda_id", emendaIdList);
 
-      if (emendaAtts && emendaAtts.length > 0) {
-        const emendaIds = [...new Set(emendaAtts.map((a) => a.emenda_id))];
-        const { data: emendas } = await supabase
-          .from("emendas")
-          .select("id, titulo, cidade, tipo")
-          .in("id", emendaIds);
-        const emendaMap = new Map((emendas || []).map((e) => [e.id, e]));
-
-        for (const att of emendaAtts) {
+        for (const att of data || []) {
           const em = emendaMap.get(att.emenda_id);
-          result.push({
+          const key = `emenda-${att.emenda_id}`;
+          if (!grupoMap.has(key)) {
+            grupoMap.set(key, {
+              key,
+              titulo: em?.titulo || `${em?.tipo} — ${em?.cidade}` || "Emenda",
+              origem: "emenda",
+              origem_id: att.emenda_id,
+              arquivos: [],
+              created_at: att.created_at,
+            });
+          }
+          grupoMap.get(key)!.arquivos.push({
             id: att.id,
-            titulo: att.file_name,
             file_name: att.file_name,
             file_size: att.file_size,
             file_type: att.file_type,
             storage_path: att.storage_path,
             bucket: "emenda-attachments",
-            origem: "emenda",
-            origem_titulo: em?.titulo || `${em?.tipo} — ${em?.cidade}` || "Emenda",
             created_at: att.created_at,
           });
         }
       }
 
-      // 2) Demanda attachments — busca via demandas do tenant
+      // 2) Demanda attachments
       const { data: tenantDemandas } = await supabase
         .from("demandas")
         .select("id, title")
         .eq("tenant_id", tenantId!);
-      const demandaMap = new Map((tenantDemandas || []).map((d) => [d.id, d]));
-      const demandaIds = (tenantDemandas || []).map((d) => d.id);
 
-      let demandaAtts: any[] = [];
-      if (demandaIds.length > 0) {
+      const demandaMap = new Map((tenantDemandas || []).map((d) => [d.id, d]));
+      const demandaIdList = (tenantDemandas || []).map((d) => d.id);
+
+      if (demandaIdList.length > 0) {
         const { data } = await supabase
           .from("demanda_attachments")
           .select("id, file_name, file_size, file_type, storage_path, created_at, demanda_id")
-          .in("demanda_id", demandaIds);
-        demandaAtts = data || [];
-      }
+          .in("demanda_id", demandaIdList);
 
-      if (demandaAtts.length > 0) {
-
-        for (const att of demandaAtts) {
+        for (const att of data || []) {
           const dem = demandaMap.get(att.demanda_id);
-          result.push({
+          const key = `demanda-${att.demanda_id}`;
+          if (!grupoMap.has(key)) {
+            grupoMap.set(key, {
+              key,
+              titulo: dem?.title || "Demanda",
+              origem: "demanda",
+              origem_id: att.demanda_id,
+              arquivos: [],
+              created_at: att.created_at,
+            });
+          }
+          grupoMap.get(key)!.arquivos.push({
             id: att.id,
-            titulo: att.file_name,
             file_name: att.file_name,
             file_size: att.file_size,
             file_type: att.file_type,
             storage_path: att.storage_path,
             bucket: "demanda-attachments",
-            origem: "demanda",
-            origem_titulo: dem?.title || "Demanda",
             created_at: att.created_at,
           });
         }
@@ -110,21 +119,27 @@ export function useDocumentos() {
 
       if (manuais) {
         for (const m of manuais as any[]) {
-          result.push({
-            id: m.id,
+          const key = `manual-${m.id}`;
+          grupoMap.set(key, {
+            key,
             titulo: m.titulo,
-            file_name: m.file_name,
-            file_size: m.file_size,
-            file_type: m.file_type,
-            storage_path: m.storage_path,
-            bucket: "documentos-manuais",
             origem: "manual",
-            origem_titulo: m.titulo,
+            origem_id: m.id,
+            arquivos: [{
+              id: m.id,
+              file_name: m.file_name,
+              file_size: m.file_size,
+              file_type: m.file_type,
+              storage_path: m.storage_path,
+              bucket: "documentos-manuais",
+              created_at: m.created_at,
+            }],
             created_at: m.created_at,
           });
         }
       }
 
+      const result = Array.from(grupoMap.values());
       result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       return result;
     },
@@ -152,17 +167,17 @@ export function useDocumentos() {
   });
 
   const deleteManual = useMutation({
-    mutationFn: async (doc: DocumentoUnificado) => {
+    mutationFn: async (doc: { id: string; storage_path: string }) => {
       await supabase.storage.from("documentos-manuais").remove([doc.storage_path]);
       await supabase.from("documentos_manuais" as any).delete().eq("id", doc.id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["documentos-unificados"] }),
   });
 
-  const getPublicUrl = (doc: DocumentoUnificado) => {
-    const { data } = supabase.storage.from(doc.bucket).getPublicUrl(doc.storage_path);
+  const getPublicUrl = (bucket: string, storagePath: string) => {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
     return data.publicUrl;
   };
 
-  return { docs, isLoading, uploadManual, deleteManual, getPublicUrl };
+  return { grupos, isLoading, uploadManual, deleteManual, getPublicUrl };
 }
