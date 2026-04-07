@@ -1,13 +1,13 @@
-import { useState, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useRef, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, Image, File, Download, Trash2, Search, Filter } from "lucide-react";
+import { FileText, Upload, Image, File, Download, Trash2, Search, Filter, X, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDocumentos, type DocumentoUnificado } from "@/hooks/use-documentos";
+import { useDocumentos, type DocumentoGrupo, type DocumentoArquivo } from "@/hooks/use-documentos";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,7 +37,7 @@ const ORIGEM_COLORS: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export default function Documentos() {
-  const { docs, isLoading, uploadManual, deleteManual, getPublicUrl } = useDocumentos();
+  const { grupos, isLoading, uploadManual, deleteManual, getPublicUrl } = useDocumentos();
   const [search, setSearch] = useState("");
   const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -45,14 +45,17 @@ export default function Documentos() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const filtered = docs.filter((d) => {
-    if (filtroOrigem !== "todos" && d.origem !== filtroOrigem) return false;
+  // Lightbox state
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxName, setLightboxName] = useState("");
+
+  const filtered = grupos.filter((g) => {
+    if (filtroOrigem !== "todos" && g.origem !== filtroOrigem) return false;
     if (search) {
       const s = search.toLowerCase();
       return (
-        d.titulo.toLowerCase().includes(s) ||
-        d.file_name.toLowerCase().includes(s) ||
-        d.origem_titulo.toLowerCase().includes(s)
+        g.titulo.toLowerCase().includes(s) ||
+        g.arquivos.some((a) => a.file_name.toLowerCase().includes(s))
       );
     }
     return true;
@@ -71,18 +74,30 @@ export default function Documentos() {
     }
   };
 
-  const handleDelete = async (doc: DocumentoUnificado) => {
-    if (doc.origem !== "manual") return;
+  const handleDeleteCard = async (grupo: DocumentoGrupo) => {
+    if (grupo.origem !== "manual") return;
     try {
-      await deleteManual.mutateAsync(doc);
-      toast.success("Documento removido");
+      for (const arq of grupo.arquivos) {
+        await deleteManual.mutateAsync({ id: arq.id, storage_path: arq.storage_path });
+      }
+      toast.success("Documento removido da listagem");
     } catch {
       toast.error("Erro ao remover");
     }
   };
 
+  const openLightbox = useCallback((bucket: string, storagePath: string, fileName: string) => {
+    setLightboxUrl(getPublicUrl(bucket, storagePath));
+    setLightboxName(fileName);
+  }, [getPublicUrl]);
+
+  const downloadFile = useCallback((bucket: string, storagePath: string) => {
+    const url = getPublicUrl(bucket, storagePath);
+    window.open(url, "_blank");
+  }, [getPublicUrl]);
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
@@ -100,7 +115,7 @@ export default function Documentos() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por título, arquivo ou origem..."
+            placeholder="Buscar por título ou arquivo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -120,62 +135,142 @@ export default function Documentos() {
         </Select>
       </div>
 
-      {/* Lista */}
+      {/* Lista de Cards Agrupados */}
       {isLoading ? (
         <p className="text-sm text-muted-foreground text-center py-8">Carregando documentos...</p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">Nenhum documento encontrado</p>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((doc) => {
-            const Icon = getFileIcon(doc.file_type);
-            return (
-              <Card key={`${doc.origem}-${doc.id}`} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Icon className="h-5 w-5 text-primary" />
+        <div className="space-y-4">
+          {filtered.map((grupo) => (
+            <Card key={grupo.key} className="hover:shadow-md transition-shadow overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Badge variant={ORIGEM_COLORS[grupo.origem]} className="shrink-0 text-[10px]">
+                      {ORIGEM_LABELS[grupo.origem]}
+                    </Badge>
+                    <CardTitle className="text-base truncate">{grupo.titulo}</CardTitle>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {grupo.arquivos.length} {grupo.arquivos.length === 1 ? "arquivo" : "arquivos"}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{doc.file_name}</p>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      <Badge variant={ORIGEM_COLORS[doc.origem]} className="text-[10px]">
-                        {ORIGEM_LABELS[doc.origem]}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[200px]">
-                        {doc.origem_titulo}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {format(new Date(doc.created_at), "dd MMM yyyy", { locale: ptBR })}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatFileSize(doc.file_size)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  {grupo.origem === "manual" && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
-                      onClick={() => window.open(getPublicUrl(doc), "_blank")}
+                      className="h-8 w-8 text-destructive shrink-0"
+                      onClick={() => handleDeleteCard(grupo)}
                     >
-                      <Download className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                    {doc.origem === "manual" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => handleDelete(doc)}
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {grupo.arquivos.map((arq) => {
+                    const isImage = arq.file_type.startsWith("image/");
+                    const url = getPublicUrl(arq.bucket, arq.storage_path);
+                    const Icon = getFileIcon(arq.file_type);
+
+                    return (
+                      <div
+                        key={arq.id}
+                        className="group relative rounded-lg border bg-muted/30 overflow-hidden"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                        {/* Thumbnail / Icon */}
+                        <div
+                          className="aspect-square flex items-center justify-center cursor-pointer overflow-hidden bg-muted/50"
+                          onClick={() => {
+                            if (isImage) {
+                              openLightbox(arq.bucket, arq.storage_path, arq.file_name);
+                            } else {
+                              downloadFile(arq.bucket, arq.storage_path);
+                            }
+                          }}
+                        >
+                          {isImage ? (
+                            <img
+                              src={url}
+                              alt={arq.file_name}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <Icon className="h-10 w-10 text-muted-foreground" />
+                          )}
+
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <Eye className="h-6 w-6 text-white" />
+                          </div>
+                        </div>
+
+                        {/* File info */}
+                        <div className="p-2 space-y-1">
+                          <p className="text-[11px] font-medium text-foreground truncate" title={arq.file_name}>
+                            {arq.file_name}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatFileSize(arq.file_size)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => downloadFile(arq.bucket, arq.storage_path)}
+                            >
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(arq.created_at), "dd MMM yyyy", { locale: ptBR })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white hover:text-white/80 z-50"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X className="h-8 w-8" />
+          </button>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 z-50">
+            <span className="text-white text-sm">{lightboxName}</span>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(lightboxUrl, "_blank");
+              }}
+            >
+              <Download className="h-4 w-4" /> Baixar
+            </Button>
+          </div>
+          <img
+            src={lightboxUrl}
+            alt={lightboxName}
+            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
