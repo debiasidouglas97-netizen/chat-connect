@@ -1,0 +1,1 @@
+UPDATE public.telegram_contacts SET tenant_id = 'b261fd81-9af8-46a3-91df-e57882508c0a' WHERE username = 'eng_will' AND tenant_id IS NULL;
