@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
 
     for (const lid of liderancasCity) {
       const lidUsername = normalize(lid.telegram_username || '');
-      for (const contact of contacts) {
+      for (const contact of relevantContacts) {
         const contactUsername = normalize(contact.username || '');
         if (
           (lidUsername && contactUsername && lidUsername === contactUsername) ||
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     // Also include participantes_liderancas if they have contacts
     if (evento.participantes_liderancas && Array.isArray(evento.participantes_liderancas)) {
       for (const name of evento.participantes_liderancas) {
-        for (const contact of contacts) {
+        for (const contact of relevantContacts) {
           if (contact.lideranca_name === name) {
             chatIds.add(contact.chat_id);
           }
