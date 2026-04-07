@@ -39,6 +39,7 @@ const ORIGEM_COLORS: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export default function Documentos() {
+  const qc = useQueryClient();
   const { grupos, isLoading, uploadManual, deleteManual, getPublicUrl } = useDocumentos();
   const [search, setSearch] = useState("");
   const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
@@ -94,8 +95,7 @@ export default function Documentos() {
       }
       toast.success("Documento removido");
       setOpenGrupo(null);
-      // Refresh
-      window.location.reload();
+      qc.invalidateQueries({ queryKey: ["documentos-unificados"] });
     } catch {
       toast.error("Erro ao remover");
     }
