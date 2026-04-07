@@ -25,11 +25,21 @@ export function useDocumentos() {
     queryFn: async () => {
       const result: DocumentoUnificado[] = [];
 
-      // 1) Emenda attachments
-      const { data: emendaAtts } = await supabase
-        .from("emenda_attachments")
-        .select("id, file_name, file_size, file_type, storage_path, created_at, emenda_id")
+      // 1) Emenda attachments — busca por tenant_id OU via emendas do tenant
+      const { data: tenantEmendas } = await supabase
+        .from("emendas")
+        .select("id")
         .eq("tenant_id", tenantId!);
+      const emendaIds = (tenantEmendas || []).map((e) => e.id);
+
+      let emendaAtts: any[] = [];
+      if (emendaIds.length > 0) {
+        const { data } = await supabase
+          .from("emenda_attachments")
+          .select("id, file_name, file_size, file_type, storage_path, created_at, emenda_id")
+          .in("emenda_id", emendaIds);
+        emendaAtts = data || [];
+      }
 
       if (emendaAtts && emendaAtts.length > 0) {
         const emendaIds = [...new Set(emendaAtts.map((a) => a.emenda_id))];
@@ -56,19 +66,24 @@ export function useDocumentos() {
         }
       }
 
-      // 2) Demanda attachments
-      const { data: demandaAtts } = await supabase
-        .from("demanda_attachments")
-        .select("id, file_name, file_size, file_type, storage_path, created_at, demanda_id")
+      // 2) Demanda attachments — busca via demandas do tenant
+      const { data: tenantDemandas } = await supabase
+        .from("demandas")
+        .select("id, title")
         .eq("tenant_id", tenantId!);
+      const demandaMap = new Map((tenantDemandas || []).map((d) => [d.id, d]));
+      const demandaIds = (tenantDemandas || []).map((d) => d.id);
 
-      if (demandaAtts && demandaAtts.length > 0) {
-        const demandaIds = [...new Set(demandaAtts.map((a) => a.demanda_id))];
-        const { data: demandas } = await supabase
-          .from("demandas")
-          .select("id, title")
-          .in("id", demandaIds);
-        const demandaMap = new Map((demandas || []).map((d) => [d.id, d]));
+      let demandaAtts: any[] = [];
+      if (demandaIds.length > 0) {
+        const { data } = await supabase
+          .from("demanda_attachments")
+          .select("id, file_name, file_size, file_type, storage_path, created_at, demanda_id")
+          .in("demanda_id", demandaIds);
+        demandaAtts = data || [];
+      }
+
+      if (demandaAtts.length > 0) {
 
         for (const att of demandaAtts) {
           const dem = demandaMap.get(att.demanda_id);
