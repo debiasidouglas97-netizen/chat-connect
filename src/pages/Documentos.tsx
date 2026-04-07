@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { FileText, Upload, Image, File, Download, Trash2, Search, Filter, X, Eye, FolderOpen, Paperclip } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDocumentos, type DocumentoGrupo, type DocumentoArquivo } from "@/hooks/use-documentos";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +39,7 @@ const ORIGEM_COLORS: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export default function Documentos() {
+  const qc = useQueryClient();
   const { grupos, isLoading, uploadManual, deleteManual, getPublicUrl } = useDocumentos();
   const [search, setSearch] = useState("");
   const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
@@ -78,13 +81,21 @@ export default function Documentos() {
   };
 
   const handleDeleteCard = async (grupo: DocumentoGrupo) => {
-    if (grupo.origem !== "manual") return;
+    if (!confirm(`Remover "${grupo.titulo}" da central de documentos?`)) return;
     try {
       for (const arq of grupo.arquivos) {
-        await deleteManual.mutateAsync({ id: arq.id, storage_path: arq.storage_path });
+        if (grupo.origem === "manual") {
+          await deleteManual.mutateAsync({ id: arq.id, storage_path: arq.storage_path });
+        } else {
+          // Para demanda/emenda: remove apenas o anexo (storage + registro)
+          await supabase.storage.from(arq.bucket).remove([arq.storage_path]);
+          const table = grupo.origem === "demanda" ? "demanda_attachments" : "emenda_attachments";
+          await supabase.from(table).delete().eq("id", arq.id);
+        }
       }
       toast.success("Documento removido");
       setOpenGrupo(null);
+      qc.invalidateQueries({ queryKey: ["documentos-unificados"] });
     } catch {
       toast.error("Erro ao remover");
     }
@@ -165,6 +176,17 @@ export default function Documentos() {
                     </span>
                   </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCard(grupo);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
               </CardContent>
             </Card>
