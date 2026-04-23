@@ -512,18 +512,15 @@ export default function Cidades() {
                         </div>
                       );
                     })()}
-                    <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
-                      <span className="font-semibold">Pop: {c.population}</span>
-                      <span>Peso: {c.peso}/10</span>
-                      <span className="font-semibold flex items-center gap-1">
-                        <Vote className="h-3 w-3" />
-                        Eleitores: {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}
-                      </span>
-                      <span></span>
-                      <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                      <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
-                      <span>{c.regiao}</span>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs" style={{ color: popClass.text }}>
+                      <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /><span className="font-semibold">População:</span> {c.population}</span>
+                      <span className="flex items-center gap-1.5"><span className="font-semibold">Peso:</span> {c.peso}/10</span>
+                      <span className="flex items-center gap-1.5"><Vote className="h-3 w-3" /><span className="font-semibold">Eleitores:</span> {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}</span>
+                      <span className="flex items-center gap-1.5"><MapPinned className="h-3 w-3" /><span className="font-semibold">Visitas:</span> {getVisitas(c.name)}</span>
+                      <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                      <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
+                      <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                      <span className="text-right opacity-80">{c.regiao}</span>
                     </div>
                     {(c as any).votos2022 > 0 && (
                       <div className="flex items-center justify-end mt-1">
