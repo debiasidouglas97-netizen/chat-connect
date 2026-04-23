@@ -687,9 +687,9 @@ export default function Cidades() {
                         );
                       })()}
                     </TableCell>
-                    <TableCell>{c.demandas}</TableCell>
+                    <TableCell>{getDemandasCount(c.name)}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
-                    <TableCell>{c.emendas}</TableCell>
+                    <TableCell>{getEmendasCount(c.name)}</TableCell>
                     <TableCell>
                       {(c as any).votos2022 > 0 ? (
                         <span className="font-bold">{((c as any).votos2022 as number).toLocaleString("pt-BR")}</span>
