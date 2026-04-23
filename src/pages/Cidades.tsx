@@ -458,6 +458,11 @@ export default function Cidades() {
                     <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
                       <span className="font-semibold">Pop: {c.population}</span>
                       <span>Peso: {c.peso}/10</span>
+                      <span className="font-semibold flex items-center gap-1">
+                        <Vote className="h-3 w-3" />
+                        Eleitores: {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}
+                      </span>
+                      <span></span>
                       <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
                       <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
