@@ -11,6 +11,7 @@ import type { LiderancaComScore, AtuacaoCidade } from "@/lib/scoring";
 import { useCidades } from "@/hooks/use-cidades";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
+import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -61,6 +62,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [novaCidade, setNovaCidade] = useState("");
   const [novaIntensidade, setNovaIntensidade] = useState<"Alta" | "Média" | "Baixa">("Média");
   const [classificacaoManual, setClassificacaoManual] = useState("");
+  const [metaTipo, setMetaTipo] = useState<MetaVotosTipo>("percentual");
+  const [metaValor, setMetaValor] = useState<number | null>(null);
 
   const startEdit = () => {
     if (!lideranca) return;
@@ -85,6 +88,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setAddressCity(l.address_city || "");
     setAddressState(l.address_state || "");
     setClassificacaoManual(l.classificacao_manual || "");
+    setMetaTipo((l.meta_votos_tipo as MetaVotosTipo) || "percentual");
+    setMetaValor(l.meta_votos_valor ?? null);
     setAtuacao(l.atuacao ? [...l.atuacao] : []);
     setNovaCidade("");
     setNovaIntensidade("Média");
@@ -133,6 +138,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
       classificacao_manual: classificacaoManual && classificacaoManual !== "auto" ? classificacaoManual : null,
       atuacao,
+      meta_votos_tipo: metaTipo,
+      meta_votos_valor: metaValor,
     });
     setEditing(false);
   };
