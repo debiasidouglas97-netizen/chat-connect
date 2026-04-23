@@ -245,6 +245,7 @@ export default function Cidades() {
                 if (error) throw error;
                 if ((data as any)?.success) {
                   toast.success(`Eleitorado atualizado em ${(data as any).cities_updated} cidades`, { id: "elei" });
+                  qc.invalidateQueries({ queryKey: ["cidades"] });
                 } else {
                   toast.error((data as any)?.error || "Falha ao importar", { id: "elei" });
                 }
