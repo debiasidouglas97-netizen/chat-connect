@@ -42,7 +42,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [cargo, setCargo] = useState("");
   const [cidadePrincipal, setCidadePrincipal] = useState("");
   const [influencia, setInfluencia] = useState<"Alta" | "Média" | "Baixa">("Média");
-  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política">("Comunitária");
+  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vereador(a)">("Comunitária");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
@@ -257,7 +257,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 </div>
                 <div>
                   <Label className="text-xs">Tipo</Label>
-                  <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem></SelectContent></Select>
+                  <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Classificação</Label>
