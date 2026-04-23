@@ -69,8 +69,7 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
     return eventos
       .filter((ev) => {
         const evCity = (ev.cidade || "").split("/")[0].trim().toLowerCase();
-        const isVisita = (ev.tipo || "").toLowerCase().includes("visita");
-        return evCity === cityKey && isVisita;
+        return evCity === cityKey;
       })
       .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   }, [cidade, eventos, cityKey]);
@@ -78,7 +77,11 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
   const cityDemandas = useMemo(() => {
     if (!cidade) return [];
     return demandas
-      .filter((d) => (d.city || "").split("/")[0].trim().toLowerCase() === cityKey)
+      .filter((d) => {
+        const matchCity = (d.city || "").split("/")[0].trim().toLowerCase() === cityKey;
+        const isAgenda = (d.origin || "").toLowerCase() === "agenda";
+        return matchCity && !isAgenda;
+      })
       .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   }, [cidade, demandas, cityKey]);
 
