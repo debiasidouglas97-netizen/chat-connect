@@ -541,6 +541,13 @@ export default function Cidades() {
                         </Tooltip>
                       </TooltipProvider>
                     </TableCell>
+                    <TableCell>
+                      {(c as any).eleitores2024 > 0 ? (
+                        <span className="font-medium">{((c as any).eleitores2024 as number).toLocaleString("pt-BR")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{c.peso}/10</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
