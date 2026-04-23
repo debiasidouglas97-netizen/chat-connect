@@ -21,7 +21,7 @@ import {
 import { useCidades } from "@/hooks/use-cidades";
 import { useTenant } from "@/hooks/use-tenant";
 import { supabase } from "@/integrations/supabase/client";
-import { downloadAndParseTSEVotes } from "@/lib/tse-parser";
+import { downloadAndParseTSEVotes, downloadAndParseTSEEleitorado } from "@/lib/tse-parser";
 import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
 import CidadeFormDialog, { fetchMunicipiosByUF, fetchPopulacoesBulk } from "@/components/cidades/CidadeFormDialog";
 
@@ -239,8 +239,11 @@ export default function Cidades() {
                   return;
                 }
                 toast.loading("Baixando eleitorado do TSE...", { id: "elei" });
+                const eleitorado = await downloadAndParseTSEEleitorado(tenant.estado, 2024, (msg) => {
+                  toast.loading(msg, { id: "elei" });
+                });
                 const { data, error } = await supabase.functions.invoke("fetch-tse-eleitorado", {
-                  body: { tenant_id: tenantId, uf: tenant.estado, ano: 2024 },
+                  body: { tenant_id: tenantId, eleitorado },
                 });
                 if (error) throw error;
                 if ((data as any)?.success) {

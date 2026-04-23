@@ -250,7 +250,11 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { tenant_id, uf, ano } = body;
+    const { tenant_id, uf, ano, eleitorado } = body;
+
+    if (tenant_id && eleitorado && typeof eleitorado === "object") {
+      return await updateCities(tenant_id, eleitorado);
+    }
 
     if (!tenant_id || !uf) {
       return jsonResponse({ error: "tenant_id e uf são obrigatórios." }, 400);
