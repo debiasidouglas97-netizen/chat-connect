@@ -194,13 +194,14 @@ async function downloadAndParseEleitorado(
     await writer.close();
   })();
 
-  // Acumulador: município → total de eleitores aptos
+  // Acumulador: município → total de eleitores aptos (já filtrado por UF)
   const eleitores: Record<string, number> = {};
   const decoder = new TextDecoder("latin1");
   let partialLine = "";
   let headerCols: string[] | null = null;
   let nmMunIdx = -1,
-    qtIdx = -1;
+    qtIdx = -1,
+    sgUfIdx = -1;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -217,17 +218,20 @@ async function downloadAndParseEleitorado(
       if (!headerCols) {
         headerCols = cols;
         nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+        sgUfIdx = cols.indexOf("SG_UF");
         // Coluna do total de eleitores no município (linha já é por perfil — então somamos).
-        // No layout do TSE, "QT_ELEITORES_PERFIL" é a contagem dentro daquele perfil.
         qtIdx = cols.indexOf("QT_ELEITORES_PERFIL");
         if (qtIdx === -1) qtIdx = cols.indexOf("QT_ELEITORES_INC_NM_SOCIAL");
-        if (nmMunIdx === -1 || qtIdx === -1) {
+        if (nmMunIdx === -1 || qtIdx === -1 || sgUfIdx === -1) {
           throw new Error("Formato CSV inesperado (colunas não encontradas)");
         }
         continue;
       }
 
-      if (cols.length <= Math.max(nmMunIdx, qtIdx)) continue;
+      const maxIdx = Math.max(nmMunIdx, qtIdx, sgUfIdx);
+      if (cols.length <= maxIdx) continue;
+      // Filtra apenas o estado solicitado
+      if (cols[sgUfIdx] !== uf) continue;
       const mun = normalize(cols[nmMunIdx]);
       const v = parseInt(cols[qtIdx], 10);
       if (mun && Number.isFinite(v) && v > 0) {
