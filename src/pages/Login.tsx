@@ -9,18 +9,37 @@ import bgLogin from "@/assets/background_login.png";
 export default function Login() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const resolveToEmail = async (id: string): Promise<string | null> => {
+    if (id.includes("@")) return id;
+    try {
+      const { data, error } = await supabase.functions.invoke("resolve-login", {
+        body: { identifier: id },
+      });
+      if (error || !data?.email) return null;
+      return data.email as string;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
+    if (!identifier.trim() || !password.trim()) {
       toast.error("Preencha todos os campos");
       return;
     }
     setLoading(true);
+    const email = await resolveToEmail(identifier.trim());
+    if (!email) {
+      setLoading(false);
+      toast.error("Usuário não encontrado. Verifique CPF, email ou usuário.");
+      return;
+    }
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
@@ -80,11 +99,11 @@ export default function Login() {
                 <User className="h-4 w-4" />
               </div>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                autoComplete="email"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="Email, CPF ou usuário"
+                autoComplete="username"
                 className="w-full h-12 pl-10 pr-4 rounded-lg bg-white/10 border border-white/15 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/25 focus:bg-white/15 transition-all text-sm backdrop-blur-sm"
               />
             </div>
