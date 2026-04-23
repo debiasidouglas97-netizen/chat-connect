@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow, Vote, MapPinned } from "lucide-react";
 import { useEventos } from "@/hooks/use-eventos";
+import { useDemandas } from "@/hooks/use-demandas";
+import { useEmendas } from "@/hooks/use-emendas";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
