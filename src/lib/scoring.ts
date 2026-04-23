@@ -17,6 +17,7 @@ export interface CidadeBase {
   liderancas: number;
   emendas: number;
   votos2022?: number;
+  eleitores2024?: number;
 }
 
 export interface CidadeComScore extends CidadeBase {

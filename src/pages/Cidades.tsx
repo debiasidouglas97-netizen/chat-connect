@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ function getPopulationClass(pop: string) {
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
   const { tenantId } = useTenant();
+  const qc = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
@@ -220,9 +222,44 @@ export default function Cidades() {
           <h1 className="text-2xl font-bold text-foreground">Gestão de Cidades</h1>
           <p className="text-sm text-muted-foreground">Monitoramento territorial</p>
         </div>
-        <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> Nova Cidade
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={async () => {
+              if (!tenantId) return;
+              try {
+                const { data: tenant } = await supabase
+                  .from("tenants")
+                  .select("estado")
+                  .eq("id", tenantId)
+                  .single();
+                if (!tenant?.estado) {
+                  toast.error("Configure o estado do mandato em Configurações.");
+                  return;
+                }
+                toast.loading("Baixando eleitorado do TSE...", { id: "elei" });
+                const { data, error } = await supabase.functions.invoke("fetch-tse-eleitorado", {
+                  body: { tenant_id: tenantId, uf: tenant.estado, ano: 2024 },
+                });
+                if (error) throw error;
+                if ((data as any)?.success) {
+                  toast.success(`Eleitorado atualizado em ${(data as any).cities_updated} cidades`, { id: "elei" });
+                  qc.invalidateQueries({ queryKey: ["cidades"] });
+                } else {
+                  toast.error((data as any)?.error || "Falha ao importar", { id: "elei" });
+                }
+              } catch (err: any) {
+                toast.error(err?.message || "Erro ao importar eleitorado", { id: "elei" });
+              }
+            }}
+          >
+            <Vote className="h-4 w-4" /> Importar Eleitorado TSE 2024
+          </Button>
+          <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
+            <Plus className="h-4 w-4" /> Nova Cidade
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -458,6 +495,11 @@ export default function Cidades() {
                     <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
                       <span className="font-semibold">Pop: {c.population}</span>
                       <span>Peso: {c.peso}/10</span>
+                      <span className="font-semibold flex items-center gap-1">
+                        <Vote className="h-3 w-3" />
+                        Eleitores: {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}
+                      </span>
+                      <span></span>
                       <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
                       <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
@@ -497,6 +539,7 @@ export default function Cidades() {
                 <TableHead>Cidade</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>População</TableHead>
+                <TableHead>Eleitores 2024</TableHead>
                 <TableHead>Peso</TableHead>
                 <TableHead>Status</TableHead>
                 {showScore && <TableHead>Score</TableHead>}
@@ -534,6 +577,13 @@ export default function Cidades() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                      {(c as any).eleitores2024 > 0 ? (
+                        <span className="font-medium">{((c as any).eleitores2024 as number).toLocaleString("pt-BR")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>{c.peso}/10</TableCell>
                     <TableCell>

@@ -1,0 +1,1 @@
+ALTER TABLE public.cidades ADD COLUMN IF NOT EXISTS eleitores_2024 integer NOT NULL DEFAULT 0;

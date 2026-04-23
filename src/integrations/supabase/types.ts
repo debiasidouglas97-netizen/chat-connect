@@ -94,6 +94,7 @@ export type Database = {
           created_at: string
           demandas: number
           demandas_resolvidas: number
+          eleitores_2024: number
           emendas: number
           engajamento: number
           id: string
@@ -114,6 +115,7 @@ export type Database = {
           created_at?: string
           demandas?: number
           demandas_resolvidas?: number
+          eleitores_2024?: number
           emendas?: number
           engajamento?: number
           id?: string
@@ -134,6 +136,7 @@ export type Database = {
           created_at?: string
           demandas?: number
           demandas_resolvidas?: number
+          eleitores_2024?: number
           emendas?: number
           engajamento?: number
           id?: string
