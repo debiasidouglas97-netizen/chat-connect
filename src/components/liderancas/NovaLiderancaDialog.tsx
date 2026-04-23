@@ -24,7 +24,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
   const [cargo, setCargo] = useState("");
   const [cidadePrincipal, setCidadePrincipal] = useState("");
   const [influencia, setInfluencia] = useState<"Alta" | "Média" | "Baixa">("Média");
-  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política">("Comunitária");
+  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vereador(a)">("Comunitária");
   const [atuacao, setAtuacao] = useState<AtuacaoCidade[]>([]);
   const [novaCidade, setNovaCidade] = useState("");
   const [novaIntensidade, setNovaIntensidade] = useState<"Alta" | "Média" | "Baixa">("Média");
@@ -138,7 +138,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
             </div>
             <div>
               <Label className="text-xs">Tipo</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem></SelectContent></Select>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
             </div>
           </div>
 
