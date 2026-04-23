@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useCidades } from "@/hooks/use-cidades";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEleitores, type EleitorInput, type EleitorRow } from "@/hooks/use-eleitores";
 import { toast } from "sonner";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -50,6 +53,12 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const [observacoes, setObservacoes] = useState("");
   const [loadingCep, setLoadingCep] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [liderancaOpen, setLiderancaOpen] = useState(false);
+
+  const liderancasOrdenadas = [...(liderancas as any[])].sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
+  );
+  const liderancaSelecionada = liderancasOrdenadas.find((l) => l.id === liderancaId);
 
   useEffect(() => {
     if (open && editing) {
@@ -182,17 +191,60 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
           <p className="text-xs font-medium text-muted-foreground pt-2">Vínculo político</p>
           <div>
             <Label className="text-xs">Vinculado à Liderança</Label>
-            <Select value={liderancaId} onValueChange={setLiderancaId}>
-              <SelectTrigger><SelectValue placeholder="Selecione uma liderança (opcional)" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— Sem vínculo —</SelectItem>
-                {liderancas.map((l: any) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.name} · {l.cargo} · {l.cidadePrincipal}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={liderancaOpen} onOpenChange={setLiderancaOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={liderancaOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className={cn("truncate", liderancaId === "__none__" && "text-muted-foreground")}>
+                    {liderancaId === "__none__"
+                      ? "Selecione uma liderança (opcional)"
+                      : liderancaSelecionada
+                        ? `${liderancaSelecionada.name} · ${liderancaSelecionada.cargo} · ${liderancaSelecionada.cidadePrincipal}`
+                        : "Selecione uma liderança (opcional)"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                    return 0;
+                  }}
+                >
+                  <CommandInput placeholder="Buscar liderança..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma liderança encontrada.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="— Sem vínculo —"
+                        onSelect={() => { setLiderancaId("__none__"); setLiderancaOpen(false); }}
+                      >
+                        <Check className={cn("mr-2 h-3.5 w-3.5", liderancaId === "__none__" ? "opacity-100" : "opacity-0")} />
+                        — Sem vínculo —
+                      </CommandItem>
+                      {liderancasOrdenadas.map((l: any) => {
+                        const label = `${l.name} · ${l.cargo} · ${l.cidadePrincipal}`;
+                        return (
+                          <CommandItem
+                            key={l.id}
+                            value={label}
+                            onSelect={() => { setLiderancaId(l.id); setLiderancaOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-3.5 w-3.5", liderancaId === l.id ? "opacity-100" : "opacity-0")} />
+                            {label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <p className="text-[10px] text-muted-foreground mt-1">
               Eleitor cadastrado contará para a meta operacional desta liderança.
             </p>
