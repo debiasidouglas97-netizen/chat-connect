@@ -104,7 +104,7 @@ export default function Mapa() {
     setLoading(true);
     supabase
       .from("cidades")
-      .select("id, name, population, regiao, demandas, emendas, liderancas, latitude, longitude")
+      .select("id, name, population, regiao, demandas, emendas, liderancas, eleitores_2024, latitude, longitude")
       .eq("tenant_id", tenantId)
       .order("name")
       .then(({ data, error }) => {
@@ -114,7 +114,10 @@ export default function Mapa() {
           return;
         }
 
-        const cities = (data || []) as CidadeWithCoords[];
+        const cities = (data || []).map((c: any) => ({
+          ...c,
+          eleitores2024: c.eleitores_2024 || 0,
+        })) as CidadeWithCoords[];
         setCidadesCoords(cities);
 
         const missing = cities.filter((city) => city.latitude == null || city.longitude == null);
