@@ -54,6 +54,7 @@ interface CidadeWithCoords {
   demandas: number;
   emendas: number;
   liderancas: number;
+  eleitores2024: number;
   latitude: number | null;
   longitude: number | null;
 }
