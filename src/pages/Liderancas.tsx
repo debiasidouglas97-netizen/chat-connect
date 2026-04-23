@@ -315,12 +315,25 @@ export default function Liderancas() {
                       <span className="text-xs text-muted-foreground">{l.cidadePrincipal}</span>
                     </div>
                   </div>
-                  {showScore && (
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-foreground">{l.score}</div>
-                      <p className="text-[10px] text-muted-foreground">Score</p>
-                    </div>
-                  )}
+                  {showScore && (() => {
+                    const cidade = cidadesMap.get(l.cidadePrincipal);
+                    const eleitores = cidade?.eleitores2024 || 0;
+                    const tipo = l.meta_votos_tipo || "percentual";
+                    const valor = l.meta_votos_valor;
+                    let estimativa = 0;
+                    if (valor != null) {
+                      estimativa = tipo === "fixo" ? valor : (eleitores * valor) / 100;
+                    }
+                    const formatted = new Intl.NumberFormat("pt-BR").format(Math.round(estimativa));
+                    return (
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-foreground leading-tight">
+                          {valor != null ? formatted : "—"}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Est. votos</p>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-2 mt-4 flex-wrap">
                   <Badge variant="outline" className={`text-[10px] ${influenciaColors[l.influencia]}`}>
