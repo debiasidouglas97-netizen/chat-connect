@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow, Vote } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow, Vote, MapPinned } from "lucide-react";
+import { useEventos } from "@/hooks/use-eventos";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -53,8 +54,24 @@ function getPopulationClass(pop: string) {
 
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
+  const { eventos } = useEventos();
   const { tenantId } = useTenant();
   const qc = useQueryClient();
+
+  // Mapa de cidade → quantidade de visitas (eventos do tipo "Visita")
+  const visitasByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const ev of eventos) {
+      if ((ev.tipo || "").toLowerCase().includes("visita")) {
+        const key = (ev.cidade || "").trim().toLowerCase();
+        if (!key) continue;
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+    }
+    return map;
+  }, [eventos]);
+  const getVisitas = (cityName: string) =>
+    visitasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
@@ -495,18 +512,15 @@ export default function Cidades() {
                         </div>
                       );
                     })()}
-                    <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: popClass.text }}>
-                      <span className="font-semibold">Pop: {c.population}</span>
-                      <span>Peso: {c.peso}/10</span>
-                      <span className="font-semibold flex items-center gap-1">
-                        <Vote className="h-3 w-3" />
-                        Eleitores: {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}
-                      </span>
-                      <span></span>
-                      <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                      <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
-                      <span>{c.regiao}</span>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs" style={{ color: popClass.text }}>
+                      <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /><span className="font-semibold">População:</span> {c.population}</span>
+                      <span className="flex items-center gap-1.5"><span className="font-semibold">Peso:</span> {c.peso}/10</span>
+                      <span className="flex items-center gap-1.5"><Vote className="h-3 w-3" /><span className="font-semibold">Eleitores:</span> {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}</span>
+                      <span className="flex items-center gap-1.5"><MapPinned className="h-3 w-3" /><span className="font-semibold">Visitas:</span> {getVisitas(c.name)}</span>
+                      <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                      <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
+                      <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                      <span className="text-right opacity-80">{c.regiao}</span>
                     </div>
                     {(c as any).votos2022 > 0 && (
                       <div className="flex items-center justify-end mt-1">
