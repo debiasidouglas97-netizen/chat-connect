@@ -232,7 +232,15 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
             </div>
             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
               {cityVisitas.map((v) => (
-                <div key={v.id} className="p-3 rounded-lg border bg-background">
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/agenda?evento=${encodeURIComponent(v.id)}`);
+                  }}
+                  className="w-full text-left p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-sm text-foreground">{v.titulo}</p>
                     <Badge variant="outline" className="text-[10px] shrink-0">
@@ -259,7 +267,7 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
                   {v.description && (
                     <p className="text-xs text-foreground/80 mt-2 line-clamp-2">{v.description}</p>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           </div>
