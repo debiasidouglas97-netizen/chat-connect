@@ -37,7 +37,7 @@ export interface LiderancaBase {
   cidadePrincipal: string;
   cargo: string;
   influencia: "Alta" | "Média" | "Baixa";
-  tipo: "Eleitoral" | "Comunitária" | "Política";
+  tipo: "Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vereador(a)";
   atuacao: AtuacaoCidade[];
   engajamento: number; // 0-100
   classificacao_manual?: string | null;
