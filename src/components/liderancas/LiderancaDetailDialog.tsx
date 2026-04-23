@@ -35,7 +35,9 @@ interface Props {
 
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
   const { cidades: cidadesData } = useCidades();
+  const { eleitores } = useEleitores();
   const cidadeOptions = cidadesData.map((c) => c.name);
+  const eleitoresVinculados = lideranca ? eleitores.filter((e) => e.lideranca_id === (lideranca as any).id).length : 0;
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
