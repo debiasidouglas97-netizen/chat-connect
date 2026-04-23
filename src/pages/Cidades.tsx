@@ -502,6 +502,7 @@ export default function Cidades() {
                 <TableHead>Cidade</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>População</TableHead>
+                <TableHead>Eleitores 2024</TableHead>
                 <TableHead>Peso</TableHead>
                 <TableHead>Status</TableHead>
                 {showScore && <TableHead>Score</TableHead>}
