@@ -161,20 +161,10 @@ async function downloadAndParseEleitorado(
 
   console.log(`Using: ${zipUrl} (${(totalSize / 1024 / 1024).toFixed(1)}MB)`);
 
-  // CSV específico do estado. Tenta vários padrões de nome usados pelo TSE:
-  //   perfil_eleitorado_2024_SP.csv
-  //   perfil_eleitorado_ATUAL_SP.csv
-  //   perfil_eleitorado_SP.csv
-  const candidates = [`_${ano}_${uf}.csv`, `_ATUAL_${uf}.csv`, `_${uf}.csv`];
-  let entry: ZipEntry | null = null;
-  for (const target of candidates) {
-    entry = await findZipEntry(zipUrl, totalSize, target);
-    if (entry) {
-      console.log(`Found CSV matching pattern: ${target}`);
-      break;
-    }
-  }
-  if (!entry) throw new Error(`Dados de ${uf} não encontrados no ZIP do TSE`);
+  // O ZIP de perfil de eleitorado contém um único CSV nacional (perfil_eleitorado_2024.csv).
+  // Filtramos pela UF durante o parse usando a coluna SG_UF.
+  const entry = await findZipEntry(zipUrl, totalSize, `perfil_eleitorado_${ano}.csv`);
+  if (!entry) throw new Error(`CSV nacional do TSE não encontrado no ZIP`);
   if (entry.compMethod !== 8) throw new Error("Formato de compressão não suportado");
 
   const headerBuf = await fetchRangeFromUrl(zipUrl, entry.localOffset, entry.localOffset + 300);
@@ -204,13 +194,14 @@ async function downloadAndParseEleitorado(
     await writer.close();
   })();
 
-  // Acumulador: município → total de eleitores aptos
+  // Acumulador: município → total de eleitores aptos (já filtrado por UF)
   const eleitores: Record<string, number> = {};
   const decoder = new TextDecoder("latin1");
   let partialLine = "";
   let headerCols: string[] | null = null;
   let nmMunIdx = -1,
-    qtIdx = -1;
+    qtIdx = -1,
+    sgUfIdx = -1;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -227,17 +218,20 @@ async function downloadAndParseEleitorado(
       if (!headerCols) {
         headerCols = cols;
         nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+        sgUfIdx = cols.indexOf("SG_UF");
         // Coluna do total de eleitores no município (linha já é por perfil — então somamos).
-        // No layout do TSE, "QT_ELEITORES_PERFIL" é a contagem dentro daquele perfil.
         qtIdx = cols.indexOf("QT_ELEITORES_PERFIL");
         if (qtIdx === -1) qtIdx = cols.indexOf("QT_ELEITORES_INC_NM_SOCIAL");
-        if (nmMunIdx === -1 || qtIdx === -1) {
+        if (nmMunIdx === -1 || qtIdx === -1 || sgUfIdx === -1) {
           throw new Error("Formato CSV inesperado (colunas não encontradas)");
         }
         continue;
       }
 
-      if (cols.length <= Math.max(nmMunIdx, qtIdx)) continue;
+      const maxIdx = Math.max(nmMunIdx, qtIdx, sgUfIdx);
+      if (cols.length <= maxIdx) continue;
+      // Filtra apenas o estado solicitado
+      if (cols[sgUfIdx] !== uf) continue;
       const mun = normalize(cols[nmMunIdx]);
       const v = parseInt(cols[qtIdx], 10);
       if (mun && Number.isFinite(v) && v > 0) {
