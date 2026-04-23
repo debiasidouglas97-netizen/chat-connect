@@ -147,6 +147,15 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
             </div>
           </div>
 
+          {/* Meta de votos */}
+          <MetaVotosInput
+            cargo={cargo}
+            cidadePrincipal={cidadePrincipal}
+            tipo={metaTipo}
+            valor={metaValor}
+            onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
+          />
+
           {/* Contacts */}
           <p className="text-xs font-medium text-muted-foreground pt-2">Contatos</p>
           <div className="grid grid-cols-2 gap-3">
