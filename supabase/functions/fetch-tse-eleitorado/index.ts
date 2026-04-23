@@ -161,9 +161,19 @@ async function downloadAndParseEleitorado(
 
   console.log(`Using: ${zipUrl} (${(totalSize / 1024 / 1024).toFixed(1)}MB)`);
 
-  // CSV específico do estado: perfil_eleitorado_2024_SP.csv
-  const target = `_${ano}_${uf}.csv`;
-  const entry = await findZipEntry(zipUrl, totalSize, target);
+  // CSV específico do estado. Tenta vários padrões de nome usados pelo TSE:
+  //   perfil_eleitorado_2024_SP.csv
+  //   perfil_eleitorado_ATUAL_SP.csv
+  //   perfil_eleitorado_SP.csv
+  const candidates = [`_${ano}_${uf}.csv`, `_ATUAL_${uf}.csv`, `_${uf}.csv`];
+  let entry: ZipEntry | null = null;
+  for (const target of candidates) {
+    entry = await findZipEntry(zipUrl, totalSize, target);
+    if (entry) {
+      console.log(`Found CSV matching pattern: ${target}`);
+      break;
+    }
+  }
   if (!entry) throw new Error(`Dados de ${uf} não encontrados no ZIP do TSE`);
   if (entry.compMethod !== 8) throw new Error("Formato de compressão não suportado");
 
