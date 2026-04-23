@@ -1325,6 +1325,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           cities: string[] | null
+          cpf: string | null
           created_at: string
           email: string
           full_name: string
@@ -1332,12 +1333,16 @@ export type Database = {
           is_active: boolean
           lideranca_id: string | null
           role: Database["public"]["Enums"]["app_role"]
+          telegram_username: string | null
           tenant_id: string | null
           updated_at: string
+          username: string | null
+          whatsapp: string | null
         }
         Insert: {
           avatar_url?: string | null
           cities?: string[] | null
+          cpf?: string | null
           created_at?: string
           email: string
           full_name: string
@@ -1345,12 +1350,16 @@ export type Database = {
           is_active?: boolean
           lideranca_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          telegram_username?: string | null
           tenant_id?: string | null
           updated_at?: string
+          username?: string | null
+          whatsapp?: string | null
         }
         Update: {
           avatar_url?: string | null
           cities?: string[] | null
+          cpf?: string | null
           created_at?: string
           email?: string
           full_name?: string
@@ -1358,8 +1367,11 @@ export type Database = {
           is_active?: boolean
           lideranca_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          telegram_username?: string | null
           tenant_id?: string | null
           updated_at?: string
+          username?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -1776,6 +1788,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_lideranca_id: { Args: { _user_id: string }; Returns: string }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

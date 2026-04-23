@@ -24,6 +24,7 @@ import {
 import { useCidades } from "@/hooks/use-cidades";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useTenant } from "@/hooks/use-tenant";
+import { usePermissions } from "@/hooks/use-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadAndParseTSEVotes, downloadAndParseTSEEleitorado } from "@/lib/tse-parser";
 import CidadeDetailDialog from "@/components/cidades/CidadeDetailDialog";
@@ -62,6 +63,7 @@ export default function Cidades() {
   const { demandas } = useDemandas();
   const { emendas } = useEmendas();
   const { tenantId } = useTenant();
+  const { canWriteCidades } = usePermissions();
   const qc = useQueryClient();
 
   // Mapa de cidade → quantidade de visitas (eventos do tipo "Visita")
@@ -332,9 +334,11 @@ export default function Cidades() {
           >
             <Vote className="h-4 w-4" /> Importar Eleitorado TSE 2024
           </Button>
-          <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
-            <Plus className="h-4 w-4" /> Nova Cidade
-          </Button>
+          {canWriteCidades && (
+            <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
+              <Plus className="h-4 w-4" /> Nova Cidade
+            </Button>
+          )}
         </div>
       </div>
 
@@ -593,14 +597,16 @@ export default function Cidades() {
                         </div>
                       </div>
                     )}
-                    <div className="flex gap-1 pt-1">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
-                        <Pencil className="h-3 w-3" /> Editar
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
-                        <Trash2 className="h-3 w-3" /> Excluir
-                      </Button>
-                    </div>
+                    {canWriteCidades && (
+                      <div className="flex gap-1 pt-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
+                          <Trash2 className="h-3 w-3" /> Excluir
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -698,14 +704,16 @@ export default function Cidades() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
-                           <Pencil className="h-3 w-3" /> Editar
-                         </Button>
-                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
-                           <Trash2 className="h-3 w-3" /> Excluir
-                         </Button>
-                      </div>
+                      {canWriteCidades && (
+                        <div className="flex justify-end gap-1">
+                           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
+                             <Pencil className="h-3 w-3" /> Editar
+                           </Button>
+                           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCity(c); }}>
+                             <Trash2 className="h-3 w-3" /> Excluir
+                           </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

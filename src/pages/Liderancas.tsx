@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
 import { useAllLeaderEngagementScores } from "@/hooks/use-engagement";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const CURRENT_ROLE: UserRole = "deputado";
 
@@ -42,6 +43,7 @@ export default function Liderancas() {
   const [searchParams] = useSearchParams();
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { data: engagementScores } = useAllLeaderEngagementScores();
+  const { canWriteLiderancas } = usePermissions();
 
   useEffect(() => {
     const busca = searchParams.get("busca");
@@ -183,9 +185,11 @@ export default function Liderancas() {
           <h1 className="text-2xl font-bold text-foreground">Lideranças</h1>
           <p className="text-sm text-muted-foreground">CRM político — gestão de lideranças territoriais</p>
         </div>
-        <Button className="gap-2" onClick={() => setNovaOpen(true)}>
-          <Plus className="h-4 w-4" /> Nova Liderança
-        </Button>
+        {canWriteLiderancas && (
+          <Button className="gap-2" onClick={() => setNovaOpen(true)}>
+            <Plus className="h-4 w-4" /> Nova Liderança
+          </Button>
+        )}
       </div>
 
       {/* Search + Filters */}

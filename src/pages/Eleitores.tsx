@@ -17,12 +17,14 @@ import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
 import NovoEleitorDialog from "@/components/eleitores/NovoEleitorDialog";
 import PerformanceLideranca from "@/components/eleitores/PerformanceLideranca";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
 export default function Eleitores() {
   const { eleitores, isLoading, remove } = useEleitores();
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
+  const { canDeleteEleitores } = usePermissions();
 
   const [search, setSearch] = useState("");
   const [filterCidade, setFilterCidade] = useState<string>("__all__");
@@ -208,9 +210,11 @@ export default function Eleitores() {
                               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(e); setOpen(true); }}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setConfirmDelete(e)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {canDeleteEleitores && (
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setConfirmDelete(e)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
