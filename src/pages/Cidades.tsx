@@ -576,9 +576,9 @@ export default function Cidades() {
                       <span className="flex items-center gap-1.5" title="Soma das metas de votos das lideranças vinculadas a esta cidade">
                         <Vote className="h-3 w-3" /><span className="font-semibold">Est. Votos:</span> {getEstimativaVotos(c.name) > 0 ? getEstimativaVotos(c.name).toLocaleString("pt-BR") : "—"}
                       </span>
-                      <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                      <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {getDemandasCount(c.name)} demandas</span>
                       <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                      <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                      <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {getEmendasCount(c.name)} emendas</span>
                       <span className="text-right opacity-80">{c.regiao}</span>
                     </div>
                     {(c as any).votos2022 > 0 && (
