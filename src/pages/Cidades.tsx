@@ -54,8 +54,24 @@ function getPopulationClass(pop: string) {
 
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
+  const { eventos } = useEventos();
   const { tenantId } = useTenant();
   const qc = useQueryClient();
+
+  // Mapa de cidade → quantidade de visitas (eventos do tipo "Visita")
+  const visitasByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const ev of eventos) {
+      if ((ev.tipo || "").toLowerCase().includes("visita")) {
+        const key = (ev.cidade || "").trim().toLowerCase();
+        if (!key) continue;
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+    }
+    return map;
+  }, [eventos]);
+  const getVisitas = (cityName: string) =>
+    visitasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
