@@ -1053,6 +1053,8 @@ export type Database = {
           img: string
           influencia: string
           instagram: string | null
+          meta_votos_tipo: string | null
+          meta_votos_valor: number | null
           name: string
           phone: string | null
           telegram_username: string | null
@@ -1082,6 +1084,8 @@ export type Database = {
           img: string
           influencia?: string
           instagram?: string | null
+          meta_votos_tipo?: string | null
+          meta_votos_valor?: number | null
           name: string
           phone?: string | null
           telegram_username?: string | null
@@ -1111,6 +1115,8 @@ export type Database = {
           img?: string
           influencia?: string
           instagram?: string | null
+          meta_votos_tipo?: string | null
+          meta_votos_valor?: number | null
           name?: string
           phone?: string | null
           telegram_username?: string | null
