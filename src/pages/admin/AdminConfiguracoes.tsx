@@ -15,11 +15,14 @@ const STATES = [
 ];
 
 const YEARS = ["2022", "2018", "2014"];
+const ELEITORADO_YEARS = ["2024", "2022", "2020"];
 
 export default function AdminConfiguracoes() {
   const queryClient = useQueryClient();
   const [uploadingState, setUploadingState] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState("2022");
+  const [eleitoradoYear, setEleitoradoYear] = useState("2024");
+  const [uploadingEleitorado, setUploadingEleitorado] = useState(false);
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ["tse-data-files"],
@@ -109,6 +112,77 @@ export default function AdminConfiguracoes() {
     try {
       await supabase.storage.from("tse-data").remove(possibleNames);
       toast.success(`Dados de ${uf} removidos.`);
+      queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
+    } catch (err: any) {
+      toast.error("Erro ao remover: " + err.message);
+    }
+  };
+
+  const eleitoradoFile = files.find((f: any) => {
+    const n = f.name.toLowerCase();
+    return n.startsWith(`perfil_eleitorado_${eleitoradoYear}`);
+  });
+
+  const handleEleitoradoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const allowed = ["csv", "gz", "zip"];
+    if (!ext || !allowed.includes(ext)) {
+      toast.error("Apenas arquivos CSV, CSV.GZ ou ZIP são aceitos.");
+      return;
+    }
+
+    setUploadingEleitorado(true);
+    try {
+      let storageName: string;
+      if (file.name.endsWith(".csv.gz") || file.name.endsWith(".gz")) {
+        storageName = `perfil_eleitorado_${eleitoradoYear}.csv.gz`;
+      } else if (file.name.endsWith(".zip")) {
+        storageName = `perfil_eleitorado_${eleitoradoYear}.zip`;
+      } else {
+        storageName = `perfil_eleitorado_${eleitoradoYear}.csv`;
+      }
+
+      const possibleNames = [
+        `perfil_eleitorado_${eleitoradoYear}.csv`,
+        `perfil_eleitorado_${eleitoradoYear}.csv.gz`,
+        `perfil_eleitorado_${eleitoradoYear}.zip`,
+      ];
+      await supabase.storage.from("tse-data").remove(possibleNames);
+
+      const contentType = file.name.endsWith(".zip")
+        ? "application/zip"
+        : file.name.endsWith(".gz")
+        ? "application/gzip"
+        : "text/csv";
+
+      const { error } = await supabase.storage
+        .from("tse-data")
+        .upload(storageName, file, { contentType, upsert: true });
+
+      if (error) throw error;
+
+      toast.success(`✅ Eleitorado ${eleitoradoYear} enviado com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
+    } catch (err: any) {
+      toast.error(`Erro ao enviar: ${err.message || "Erro desconhecido"}`);
+    } finally {
+      setUploadingEleitorado(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleEleitoradoDelete = async () => {
+    const possibleNames = [
+      `perfil_eleitorado_${eleitoradoYear}.csv`,
+      `perfil_eleitorado_${eleitoradoYear}.csv.gz`,
+      `perfil_eleitorado_${eleitoradoYear}.zip`,
+    ];
+    try {
+      await supabase.storage.from("tse-data").remove(possibleNames);
+      toast.success(`Eleitorado ${eleitoradoYear} removido.`);
       queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
     } catch (err: any) {
       toast.error("Erro ao remover: " + err.message);
@@ -231,6 +305,95 @@ export default function AdminConfiguracoes() {
                 );
               })
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Perfil do Eleitorado (TSE)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Faça upload do arquivo nacional de perfil do eleitorado do TSE (um único arquivo cobre todos os estados).
+            Baixe em{" "}
+            <a
+              href="https://cdn.tse.jus.br/estatistica/sead/odsele/perfil_eleitorado/perfil_eleitorado_2024.zip"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline"
+            >
+              cdn.tse.jus.br
+            </a>
+            . Depois de enviado, todos os mandatos podem usar para importar o eleitorado por cidade.
+          </p>
+
+          <div className="flex items-end gap-3">
+            <div className="space-y-1.5">
+              <Label>Ano</Label>
+              <Select value={eleitoradoYear} onValueChange={setEleitoradoYear}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ELEITORADO_YEARS.map((y) => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-3 flex items-center gap-3">
+            {eleitoradoFile ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+            ) : (
+              <XCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              {eleitoradoFile ? (
+                <p className="text-xs text-muted-foreground">
+                  {eleitoradoFile.name} • {((eleitoradoFile.metadata?.size || 0) / 1024 / 1024).toFixed(1)}MB
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nenhum arquivo de eleitorado {eleitoradoYear} cadastrado</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              {eleitoradoFile && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  onClick={handleEleitoradoDelete}
+                >
+                  Remover
+                </Button>
+              )}
+              <Label
+                htmlFor="upload-eleitorado"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs cursor-pointer transition-colors
+                  ${uploadingEleitorado ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
+              >
+                {uploadingEleitorado ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Upload className="h-3 w-3" />
+                )}
+                {uploadingEleitorado ? "Enviando..." : eleitoradoFile ? "Substituir" : "Enviar"}
+              </Label>
+              <input
+                id="upload-eleitorado"
+                type="file"
+                accept=".csv,.gz,.zip"
+                className="hidden"
+                onChange={handleEleitoradoUpload}
+                disabled={uploadingEleitorado}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
