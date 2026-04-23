@@ -444,6 +444,164 @@ export async function downloadAndParseTSEVotes(
   return votes;
 }
 
+// Filter electorate CSV text by UF
+function parseEleitoradoCsvText(
+  text: string,
+  uf: string,
+  log: (msg: string) => void,
+): Record<string, number> {
+  const eleitores: Record<string, number> = {};
+  const lines = text.split("\n");
+  let headerCols: string[] | null = null;
+  let nmMunIdx = -1, qtIdx = -1, sgUfIdx = -1;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const cols = trimmed.split(";").map((c) => c.replace(/"/g, ""));
+
+    if (!headerCols) {
+      headerCols = cols;
+      nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+      sgUfIdx = cols.indexOf("SG_UF");
+      qtIdx = cols.indexOf("QT_ELEITORES_PERFIL");
+      if (qtIdx === -1) qtIdx = cols.indexOf("QT_ELEITORES_INC_NM_SOCIAL");
+      if (nmMunIdx === -1 || qtIdx === -1 || sgUfIdx === -1) {
+        throw new Error("Formato de CSV de eleitorado inesperado");
+      }
+      continue;
+    }
+
+    const maxIdx = Math.max(nmMunIdx, qtIdx, sgUfIdx);
+    if (cols.length <= maxIdx) continue;
+    if (cols[sgUfIdx] !== uf) continue;
+    const mun = normalize(cols[nmMunIdx]);
+    const v = parseInt(cols[qtIdx], 10);
+    if (mun && Number.isFinite(v) && v > 0) {
+      eleitores[mun] = (eleitores[mun] || 0) + v;
+    }
+  }
+
+  log(`Eleitorado encontrado em ${Object.keys(eleitores).length} municípios`);
+  return eleitores;
+}
+
+async function tryLoadEleitoradoFromStorage(
+  uf: string,
+  ano: number,
+  log: (msg: string) => void,
+): Promise<Record<string, number> | null> {
+  const candidates = [
+    `perfil_eleitorado_${ano}.csv.gz`,
+    `perfil_eleitorado_${ano}.zip`,
+    `perfil_eleitorado_${ano}.csv`,
+  ];
+
+  for (const fileName of candidates) {
+    log(`Verificando ${fileName} no sistema...`);
+    try {
+      const { data } = supabase.storage.from("tse-data").getPublicUrl(fileName);
+      if (!data?.publicUrl) continue;
+
+      const res = await fetch(data.publicUrl);
+      if (!res.ok) continue;
+
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("xml") || contentType.includes("html")) continue;
+
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength < 100) continue;
+
+      let text: string;
+
+      if (fileName.endsWith(".gz")) {
+        log("Descompactando .gz...");
+        const ds = new DecompressionStream("gzip");
+        const writer = ds.writable.getWriter();
+        writer.write(new Uint8Array(buf));
+        writer.close();
+        const reader = ds.readable.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const merged = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) { merged.set(c, off); off += c.length; }
+        text = new TextDecoder("latin1").decode(merged);
+      } else if (fileName.endsWith(".zip")) {
+        log("Extraindo CSV do ZIP...");
+        text = await extractEleitoradoCsvFromZip(new Uint8Array(buf), ano);
+      } else {
+        text = new TextDecoder("latin1").decode(buf);
+      }
+
+      if (!text || !text.includes("NM_MUNICIPIO")) continue;
+
+      log("Arquivo encontrado no sistema! Processando...");
+      return parseEleitoradoCsvText(text, uf, log);
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function extractEleitoradoCsvFromZip(zipData: Uint8Array, ano: number): Promise<string> {
+  const view = new DataView(zipData.buffer);
+  let eocdPos = -1;
+  for (let i = zipData.length - 22; i >= 0; i--) {
+    if (zipData[i] === 0x50 && zipData[i+1] === 0x4b && zipData[i+2] === 0x05 && zipData[i+3] === 0x06) {
+      eocdPos = i; break;
+    }
+  }
+  if (eocdPos === -1) throw new Error("ZIP inválido");
+
+  const cdSize = view.getUint32(eocdPos + 12, true);
+  const cdOffset = view.getUint32(eocdPos + 16, true);
+  const target = `PERFIL_ELEITORADO_${ano}.CSV`;
+
+  let pos = cdOffset;
+  while (pos < cdOffset + cdSize) {
+    if (zipData[pos] !== 0x50 || zipData[pos+1] !== 0x4b) break;
+    const compMethod = view.getUint16(pos + 10, true);
+    const compSize = view.getUint32(pos + 20, true);
+    const fnameLen = view.getUint16(pos + 28, true);
+    const extraLen = view.getUint16(pos + 30, true);
+    const commentLen = view.getUint16(pos + 32, true);
+    const localOffset = view.getUint32(pos + 42, true);
+    const fname = new TextDecoder().decode(zipData.slice(pos + 46, pos + 46 + fnameLen));
+
+    if (fname.toUpperCase().includes(target) || fname.toUpperCase().endsWith(".CSV")) {
+      const lFnameLen = view.getUint16(localOffset + 26, true);
+      const lExtraLen = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + lFnameLen + lExtraLen;
+      const compressed = zipData.slice(dataStart, dataStart + compSize);
+
+      if (compMethod === 0) return new TextDecoder("latin1").decode(compressed);
+      if (compMethod === 8) {
+        const ds = new DecompressionStream("deflate-raw");
+        const w = ds.writable.getWriter();
+        w.write(compressed); w.close();
+        const r = ds.readable.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) { const { value, done } = await r.read(); if (done) break; chunks.push(value); }
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const merged = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) { merged.set(c, off); off += c.length; }
+        return new TextDecoder("latin1").decode(merged);
+      }
+      throw new Error("Método de compressão não suportado");
+    }
+    pos += 46 + fnameLen + extraLen + commentLen;
+  }
+  throw new Error("CSV de eleitorado não encontrado no ZIP");
+}
+
 export async function downloadAndParseTSEEleitorado(
   uf: string,
   ano: number,
@@ -451,10 +609,15 @@ export async function downloadAndParseTSEEleitorado(
 ): Promise<Record<string, number>> {
   const log = onProgress || (() => {});
 
+  // 1. Try storage first (uploaded by Super Admin)
+  const storageResult = await tryLoadEleitoradoFromStorage(uf, ano, log);
+  if (storageResult && Object.keys(storageResult).length > 0) return storageResult;
+
+  // 2. Fall back to TSE CDN
   useDirectFetch = false;
   const zipUrl = `${TSE_ELEITORADO_CDN}/perfil_eleitorado_${ano}.zip`;
 
-  log("Baixando eleitorado do TSE...");
+  log("Arquivo não encontrado no sistema. Baixando do TSE...");
   const totalSize = await getRemoteFileSize(zipUrl);
 
   log(`Localizando arquivo de ${ano}...`);
