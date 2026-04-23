@@ -118,6 +118,77 @@ export default function AdminConfiguracoes() {
     }
   };
 
+  const eleitoradoFile = files.find((f: any) => {
+    const n = f.name.toLowerCase();
+    return n.startsWith(`perfil_eleitorado_${eleitoradoYear}`);
+  });
+
+  const handleEleitoradoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const allowed = ["csv", "gz", "zip"];
+    if (!ext || !allowed.includes(ext)) {
+      toast.error("Apenas arquivos CSV, CSV.GZ ou ZIP são aceitos.");
+      return;
+    }
+
+    setUploadingEleitorado(true);
+    try {
+      let storageName: string;
+      if (file.name.endsWith(".csv.gz") || file.name.endsWith(".gz")) {
+        storageName = `perfil_eleitorado_${eleitoradoYear}.csv.gz`;
+      } else if (file.name.endsWith(".zip")) {
+        storageName = `perfil_eleitorado_${eleitoradoYear}.zip`;
+      } else {
+        storageName = `perfil_eleitorado_${eleitoradoYear}.csv`;
+      }
+
+      const possibleNames = [
+        `perfil_eleitorado_${eleitoradoYear}.csv`,
+        `perfil_eleitorado_${eleitoradoYear}.csv.gz`,
+        `perfil_eleitorado_${eleitoradoYear}.zip`,
+      ];
+      await supabase.storage.from("tse-data").remove(possibleNames);
+
+      const contentType = file.name.endsWith(".zip")
+        ? "application/zip"
+        : file.name.endsWith(".gz")
+        ? "application/gzip"
+        : "text/csv";
+
+      const { error } = await supabase.storage
+        .from("tse-data")
+        .upload(storageName, file, { contentType, upsert: true });
+
+      if (error) throw error;
+
+      toast.success(`✅ Eleitorado ${eleitoradoYear} enviado com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
+    } catch (err: any) {
+      toast.error(`Erro ao enviar: ${err.message || "Erro desconhecido"}`);
+    } finally {
+      setUploadingEleitorado(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleEleitoradoDelete = async () => {
+    const possibleNames = [
+      `perfil_eleitorado_${eleitoradoYear}.csv`,
+      `perfil_eleitorado_${eleitoradoYear}.csv.gz`,
+      `perfil_eleitorado_${eleitoradoYear}.zip`,
+    ];
+    try {
+      await supabase.storage.from("tse-data").remove(possibleNames);
+      toast.success(`Eleitorado ${eleitoradoYear} removido.`);
+      queryClient.invalidateQueries({ queryKey: ["tse-data-files"] });
+    } catch (err: any) {
+      toast.error("Erro ao remover: " + err.message);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
