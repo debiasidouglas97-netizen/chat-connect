@@ -89,6 +89,20 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
       .sort((a, b) => (b.ano || 0) - (a.ano || 0));
   }, [cidade, emendas, cityKey]);
 
+  const estimativaVotos = useMemo(() => {
+    if (!cidade) return 0;
+    const eleitores = cidade.eleitores2024 || 0;
+    let total = 0;
+    cityLiderancas.forEach((l: any) => {
+      const tipo = l.metaVotosTipo || l.meta_votos_tipo;
+      const valor = l.metaVotosValor ?? l.meta_votos_valor;
+      if (!tipo || valor === null || valor === undefined) return;
+      const v = tipo === "fixo" ? Number(valor) : (eleitores * Number(valor)) / 100;
+      if (Number.isFinite(v) && v > 0) total += v;
+    });
+    return Math.round(total);
+  }, [cidade, cityLiderancas]);
+
   if (!cidade) return null;
 
   const handleLiderancaClick = (name: string) => {
