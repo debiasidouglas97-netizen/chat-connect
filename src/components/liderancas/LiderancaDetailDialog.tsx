@@ -280,7 +280,16 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 </div>
               </div>
 
-              {/* Contacts */}
+              {/* Meta de votos */}
+              <MetaVotosInput
+                cargo={cargo}
+                cidadePrincipal={cidadePrincipal}
+                tipo={metaTipo}
+                valor={metaValor}
+                onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
+              />
+
+
               <p className="text-xs font-medium text-muted-foreground pt-2">Contatos</p>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
