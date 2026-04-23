@@ -188,7 +188,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                   <>
                     <div>
                       <p className="text-muted-foreground text-xs">Eleitores vinculados</p>
-                      <p className="text-xl font-bold text-emerald-600">{eleitoresVinculados.toLocaleString("pt-BR")}</p>
+                      <p className="text-xl font-bold text-success">{eleitoresVinculados.toLocaleString("pt-BR")}</p>
                     </div>
                     <div><p className="text-muted-foreground text-xs">Classificação</p><p className="font-medium">{lideranca.classificacao.icon} {lideranca.classificacao.label}</p></div>
                   </>
