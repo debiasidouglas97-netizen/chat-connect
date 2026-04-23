@@ -59,6 +59,8 @@ export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
   const { eventos } = useEventos();
   const { liderancas: liderancasRaw } = useLiderancas();
+  const { demandas } = useDemandas();
+  const { emendas } = useEmendas();
   const { tenantId } = useTenant();
   const qc = useQueryClient();
 
