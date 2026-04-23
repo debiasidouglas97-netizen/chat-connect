@@ -56,6 +56,7 @@ function getPopulationClass(pop: string) {
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
   const { eventos } = useEventos();
+  const { liderancas: liderancasRaw } = useLiderancas();
   const { tenantId } = useTenant();
   const qc = useQueryClient();
 
@@ -73,6 +74,30 @@ export default function Cidades() {
   }, [eventos]);
   const getVisitas = (cityName: string) =>
     visitasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
+
+  // Mapa de cidade → estimativa de votos (soma das metas das lideranças vinculadas)
+  const estimativaVotosByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    // Index eleitores por cidade para conversão de %
+    const eleitoresMap = new Map<string, number>();
+    for (const c of cidadesRaw as any[]) {
+      eleitoresMap.set(c.name, c.eleitores_2024 || c.eleitores2024 || 0);
+    }
+    for (const l of liderancasRaw as any[]) {
+      const cidade = l.cidadePrincipal || l.cidade_principal;
+      const valor = l.meta_votos_valor ?? l.metaVotosValor;
+      const tipo = l.meta_votos_tipo ?? l.metaVotosTipo ?? "percentual";
+      if (!cidade || valor == null) continue;
+      const eleitores = eleitoresMap.get(cidade) || 0;
+      const votos = tipo === "fixo" ? Number(valor) : (eleitores * Number(valor)) / 100;
+      if (!Number.isFinite(votos) || votos <= 0) continue;
+      map.set(cidade, (map.get(cidade) || 0) + votos);
+    }
+    return map;
+  }, [liderancasRaw, cidadesRaw]);
+  const getEstimativaVotos = (cityName: string) =>
+    Math.round(estimativaVotosByCity.get(cityName) || 0);
+
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
