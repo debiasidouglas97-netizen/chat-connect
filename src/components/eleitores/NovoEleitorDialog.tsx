@@ -53,6 +53,12 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const [observacoes, setObservacoes] = useState("");
   const [loadingCep, setLoadingCep] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [liderancaOpen, setLiderancaOpen] = useState(false);
+
+  const liderancasOrdenadas = [...(liderancas as any[])].sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
+  );
+  const liderancaSelecionada = liderancasOrdenadas.find((l) => l.id === liderancaId);
 
   useEffect(() => {
     if (open && editing) {
