@@ -54,6 +54,7 @@ function getPopulationClass(pop: string) {
 export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
   const { tenantId } = useTenant();
+  const qc = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
