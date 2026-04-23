@@ -570,6 +570,78 @@ export type Database = {
           },
         ]
       }
+      eleitores: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string
+          created_at: string
+          email: string | null
+          estado: string | null
+          id: string
+          lideranca_id: string | null
+          logradouro: string | null
+          nome: string
+          numero: string | null
+          observacoes: string | null
+          telegram: string | null
+          tenant_id: string | null
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade: string
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          lideranca_id?: string | null
+          logradouro?: string | null
+          nome: string
+          numero?: string | null
+          observacoes?: string | null
+          telegram?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          lideranca_id?: string | null
+          logradouro?: string | null
+          nome?: string
+          numero?: string | null
+          observacoes?: string | null
+          telegram?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eleitores_lideranca_id_fkey"
+            columns: ["lideranca_id"]
+            isOneToOne: false
+            referencedRelation: "liderancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eleitores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emenda_attachments: {
         Row: {
           created_at: string
