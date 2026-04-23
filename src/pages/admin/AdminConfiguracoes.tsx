@@ -15,6 +15,7 @@ const STATES = [
 ];
 
 const YEARS = ["2022", "2018", "2014"];
+const ELEITORADO_YEARS = ["2024", "2022", "2020"];
 
 export default function AdminConfiguracoes() {
   const queryClient = useQueryClient();
