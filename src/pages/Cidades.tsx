@@ -20,6 +20,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCidades } from "@/hooks/use-cidades";
+import { useLiderancas } from "@/hooks/use-liderancas";
 import { useTenant } from "@/hooks/use-tenant";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadAndParseTSEVotes, downloadAndParseTSEEleitorado } from "@/lib/tse-parser";
