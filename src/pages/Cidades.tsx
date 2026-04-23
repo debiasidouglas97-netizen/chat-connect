@@ -220,9 +220,43 @@ export default function Cidades() {
           <h1 className="text-2xl font-bold text-foreground">Gestão de Cidades</h1>
           <p className="text-sm text-muted-foreground">Monitoramento territorial</p>
         </div>
-        <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> Nova Cidade
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={async () => {
+              if (!tenantId) return;
+              try {
+                const { data: tenant } = await supabase
+                  .from("tenants")
+                  .select("estado")
+                  .eq("id", tenantId)
+                  .single();
+                if (!tenant?.estado) {
+                  toast.error("Configure o estado do mandato em Configurações.");
+                  return;
+                }
+                toast.loading("Baixando eleitorado do TSE...", { id: "elei" });
+                const { data, error } = await supabase.functions.invoke("fetch-tse-eleitorado", {
+                  body: { tenant_id: tenantId, uf: tenant.estado, ano: 2024 },
+                });
+                if (error) throw error;
+                if ((data as any)?.success) {
+                  toast.success(`Eleitorado atualizado em ${(data as any).cities_updated} cidades`, { id: "elei" });
+                } else {
+                  toast.error((data as any)?.error || "Falha ao importar", { id: "elei" });
+                }
+              } catch (err: any) {
+                toast.error(err?.message || "Erro ao importar eleitorado", { id: "elei" });
+              }
+            }}
+          >
+            <Vote className="h-4 w-4" /> Importar Eleitorado TSE 2024
+          </Button>
+          <Button className="gap-2" onClick={() => { setEditingCity(undefined); setFormOpen(true); }}>
+            <Plus className="h-4 w-4" /> Nova Cidade
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
