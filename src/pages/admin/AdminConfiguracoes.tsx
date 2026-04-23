@@ -21,6 +21,8 @@ export default function AdminConfiguracoes() {
   const queryClient = useQueryClient();
   const [uploadingState, setUploadingState] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState("2022");
+  const [eleitoradoYear, setEleitoradoYear] = useState("2024");
+  const [uploadingEleitorado, setUploadingEleitorado] = useState(false);
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ["tse-data-files"],
