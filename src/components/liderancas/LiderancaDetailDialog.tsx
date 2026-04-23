@@ -189,7 +189,35 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 )}
               </div>
 
-              {/* Contacts */}
+              {/* Meta de votos (visualização) */}
+              {l.meta_votos_valor != null && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1.5">
+                    <Star className="h-3 w-3" /> Meta de votos
+                  </p>
+                  {(() => {
+                    const cidade = cidadesData.find((c) => c.name === lideranca.cidadePrincipal);
+                    const eleitores = cidade?.eleitores2024 || 0;
+                    const isPerc = l.meta_votos_tipo === "percentual";
+                    const estimativa = isPerc
+                      ? Math.round((eleitores * Number(l.meta_votos_valor)) / 100)
+                      : Number(l.meta_votos_valor);
+                    const fmt = new Intl.NumberFormat("pt-BR");
+                    return (
+                      <p className="font-medium text-sm">
+                        {isPerc
+                          ? `${String(l.meta_votos_valor).replace(".", ",")}% `
+                          : `${fmt.format(Number(l.meta_votos_valor))} votos fixos `}
+                        <span className="text-muted-foreground">
+                          → estimativa <span className="text-foreground font-bold">{fmt.format(estimativa)}</span> votos
+                        </span>
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+
+
               {(l.phone || l.whatsapp || l.email || l.telegram_username) && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-2">Contatos</p>
