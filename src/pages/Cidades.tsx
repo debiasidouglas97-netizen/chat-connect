@@ -558,7 +558,7 @@ export default function Cidades() {
                             {((c as any).votos2022 as number).toLocaleString("pt-BR")}
                           </p>
                           <p className="text-[10px] font-semibold uppercase tracking-wider italic" style={{ color: popClass.text, opacity: 0.7 }}>
-                            Votos
+                            Votos — Eleição 2022
                           </p>
                         </div>
                       </div>
