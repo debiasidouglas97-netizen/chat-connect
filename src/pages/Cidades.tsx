@@ -102,6 +102,32 @@ export default function Cidades() {
   const getEstimativaVotos = (cityName: string) =>
     Math.round(estimativaVotosByCity.get(cityName) || 0);
 
+  // Mapa de cidade → demandas/emendas reais (excluindo demandas originadas da agenda)
+  const demandasByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of demandas as any[]) {
+      if ((d.origin || "").toLowerCase() === "agenda") continue;
+      const key = (d.city || "").split("/")[0].trim().toLowerCase();
+      if (!key) continue;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [demandas]);
+  const getDemandasCount = (cityName: string) =>
+    demandasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
+
+  const emendasByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of emendas as any[]) {
+      const key = (e.cidade || "").split("/")[0].trim().toLowerCase();
+      if (!key) continue;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [emendas]);
+  const getEmendasCount = (cityName: string) =>
+    emendasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
+
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
   const [deleteCity, setDeleteCity] = useState<(CidadeBase & { id: string }) | null>(null);
