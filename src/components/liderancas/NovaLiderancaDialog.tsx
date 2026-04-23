@@ -10,6 +10,7 @@ import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube } from "lucide-react";
 import { toast } from "sonner";
+import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 
 interface Props {
   open: boolean;
@@ -42,6 +43,8 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
   const [addressNeighborhood, setAddressNeighborhood] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
+  const [metaTipo, setMetaTipo] = useState<MetaVotosTipo>("percentual");
+  const [metaValor, setMetaValor] = useState<number | null>(null);
 
   const cidadeOptions = cidadesData.map((c) => c.name);
 
@@ -52,6 +55,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
     setInstagramVal(""); setFacebookVal(""); setYoutubeVal(""); setAvatarPreview(null);
     setAddressCep(""); setAddressStreet(""); setAddressNumber(""); setAddressNeighborhood("");
     setAddressCity(""); setAddressState("");
+    setMetaTipo("percentual"); setMetaValor(null);
   };
 
   const addCidade = () => {
@@ -97,6 +101,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
       avatar_url: avatarPreview,
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
+      meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
     });
     reset();
     onOpenChange(false);
