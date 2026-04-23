@@ -30,6 +30,8 @@ export interface LiderancaRow {
   created_at: string;
   updated_at: string;
   classificacao_manual: string | null;
+  meta_votos_tipo: string | null;
+  meta_votos_valor: number | null;
 }
 
 function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
@@ -58,6 +60,8 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
     address_city: r.address_city,
     address_state: r.address_state,
     classificacao_manual: r.classificacao_manual,
+    meta_votos_tipo: (r.meta_votos_tipo as "percentual" | "fixo" | null) ?? null,
+    meta_votos_valor: r.meta_votos_valor,
   };
 }
 
@@ -104,6 +108,8 @@ export function useLiderancas() {
         address_neighborhood: l.address_neighborhood || null,
         address_city: l.address_city || null,
         address_state: l.address_state || null,
+        meta_votos_tipo: l.meta_votos_tipo || null,
+        meta_votos_valor: l.meta_votos_valor ?? null,
         tenant_id: tenantId,
       } as any);
       if (error) throw error;
@@ -137,6 +143,8 @@ export function useLiderancas() {
       if (l.address_city !== undefined) payload.address_city = l.address_city || null;
       if (l.address_state !== undefined) payload.address_state = l.address_state || null;
       if (l.classificacao_manual !== undefined) payload.classificacao_manual = l.classificacao_manual || null;
+      if (l.meta_votos_tipo !== undefined) payload.meta_votos_tipo = l.meta_votos_tipo || null;
+      if (l.meta_votos_valor !== undefined) payload.meta_votos_valor = l.meta_votos_valor ?? null;
       const { error } = await supabase.from("liderancas").update(payload as any).eq("id", id);
       if (error) throw error;
     },
