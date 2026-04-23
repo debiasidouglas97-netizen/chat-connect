@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, Plus, X } from "lucide-react";
 import type { LiderancaComScore, AtuacaoCidade } from "@/lib/scoring";
 import { useCidades } from "@/hooks/use-cidades";
+import { useEleitores } from "@/hooks/use-eleitores";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
 import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
@@ -34,7 +35,9 @@ interface Props {
 
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
   const { cidades: cidadesData } = useCidades();
+  const { eleitores } = useEleitores();
   const cidadeOptions = cidadesData.map((c) => c.name);
+  const eleitoresVinculados = lideranca ? eleitores.filter((e) => e.lideranca_id === (lideranca as any).id).length : 0;
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -183,7 +186,10 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div><p className="text-muted-foreground text-xs">Influência</p><Badge variant="outline" className={`text-xs ${influenciaColors[lideranca.influencia]}`}><Star className="h-3 w-3 mr-1" /> {lideranca.influencia}</Badge></div>
                 {showScore && (
                   <>
-                    <div><p className="text-muted-foreground text-xs">Score</p><p className="text-xl font-bold">{lideranca.score}</p></div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Eleitores vinculados</p>
+                      <p className="text-xl font-bold text-success">{eleitoresVinculados.toLocaleString("pt-BR")}</p>
+                    </div>
                     <div><p className="text-muted-foreground text-xs">Classificação</p><p className="font-medium">{lideranca.classificacao.icon} {lideranca.classificacao.label}</p></div>
                   </>
                 )}
