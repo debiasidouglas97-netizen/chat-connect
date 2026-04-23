@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, FileText, Landmark, Phone, Vote, MapPinned, Calendar, Clock, ChevronDown } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Phone, Vote, MapPinned, Calendar, Clock, ChevronDown, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEventos } from "@/hooks/use-eventos";
@@ -88,6 +88,20 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
       .filter((e) => (e.cidade || "").split("/")[0].trim().toLowerCase() === cityKey)
       .sort((a, b) => (b.ano || 0) - (a.ano || 0));
   }, [cidade, emendas, cityKey]);
+
+  const estimativaVotos = useMemo(() => {
+    if (!cidade) return 0;
+    const eleitores = cidade.eleitores2024 || 0;
+    let total = 0;
+    cityLiderancas.forEach((l: any) => {
+      const tipo = l.metaVotosTipo || l.meta_votos_tipo;
+      const valor = l.metaVotosValor ?? l.meta_votos_valor;
+      if (!tipo || valor === null || valor === undefined) return;
+      const v = tipo === "fixo" ? Number(valor) : (eleitores * Number(valor)) / 100;
+      if (Number.isFinite(v) && v > 0) total += v;
+    });
+    return Math.round(total);
+  }, [cidade, cityLiderancas]);
 
   if (!cidade) return null;
 
@@ -186,6 +200,24 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
             active={openSection === "emendas"}
           />
           <StatCard icon={Users} label="Lideranças" value={cityLiderancas.length} />
+        </div>
+
+        {/* Estimativa de votos — destaque */}
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Estimativa de votos
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Soma das metas das lideranças vinculadas
+              </p>
+            </div>
+          </div>
+          <p className="text-xl font-bold text-primary">
+            {estimativaVotos > 0 ? estimativaVotos.toLocaleString("pt-BR") : "—"}
+          </p>
         </div>
 
         {/* Lista expandida — Visitas */}
