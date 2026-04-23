@@ -7,6 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const TSE_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona";
+const TSE_ELEITORADO_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele/perfil_eleitorado";
 
 function normalize(str: string): string {
   return str
@@ -441,4 +442,121 @@ export async function downloadAndParseTSEVotes(
   await writePromise;
   log(`Encontrados votos em ${Object.keys(votes).length} municípios`);
   return votes;
+}
+
+export async function downloadAndParseTSEEleitorado(
+  uf: string,
+  ano: number,
+  onProgress?: (msg: string) => void,
+): Promise<Record<string, number>> {
+  const log = onProgress || (() => {});
+
+  useDirectFetch = false;
+  const zipUrl = `${TSE_ELEITORADO_CDN}/perfil_eleitorado_${ano}.zip`;
+
+  log("Baixando eleitorado do TSE...");
+  const totalSize = await getRemoteFileSize(zipUrl);
+
+  log(`Localizando arquivo de ${ano}...`);
+  const entry = await findZipEntry(zipUrl, totalSize, `perfil_eleitorado_${ano}.csv`);
+  if (!entry) throw new Error(`Dados de eleitorado ${ano} não encontrados no arquivo do TSE`);
+  if (entry.compMethod !== 8) throw new Error("Formato de compressão não suportado");
+
+  const headerBuf = await fetchRange(zipUrl, entry.localOffset, entry.localOffset + 300);
+  const hView = new DataView(headerBuf);
+  const fnameLen = hView.getUint16(26, true);
+  const extraLen = hView.getUint16(28, true);
+  const dataOffset = entry.localOffset + 30 + fnameLen + extraLen;
+
+  const compSizeMB = (entry.compSize / 1024 / 1024).toFixed(0);
+  log(`Baixando ${compSizeMB}MB de eleitorado...`);
+
+  const chunkSize = 4 * 1024 * 1024;
+  const compressedChunks: Uint8Array[] = [];
+  let totalDownloaded = 0;
+
+  for (let start = 0; start < entry.compSize; start += chunkSize) {
+    const end = Math.min(start + chunkSize - 1, entry.compSize - 1);
+    const chunk = new Uint8Array(await fetchRange(zipUrl, dataOffset + start, dataOffset + end));
+    compressedChunks.push(chunk);
+    totalDownloaded += chunk.length;
+    const pct = Math.round((totalDownloaded / entry.compSize) * 100);
+    log(`Baixando... ${pct}%`);
+  }
+
+  const fullCompressed = new Uint8Array(totalDownloaded);
+  let offset = 0;
+  for (const chunk of compressedChunks) {
+    fullCompressed.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  log(`Processando eleitorado de ${uf}...`);
+  const ds = new DecompressionStream("deflate-raw");
+  const writer = ds.writable.getWriter();
+  const reader = ds.readable.getReader();
+
+  const writeChunkSize = 512 * 1024;
+  const writePromise = (async () => {
+    for (let i = 0; i < fullCompressed.length; i += writeChunkSize) {
+      await writer.write(fullCompressed.subarray(i, Math.min(i + writeChunkSize, fullCompressed.length)));
+    }
+    await writer.close();
+  })();
+
+  const eleitorado: Record<string, number> = {};
+  const decoder = new TextDecoder("latin1");
+  let partialLine = "";
+  let headerCols: string[] | null = null;
+  let nmMunIdx = -1;
+  let qtIdx = -1;
+  let sgUfIdx = -1;
+  let linesProcessed = 0;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const text = partialLine + decoder.decode(value, { stream: true });
+    const lines = text.split("\n");
+    partialLine = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const cols = trimmed.split(";").map((c) => c.replace(/"/g, ""));
+
+      if (!headerCols) {
+        headerCols = cols;
+        nmMunIdx = cols.indexOf("NM_MUNICIPIO");
+        sgUfIdx = cols.indexOf("SG_UF");
+        qtIdx = cols.indexOf("QT_ELEITORES_PERFIL");
+        if (qtIdx === -1) qtIdx = cols.indexOf("QT_ELEITORES_INC_NM_SOCIAL");
+
+        if (nmMunIdx === -1 || sgUfIdx === -1 || qtIdx === -1) {
+          throw new Error("Formato de CSV inesperado do TSE");
+        }
+        continue;
+      }
+
+      if (cols.length <= Math.max(nmMunIdx, sgUfIdx, qtIdx)) continue;
+      if (cols[sgUfIdx] !== uf) continue;
+
+      const mun = normalize(cols[nmMunIdx]);
+      const total = parseInt(cols[qtIdx], 10);
+      if (mun && Number.isFinite(total) && total > 0) {
+        eleitorado[mun] = (eleitorado[mun] || 0) + total;
+      }
+
+      linesProcessed++;
+      if (linesProcessed % 500000 === 0) {
+        log(`Processando... ${(linesProcessed / 1000).toFixed(0)}k linhas`);
+      }
+    }
+  }
+
+  await writePromise;
+  log(`Encontrado eleitorado em ${Object.keys(eleitorado).length} municípios`);
+  return eleitorado;
 }
