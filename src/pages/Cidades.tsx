@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Users, FileText, Landmark, Flame, AlertTriangle, Snowflake, Plus, Pencil, Trash2, Search, Filter, Loader2, LayoutGrid, List, ArrowDownWideNarrow, ArrowUpWideNarrow, Vote, MapPinned } from "lucide-react";
 import { useEventos } from "@/hooks/use-eventos";
+import { useDemandas } from "@/hooks/use-demandas";
+import { useEmendas } from "@/hooks/use-emendas";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calcularScoreCidade, canViewScore, type UserRole, type CidadeBase } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -57,6 +59,8 @@ export default function Cidades() {
   const { cidades: cidadesRaw, insert, update, remove } = useCidades();
   const { eventos } = useEventos();
   const { liderancas: liderancasRaw } = useLiderancas();
+  const { demandas } = useDemandas();
+  const { emendas } = useEmendas();
   const { tenantId } = useTenant();
   const qc = useQueryClient();
 
@@ -97,6 +101,32 @@ export default function Cidades() {
   }, [liderancasRaw, cidadesRaw]);
   const getEstimativaVotos = (cityName: string) =>
     Math.round(estimativaVotosByCity.get(cityName) || 0);
+
+  // Mapa de cidade → demandas/emendas reais (excluindo demandas originadas da agenda)
+  const demandasByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of demandas as any[]) {
+      if ((d.origin || "").toLowerCase() === "agenda") continue;
+      const key = (d.city || "").split("/")[0].trim().toLowerCase();
+      if (!key) continue;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [demandas]);
+  const getDemandasCount = (cityName: string) =>
+    demandasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
+
+  const emendasByCity = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of emendas as any[]) {
+      const key = (e.cidade || "").split("/")[0].trim().toLowerCase();
+      if (!key) continue;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [emendas]);
+  const getEmendasCount = (cityName: string) =>
+    emendasByCity.get((cityName || "").split("/")[0].trim().toLowerCase()) || 0;
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<(CidadeBase & { id: string }) | undefined>();
@@ -546,9 +576,9 @@ export default function Cidades() {
                       <span className="flex items-center gap-1.5" title="Soma das metas de votos das lideranças vinculadas a esta cidade">
                         <Vote className="h-3 w-3" /><span className="font-semibold">Est. Votos:</span> {getEstimativaVotos(c.name) > 0 ? getEstimativaVotos(c.name).toLocaleString("pt-BR") : "—"}
                       </span>
-                      <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {c.demandas} demandas</span>
+                      <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {getDemandasCount(c.name)} demandas</span>
                       <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
-                      <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {c.emendas} emendas</span>
+                      <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {getEmendasCount(c.name)} emendas</span>
                       <span className="text-right opacity-80">{c.regiao}</span>
                     </div>
                     {(c as any).votos2022 > 0 && (
@@ -657,9 +687,9 @@ export default function Cidades() {
                         );
                       })()}
                     </TableCell>
-                    <TableCell>{c.demandas}</TableCell>
+                    <TableCell>{getDemandasCount(c.name)}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
-                    <TableCell>{c.emendas}</TableCell>
+                    <TableCell>{getEmendasCount(c.name)}</TableCell>
                     <TableCell>
                       {(c as any).votos2022 > 0 ? (
                         <span className="font-bold">{((c as any).votos2022 as number).toLocaleString("pt-BR")}</span>
