@@ -10,6 +10,7 @@ import { Trash2, Pencil, MapPin, Star, Upload, Phone, Mail, AtSign, MessageCircl
 import type { LiderancaComScore, AtuacaoCidade } from "@/lib/scoring";
 import { useCidades } from "@/hooks/use-cidades";
 import { useEleitores } from "@/hooks/use-eleitores";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
 import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
@@ -36,6 +37,7 @@ interface Props {
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
   const { cidades: cidadesData } = useCidades();
   const { eleitores } = useEleitores();
+  const { canWriteLiderancas } = usePermissions();
   const cidadeOptions = cidadesData.map((c) => c.name);
   const eleitoresVinculados = lideranca ? eleitores.filter((e) => e.lideranca_id === (lideranca as any).id).length : 0;
   const [editing, setEditing] = useState(false);
@@ -270,10 +272,12 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <EngagementSection leaderId={(l as any).id} />
               </div>
 
-              <div className="flex items-center gap-2 pt-2 border-t">
-                <Button size="sm" variant="outline" className="gap-1" onClick={startEdit}><Pencil className="h-3.5 w-3.5" /> Editar</Button>
-                <Button size="sm" variant="destructive" className="gap-1" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
-              </div>
+              {canWriteLiderancas && (
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={startEdit}><Pencil className="h-3.5 w-3.5" /> Editar</Button>
+                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
