@@ -17,6 +17,7 @@ interface CidadeRow {
   liderancas: number;
   emendas: number;
   votos_2022: number;
+  eleitores_2024: number;
   tenant_id: string | null;
 }
 
@@ -35,6 +36,7 @@ function rowToBase(r: CidadeRow): CidadeBase & { id: string } {
     liderancas: r.liderancas,
     emendas: r.emendas,
     votos2022: r.votos_2022,
+    eleitores2024: r.eleitores_2024,
   };
 }
 
