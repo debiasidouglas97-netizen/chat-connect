@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, FileText, Landmark, Phone, Vote, MapPinned, Calendar, Clock, ChevronDown } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Phone, Vote, MapPinned, Calendar, Clock, ChevronDown, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEventos } from "@/hooks/use-eventos";
