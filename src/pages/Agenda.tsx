@@ -37,6 +37,19 @@ export default function Agenda() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [editEvento, setEditEvento] = useState<EventoRow | null>(null);
   const [detailEvento, setDetailEvento] = useState<EventoRow | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const eventoId = searchParams.get("evento");
+    if (eventoId && eventos.length > 0) {
+      const ev = eventos.find((e) => e.id === eventoId);
+      if (ev) {
+        setDetailEvento(ev);
+        searchParams.delete("evento");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [eventos, searchParams, setSearchParams]);
 
   // Parse event dates
   const eventsByDate = useMemo(() => {
