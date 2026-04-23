@@ -41,6 +41,8 @@ export interface LiderancaBase {
   atuacao: AtuacaoCidade[];
   engajamento: number; // 0-100
   classificacao_manual?: string | null;
+  meta_votos_tipo?: "percentual" | "fixo" | null;
+  meta_votos_valor?: number | null;
 }
 
 export interface LiderancaComScore extends LiderancaBase {

@@ -11,6 +11,7 @@ import type { LiderancaComScore, AtuacaoCidade } from "@/lib/scoring";
 import { useCidades } from "@/hooks/use-cidades";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
+import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -61,6 +62,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [novaCidade, setNovaCidade] = useState("");
   const [novaIntensidade, setNovaIntensidade] = useState<"Alta" | "Média" | "Baixa">("Média");
   const [classificacaoManual, setClassificacaoManual] = useState("");
+  const [metaTipo, setMetaTipo] = useState<MetaVotosTipo>("percentual");
+  const [metaValor, setMetaValor] = useState<number | null>(null);
 
   const startEdit = () => {
     if (!lideranca) return;
@@ -85,6 +88,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setAddressCity(l.address_city || "");
     setAddressState(l.address_state || "");
     setClassificacaoManual(l.classificacao_manual || "");
+    setMetaTipo((l.meta_votos_tipo as MetaVotosTipo) || "percentual");
+    setMetaValor(l.meta_votos_valor ?? null);
     setAtuacao(l.atuacao ? [...l.atuacao] : []);
     setNovaCidade("");
     setNovaIntensidade("Média");
@@ -133,6 +138,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
       classificacao_manual: classificacaoManual && classificacaoManual !== "auto" ? classificacaoManual : null,
       atuacao,
+      meta_votos_tipo: metaTipo,
+      meta_votos_valor: metaValor,
     });
     setEditing(false);
   };
@@ -182,7 +189,35 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 )}
               </div>
 
-              {/* Contacts */}
+              {/* Meta de votos (visualização) */}
+              {l.meta_votos_valor != null && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1.5">
+                    <Star className="h-3 w-3" /> Meta de votos
+                  </p>
+                  {(() => {
+                    const cidade = cidadesData.find((c) => c.name === lideranca.cidadePrincipal);
+                    const eleitores = cidade?.eleitores2024 || 0;
+                    const isPerc = l.meta_votos_tipo === "percentual";
+                    const estimativa = isPerc
+                      ? Math.round((eleitores * Number(l.meta_votos_valor)) / 100)
+                      : Number(l.meta_votos_valor);
+                    const fmt = new Intl.NumberFormat("pt-BR");
+                    return (
+                      <p className="font-medium text-sm">
+                        {isPerc
+                          ? `${String(l.meta_votos_valor).replace(".", ",")}% `
+                          : `${fmt.format(Number(l.meta_votos_valor))} votos fixos `}
+                        <span className="text-muted-foreground">
+                          → estimativa <span className="text-foreground font-bold">{fmt.format(estimativa)}</span> votos
+                        </span>
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+
+
               {(l.phone || l.whatsapp || l.email || l.telegram_username) && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-2">Contatos</p>
@@ -273,7 +308,16 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 </div>
               </div>
 
-              {/* Contacts */}
+              {/* Meta de votos */}
+              <MetaVotosInput
+                cargo={cargo}
+                cidadePrincipal={cidadePrincipal}
+                tipo={metaTipo}
+                valor={metaValor}
+                onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
+              />
+
+
               <p className="text-xs font-medium text-muted-foreground pt-2">Contatos</p>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
