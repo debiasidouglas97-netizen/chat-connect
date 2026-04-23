@@ -186,7 +186,10 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div><p className="text-muted-foreground text-xs">Influência</p><Badge variant="outline" className={`text-xs ${influenciaColors[lideranca.influencia]}`}><Star className="h-3 w-3 mr-1" /> {lideranca.influencia}</Badge></div>
                 {showScore && (
                   <>
-                    <div><p className="text-muted-foreground text-xs">Score</p><p className="text-xl font-bold">{lideranca.score}</p></div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Eleitores vinculados</p>
+                      <p className="text-xl font-bold text-emerald-600">{eleitoresVinculados.toLocaleString("pt-BR")}</p>
+                    </div>
                     <div><p className="text-muted-foreground text-xs">Classificação</p><p className="font-medium">{lideranca.classificacao.icon} {lideranca.classificacao.label}</p></div>
                   </>
                 )}
