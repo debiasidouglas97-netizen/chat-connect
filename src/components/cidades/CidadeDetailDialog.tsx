@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, FileText, Landmark, Phone } from "lucide-react";
+import { MapPin, Users, FileText, Landmark, Phone, Vote } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useMemo } from "react";
@@ -16,6 +16,7 @@ interface CidadeDetailDialogProps {
     demandas: number;
     emendas: number;
     liderancas: number;
+    eleitores2024?: number;
   } | null;
 }
 
@@ -53,11 +54,20 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
         </DialogHeader>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mt-2">
+        <div className="grid grid-cols-2 gap-3 mt-2">
           <div className="bg-muted/50 rounded-lg p-3 text-center">
             <Users className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
             <p className="text-lg font-bold text-foreground">{cidade.population || "N/D"}</p>
             <p className="text-[10px] text-muted-foreground uppercase">População</p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <Vote className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+            <p className="text-lg font-bold text-foreground">
+              {cidade.eleitores2024 && cidade.eleitores2024 > 0
+                ? cidade.eleitores2024.toLocaleString("pt-BR")
+                : "—"}
+            </p>
+            <p className="text-[10px] text-muted-foreground uppercase">Eleitores 2024</p>
           </div>
           <div className="bg-muted/50 rounded-lg p-3 text-center">
             <FileText className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
