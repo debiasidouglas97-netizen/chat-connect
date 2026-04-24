@@ -48,10 +48,16 @@ export function useEleitores() {
         .select("*")
         .eq("tenant_id", tenantId!)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error("[useEleitores] erro:", error);
+        throw error;
+      }
+      console.log("[useEleitores] tenantId:", tenantId, "rows:", data?.length);
       return (data || []) as EleitorRow[];
     },
     enabled: !!tenantId,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const insert = useMutation({
