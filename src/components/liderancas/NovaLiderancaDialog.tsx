@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCidades } from "@/hooks/use-cidades";
 import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, KeyRound, User as UserIcon, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, KeyRound, User as UserIcon, Eye, EyeOff, ShieldCheck, Info } from "lucide-react";
 import { toast } from "sonner";
 import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useLiderancas } from "@/hooks/use-liderancas";
 
 interface Props {
   open: boolean;
@@ -43,6 +45,7 @@ function passwordStrength(p: string): { label: string; color: string; pct: numbe
 
 export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: Props) {
   const { cidades: cidadesData } = useCidades();
+  const { insert: insertLideranca } = useLiderancas();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [cargo, setCargo] = useState("");
@@ -68,7 +71,8 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   const [metaTipo, setMetaTipo] = useState<MetaVotosTipo>("percentual");
   const [metaValor, setMetaValor] = useState<number | null>(null);
 
-  // Acesso ao sistema (obrigatório)
+  // Acesso ao sistema (opcional via checkbox)
+  const [criarAcesso, setCriarAcesso] = useState(true);
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
   const [username, setUsername] = useState("");
@@ -87,6 +91,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
     setAddressCep(""); setAddressStreet(""); setAddressNumber(""); setAddressNeighborhood("");
     setAddressCity(""); setAddressState("");
     setMetaTipo("percentual"); setMetaValor(null);
+    setCriarAcesso(true);
     setEmail(""); setCpf(""); setUsername(""); setPassword(""); setPasswordConfirm("");
     setShowPassword(false);
   };
