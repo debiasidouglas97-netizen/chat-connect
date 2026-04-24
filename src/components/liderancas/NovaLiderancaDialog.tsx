@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCidades } from "@/hooks/use-cidades";
 import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, KeyRound, User as UserIcon, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, KeyRound, User as UserIcon, Eye, EyeOff, ShieldCheck, Info } from "lucide-react";
 import { toast } from "sonner";
 import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useLiderancas } from "@/hooks/use-liderancas";
 
 interface Props {
   open: boolean;
@@ -43,6 +45,7 @@ function passwordStrength(p: string): { label: string; color: string; pct: numbe
 
 export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: Props) {
   const { cidades: cidadesData } = useCidades();
+  const { insert: insertLideranca } = useLiderancas();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [cargo, setCargo] = useState("");
@@ -68,7 +71,8 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   const [metaTipo, setMetaTipo] = useState<MetaVotosTipo>("percentual");
   const [metaValor, setMetaValor] = useState<number | null>(null);
 
-  // Acesso ao sistema (obrigatório)
+  // Acesso ao sistema (opcional via checkbox)
+  const [criarAcesso, setCriarAcesso] = useState(true);
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
   const [username, setUsername] = useState("");
@@ -87,6 +91,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
     setAddressCep(""); setAddressStreet(""); setAddressNumber(""); setAddressNeighborhood("");
     setAddressCity(""); setAddressState("");
     setMetaTipo("percentual"); setMetaValor(null);
+    setCriarAcesso(true);
     setEmail(""); setCpf(""); setUsername(""); setPassword(""); setPasswordConfirm("");
     setShowPassword(false);
   };
@@ -123,45 +128,84 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   };
 
   const handleSubmit = async () => {
-    // Validações
+    // Validações de liderança (sempre obrigatórias)
     if (!name.trim() || !cargo.trim() || !cidadePrincipal.trim()) {
       toast.error("Nome, cargo e cidade principal são obrigatórios");
       return;
     }
-    if (!email.trim() || !email.includes("@")) {
-      toast.error("Informe um e-mail válido para o acesso ao sistema");
-      return;
-    }
-    const cpfDigits = cpf.replace(/\D/g, "");
-    if (cpfDigits.length !== 11) {
-      toast.error("CPF deve ter 11 dígitos");
-      return;
-    }
-    if (!/^[a-zA-Z0-9_.]{3,}$/.test(username.trim())) {
-      toast.error("Username inválido (mínimo 3 caracteres, apenas letras, números, _ ou .)");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("Senha deve ter no mínimo 8 caracteres");
-      return;
-    }
-    if (password !== passwordConfirm) {
-      toast.error("Senhas não conferem");
-      return;
-    }
+
+    const img = name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    const atuacaoFinal = atuacao.length > 0
+      ? atuacao
+      : [{ cidadeNome: cidadePrincipal.trim(), intensidade: "Alta" as const }];
 
     setSubmitting(true);
-    const img = name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
     try {
-      const { data, error } = await supabase.functions.invoke("create-lideranca-user", {
-        body: {
-          mode: "create",
-          // acesso
-          email: email.trim().toLowerCase(),
-          cpf: cpfDigits,
-          username: username.trim(),
-          password,
-          // liderança
+      if (criarAcesso) {
+        // Validações de acesso
+        if (!email.trim() || !email.includes("@")) {
+          toast.error("Informe um e-mail válido para o acesso ao sistema");
+          return;
+        }
+        const cpfDigits = cpf.replace(/\D/g, "");
+        if (cpfDigits.length !== 11) {
+          toast.error("CPF deve ter 11 dígitos");
+          return;
+        }
+        if (!/^[a-zA-Z0-9_.]{3,}$/.test(username.trim())) {
+          toast.error("Username inválido (mínimo 3 caracteres, apenas letras, números, _ ou .)");
+          return;
+        }
+        if (password.length < 8) {
+          toast.error("Senha deve ter no mínimo 8 caracteres");
+          return;
+        }
+        if (password !== passwordConfirm) {
+          toast.error("Senhas não conferem");
+          return;
+        }
+
+        // Cria liderança + acesso atômico via edge function
+        const { data, error } = await supabase.functions.invoke("create-lideranca-user", {
+          body: {
+            mode: "create",
+            email: email.trim().toLowerCase(),
+            cpf: cpfDigits,
+            username: username.trim(),
+            password,
+            name: name.trim(),
+            img,
+            cargo: cargo.trim(),
+            cidadePrincipal: cidadePrincipal.trim(),
+            influencia,
+            tipo,
+            engajamento: 50,
+            atuacao: atuacaoFinal,
+            phone: phone || null,
+            whatsapp: whatsapp || null,
+            telegram_username: telegram || null,
+            instagram: instagramVal || null,
+            facebook: facebookVal || null,
+            youtube: youtubeVal || null,
+            avatar_url: avatarPreview,
+            address_cep: addressCep || null,
+            address_street: addressStreet || null,
+            address_number: addressNumber || null,
+            address_neighborhood: addressNeighborhood || null,
+            address_city: addressCity || null,
+            address_state: addressState || null,
+            meta_votos_tipo: metaTipo,
+            meta_votos_valor: metaValor,
+          },
+        });
+        if (error || (data as any)?.error) {
+          toast.error((data as any)?.error || error?.message || "Erro ao cadastrar");
+          return;
+        }
+        toast.success("Liderança cadastrada e acesso ao sistema criado!");
+      } else {
+        // Cadastra apenas no CRM (sem acesso ao sistema)
+        await insertLideranca({
           name: name.trim(),
           img,
           cargo: cargo.trim(),
@@ -169,29 +213,19 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           influencia,
           tipo,
           engajamento: 50,
-          atuacao: atuacao.length > 0 ? atuacao : [{ cidadeNome: cidadePrincipal.trim(), intensidade: "Alta" }],
-          phone: phone || null,
-          whatsapp: whatsapp || null,
-          telegram_username: telegram || null,
-          instagram: instagramVal || null,
-          facebook: facebookVal || null,
-          youtube: youtubeVal || null,
+          atuacao: atuacaoFinal,
+          phone, whatsapp,
+          email: email.trim() || "",
+          telegram_username: telegram,
+          instagram: instagramVal, facebook: facebookVal, youtube: youtubeVal,
           avatar_url: avatarPreview,
-          address_cep: addressCep || null,
-          address_street: addressStreet || null,
-          address_number: addressNumber || null,
-          address_neighborhood: addressNeighborhood || null,
-          address_city: addressCity || null,
-          address_state: addressState || null,
-          meta_votos_tipo: metaTipo,
-          meta_votos_valor: metaValor,
-        },
-      });
-      if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || error?.message || "Erro ao cadastrar");
-        return;
+          address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
+          address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
+          meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
+        } as any);
+        toast.success("Liderança cadastrada! Você pode criar o acesso ao sistema depois pelo detalhe da liderança.");
       }
-      toast.success("Liderança cadastrada e acesso ao sistema criado!");
+
       reset();
       onOpenChange(false);
       onCreated?.();
@@ -244,49 +278,75 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             </div>
           </div>
 
-          {/* Acesso ao Sistema */}
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
-            <div className="flex items-center gap-2 text-primary">
-              <ShieldCheck className="h-4 w-4" />
-              <p className="text-sm font-semibold">Acesso ao Sistema</p>
+          {/* Acesso ao Sistema (opcional) */}
+          <div className={`rounded-lg border p-3 space-y-3 transition-colors ${criarAcesso ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="criar-acesso"
+                checked={criarAcesso}
+                onCheckedChange={(v) => setCriarAcesso(v === true)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <label htmlFor="criar-acesso" className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer">
+                  <ShieldCheck className="h-4 w-4" />
+                  Criar acesso ao sistema agora
+                </label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {criarAcesso
+                    ? "A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente."
+                    : "A liderança será cadastrada apenas no CRM. Você pode criar o acesso a qualquer momento pelo detalhe da liderança."}
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] text-muted-foreground -mt-1">
-              A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail *</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
-              </div>
-              <div>
-                <Label className="text-xs">CPF *</Label>
-                <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
-              </div>
-              <div>
-                <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
-                <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
-              </div>
-              <div className="row-span-2">
-                <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
-                <div className="relative">
-                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+
+            {criarAcesso && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail *</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
                 </div>
-                {password && (
-                  <div className="mt-1.5 space-y-1">
-                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full transition-all ${strength.color}`} style={{ width: `${strength.pct}%` }} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Força: {strength.label}</p>
+                <div>
+                  <Label className="text-xs">CPF *</Label>
+                  <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
+                  <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
+                </div>
+                <div className="row-span-2">
+                  <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
+                  <div className="relative">
+                    <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                )}
-                <Label className="text-xs flex items-center gap-1 mt-2">Confirmar senha *</Label>
-                <Input type={showPassword ? "text" : "password"} value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                  {password && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full transition-all ${strength.color}`} style={{ width: `${strength.pct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Força: {strength.label}</p>
+                    </div>
+                  )}
+                  <Label className="text-xs flex items-center gap-1 mt-2">Confirmar senha *</Label>
+                  <Input type={showPassword ? "text" : "password"} value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
+
+          {/* E-mail de contato (visível apenas quando NÃO criar acesso) */}
+          {!criarAcesso && (
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail de contato (opcional)</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                <Info className="h-3 w-3" /> Útil para criar o acesso ao sistema mais tarde sem precisar redigitar.
+              </p>
+            </div>
+          )}
 
           {/* Meta de votos */}
           <MetaVotosInput
@@ -347,7 +407,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
 
           <div className="flex items-center gap-2 pt-2 border-t">
             <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting ? "Cadastrando..." : "Cadastrar Liderança + Acesso"}
+              {submitting ? "Cadastrando..." : criarAcesso ? "Cadastrar Liderança + Acesso" : "Cadastrar Liderança"}
             </Button>
             <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }} disabled={submitting}>Cancelar</Button>
           </div>
