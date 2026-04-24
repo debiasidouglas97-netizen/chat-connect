@@ -16,6 +16,7 @@ import { useCidades } from "@/hooks/use-cidades";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import EmendaFormDialog from "@/components/emendas/EmendaFormDialog";
 import EmendaDetailDialog from "@/components/emendas/EmendaDetailDialog";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const statusColors: Record<string, { bg: string; text: string; border: string }> = {
   Proposta: { bg: "bg-[#FFF4E5]", text: "text-[#B26A00]", border: "border-[#FFE0B2]" },
@@ -37,6 +38,7 @@ export default function Emendas() {
   const { emendas, insert, update, remove } = useEmendas();
   const { cidades } = useCidades();
   const { liderancas } = useLiderancas();
+  const { canWriteEmendas } = usePermissions();
   const cidadeOptions = cidades.map(c => c.name);
   const liderancaOptions = liderancas.map(l => l.name);
 
@@ -102,9 +104,11 @@ export default function Emendas() {
           <h1 className="text-2xl font-bold text-foreground">Emendas Parlamentares</h1>
           <p className="text-sm text-muted-foreground">Gestão completa de emendas com anexos e vínculos</p>
         </div>
-        <Button className="gap-2" onClick={() => { setEditing(undefined); setFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> Nova Emenda
-        </Button>
+        {canWriteEmendas && (
+          <Button className="gap-2" onClick={() => { setEditing(undefined); setFormOpen(true); }}>
+            <Plus className="h-4 w-4" /> Nova Emenda
+          </Button>
+        )}
       </div>
 
       {/* Status cards */}

@@ -7,6 +7,7 @@ import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
 import type { Demanda } from "@/components/demandas/types";
 import { useDemandas } from "@/hooks/use-demandas";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import {
@@ -262,6 +263,7 @@ export default function Demandas() {
     addHistory,
     notifyStatusChange,
   } = useDemandas();
+  const { canWriteDemandas } = usePermissions();
   const [newOpen, setNewOpen] = useState(false);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -587,18 +589,22 @@ export default function Demandas() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setShowArchived(true)}
-            className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Archive className="h-4 w-4" />
-            <span>Arquivadas</span>
-            <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive">{archivedItems.length}</Badge>
-          </Button>
-          <Button className="gap-2" onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4" /> Nova Demanda
-          </Button>
+          {canWriteDemandas && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setShowArchived(true)}
+                className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Archive className="h-4 w-4" />
+                <span>Arquivadas</span>
+                <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive">{archivedItems.length}</Badge>
+              </Button>
+              <Button className="gap-2" onClick={() => setNewOpen(true)}>
+                <Plus className="h-4 w-4" /> Nova Demanda
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

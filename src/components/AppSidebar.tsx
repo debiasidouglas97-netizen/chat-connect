@@ -23,6 +23,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useDeputyProfile } from "@/hooks/use-deputy-profile";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -65,8 +66,25 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { profile } = useDeputyProfile();
   const { signOut, profile: authProfile, userAvatarUrl, userDisplayName, userInitials } = useAuth();
+  const { isLideranca } = usePermissions();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+
+  // Items hidden from "lideranca" role
+  const liderancaHiddenUrls = new Set([
+    "/documentos",
+    "/mensagens",
+    "/mobilizacao",
+    "/busca",
+    "/configuracoes",
+  ]);
+
+  const visibleMainItems = isLideranca
+    ? mainItems.filter((i) => !liderancaHiddenUrls.has(i.url))
+    : mainItems;
+  const visibleSystemItems = isLideranca
+    ? systemItems.filter((i) => !liderancaHiddenUrls.has(i.url))
+    : systemItems;
 
   return (
     <Sidebar collapsible="icon">
@@ -109,7 +127,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {visibleMainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -132,13 +150,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {visibleSystemItems.length > 0 && (
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/50 text-[10px] uppercase tracking-widest">
             Sistema
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {systemItems.map((item) => (
+              {visibleSystemItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -160,6 +179,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
