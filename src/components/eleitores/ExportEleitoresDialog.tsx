@@ -217,21 +217,39 @@ export default function ExportEleitoresDialog({ open, onOpenChange, eleitores, l
           <div>
             <Label className="text-sm font-semibold mb-2 block">Formato do arquivo</Label>
             <RadioGroup value={format} onValueChange={(v) => setFormat(v as Format)} className="grid grid-cols-3 gap-2">
-              <label className="flex flex-col items-center justify-center gap-1 p-3 rounded-md border cursor-pointer hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <label
+                className={`flex flex-col items-center justify-center gap-1 p-3 rounded-md border-2 cursor-pointer transition-all ${
+                  format === "csv"
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
                 <RadioGroupItem value="csv" className="sr-only" />
-                <FileText className="h-5 w-5 text-emerald-600" />
+                <FileText className={`h-5 w-5 ${format === "csv" ? "text-primary" : "text-emerald-600"}`} />
                 <span className="text-xs font-medium">CSV</span>
                 <span className="text-[10px] text-muted-foreground">Excel</span>
               </label>
-              <label className="flex flex-col items-center justify-center gap-1 p-3 rounded-md border cursor-pointer hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <label
+                className={`flex flex-col items-center justify-center gap-1 p-3 rounded-md border-2 cursor-pointer transition-all ${
+                  format === "json"
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
                 <RadioGroupItem value="json" className="sr-only" />
-                <FileJson className="h-5 w-5 text-amber-600" />
+                <FileJson className={`h-5 w-5 ${format === "json" ? "text-primary" : "text-amber-600"}`} />
                 <span className="text-xs font-medium">JSON</span>
                 <span className="text-[10px] text-muted-foreground">API</span>
               </label>
-              <label className="flex flex-col items-center justify-center gap-1 p-3 rounded-md border cursor-pointer hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <label
+                className={`flex flex-col items-center justify-center gap-1 p-3 rounded-md border-2 cursor-pointer transition-all ${
+                  format === "xml"
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
                 <RadioGroupItem value="xml" className="sr-only" />
-                <FileCode className="h-5 w-5 text-blue-600" />
+                <FileCode className={`h-5 w-5 ${format === "xml" ? "text-primary" : "text-blue-600"}`} />
                 <span className="text-xs font-medium">XML</span>
                 <span className="text-[10px] text-muted-foreground">Estruturado</span>
               </label>
