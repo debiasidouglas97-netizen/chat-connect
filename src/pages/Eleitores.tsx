@@ -25,12 +25,14 @@ export default function Eleitores() {
   const { eleitores, isLoading, remove } = useEleitores();
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
-  const { canDeleteEleitores } = usePermissions();
+  const { canDeleteEleitores, isWriter } = usePermissions() as any;
+  const showExport = canDeleteEleitores; // admins/operators (deputado, chefe_gabinete, secretario)
 
   const [search, setSearch] = useState("");
   const [filterCidade, setFilterCidade] = useState<string>("__all__");
   const [filterLideranca, setFilterLideranca] = useState<string>("__all__");
   const [open, setOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [editing, setEditing] = useState<EleitorRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<EleitorRow | null>(null);
 
