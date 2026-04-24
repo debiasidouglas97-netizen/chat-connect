@@ -37,7 +37,10 @@ interface Props {
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
   const { cidades: cidadesData } = useCidades();
   const { eleitores } = useEleitores();
-  const { canWriteLiderancas } = usePermissions();
+  const { canWriteLiderancas, isLideranca, linkedLiderancaId } = usePermissions();
+  const isOwnRecord = lideranca ? (lideranca as any).id === linkedLiderancaId : false;
+  const hideContacts = isLideranca && !isOwnRecord;
+  const mask = (v?: string | null) => (v ? "••••••••" : "");
   const cidadeOptions = cidadesData.map((c) => c.name);
   const eleitoresVinculados = lideranca ? eleitores.filter((e) => e.lideranca_id === (lideranca as any).id).length : 0;
   const [editing, setEditing] = useState(false);
