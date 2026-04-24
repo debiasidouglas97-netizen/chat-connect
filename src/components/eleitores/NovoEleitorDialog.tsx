@@ -39,6 +39,7 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const { cidades } = useCidades();
   const { liderancas } = useLiderancas();
   const { insert, update } = useEleitores();
+  const { isLideranca, linkedLiderancaId } = usePermissions();
 
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -56,10 +57,16 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const [saving, setSaving] = useState(false);
   const [liderancaOpen, setLiderancaOpen] = useState(false);
 
-  const liderancasOrdenadas = [...(liderancas as any[])].sort((a, b) =>
+  // Se o usuário logado é uma liderança, restringe a lista apenas a ele mesmo
+  const liderancasDisponiveis = isLideranca && linkedLiderancaId
+    ? (liderancas as any[]).filter((l) => l.id === linkedLiderancaId)
+    : (liderancas as any[]);
+
+  const liderancasOrdenadas = [...liderancasDisponiveis].sort((a, b) =>
     (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
   );
   const liderancaSelecionada = liderancasOrdenadas.find((l) => l.id === liderancaId);
+  const liderancaLocked = isLideranca && !!linkedLiderancaId;
 
   useEffect(() => {
     if (open && editing) {
