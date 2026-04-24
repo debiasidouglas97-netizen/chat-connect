@@ -89,9 +89,16 @@ export default function Eleitores() {
               Cadastro e desempenho de base eleitoral por liderança
             </p>
           </div>
-          <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Eleitor
-          </Button>
+          <div className="flex items-center gap-2">
+            {showExport && (
+              <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2">
+                <Download className="h-4 w-4" /> Exportar Dados
+              </Button>
+            )}
+            <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Eleitor
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
