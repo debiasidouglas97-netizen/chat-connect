@@ -40,8 +40,21 @@ export default function PerformanceLideranca() {
     });
   }, [liderancas, eleitoresPorCidade, eleitoresPorLideranca]);
 
-  const marketShare = dados.filter((d) => d.cat === "market_share");
-  const operacional = dados.filter((d) => d.cat === "operacional");
+  const marketShare = dados
+    .filter((d) => d.cat === "market_share")
+    .sort((a, b) => {
+      const pa = a.eleitoresCidade > 0 ? a.meta / a.eleitoresCidade : 0;
+      const pb = b.eleitoresCidade > 0 ? b.meta / b.eleitoresCidade : 0;
+      if (pb !== pa) return pb - pa;
+      return b.meta - a.meta;
+    });
+  const operacional = dados
+    .filter((d) => d.cat === "operacional")
+    .sort((a, b) => {
+      // Ordena por % da meta cumprida (desc), depois por cadastrados (desc)
+      if (b.progresso !== a.progresso) return b.progresso - a.progresso;
+      return b.cadastrados - a.cadastrados;
+    });
 
   // Hierarquia: somar cadastrados das lideranças operacionais a Prefeitos da mesma cidade
   const baseGrupoPorPrefeito = useMemo(() => {
