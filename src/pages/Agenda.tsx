@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays, MapPin, Clock, Plus, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { useEventos } from "@/hooks/use-eventos";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import NovoEventoDialog from "@/components/agenda/NovoEventoDialog";
 import EventoDetailDialog from "@/components/agenda/EventoDetailDialog";
@@ -31,6 +32,7 @@ type ViewMode = "month" | "week" | "day";
 export default function Agenda() {
   const { eventos, isLoading, insert, update, remove } = useEventos();
   const { toast } = useToast();
+  const { canWriteAgenda } = usePermissions();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("month");
@@ -162,9 +164,11 @@ export default function Agenda() {
           <h1 className="text-2xl font-bold text-foreground">Agenda Parlamentar</h1>
           <p className="text-sm text-muted-foreground">Eventos vinculados a cidades, lideranças e demandas</p>
         </div>
-        <Button onClick={() => { setEditEvento(null); setShowNewDialog(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Evento
-        </Button>
+        {canWriteAgenda && (
+          <Button onClick={() => { setEditEvento(null); setShowNewDialog(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Evento
+          </Button>
+        )}
       </div>
 
       {/* Navigation & View Toggles */}
@@ -355,17 +359,19 @@ export default function Agenda() {
                   ))}
                 </div>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-3"
-                onClick={() => {
-                  setEditEvento(null);
-                  setShowNewDialog(true);
-                }}
-              >
-                <Plus className="h-3 w-3 mr-1" /> Adicionar evento
-              </Button>
+              {canWriteAgenda && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-3"
+                  onClick={() => {
+                    setEditEvento(null);
+                    setShowNewDialog(true);
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar evento
+                </Button>
+              )}
             </CardContent>
           </Card>
 
