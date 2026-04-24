@@ -80,18 +80,19 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
       setNumero(editing.numero || "");
       setBairro(editing.bairro || "");
       setEstado(editing.estado || "");
-      setLiderancaId(editing.lideranca_id || "__none__");
+      setLiderancaId(editing.lideranca_id || (liderancaLocked ? linkedLiderancaId! : "__none__"));
       setObservacoes(editing.observacoes || "");
     } else if (open && !editing) {
       reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editing]);
+  }, [open, editing, liderancaLocked, linkedLiderancaId]);
 
   const reset = () => {
     setNome(""); setWhatsapp(""); setCidade(""); setTelegram(""); setEmail("");
     setCep(""); setLogradouro(""); setNumero(""); setBairro(""); setEstado("");
-    setLiderancaId("__none__"); setObservacoes("");
+    setLiderancaId(liderancaLocked && linkedLiderancaId ? linkedLiderancaId : "__none__");
+    setObservacoes("");
   };
 
   const buscarCep = async () => {
