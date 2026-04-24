@@ -10,8 +10,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useCidades } from "@/hooks/use-cidades";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEleitores, type EleitorInput, type EleitorRow } from "@/hooks/use-eleitores";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
-import { Loader2, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Search, Check, ChevronsUpDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
