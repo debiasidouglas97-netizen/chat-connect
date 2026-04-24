@@ -135,7 +135,6 @@ export default function ExportEleitoresDialog({ open, onOpenChange, eleitores, l
     if (format === "csv") {
       const headers = Object.keys(rows[0] || {});
       const csv = [
-        "sep=;",
         headers.join(";"),
         ...rows.map((r) => headers.map((h) => escapeCSV(r[h])).join(";")),
       ].join("\r\n");
