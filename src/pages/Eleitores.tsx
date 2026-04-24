@@ -11,11 +11,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download } from "lucide-react";
 import { useEleitores, type EleitorRow } from "@/hooks/use-eleitores";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
 import NovoEleitorDialog from "@/components/eleitores/NovoEleitorDialog";
+import ExportEleitoresDialog from "@/components/eleitores/ExportEleitoresDialog";
 import PerformanceLideranca from "@/components/eleitores/PerformanceLideranca";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
@@ -24,12 +25,14 @@ export default function Eleitores() {
   const { eleitores, isLoading, remove } = useEleitores();
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
-  const { canDeleteEleitores } = usePermissions();
+  const { canDeleteEleitores, isWriter } = usePermissions() as any;
+  const showExport = canDeleteEleitores; // admins/operators (deputado, chefe_gabinete, secretario)
 
   const [search, setSearch] = useState("");
   const [filterCidade, setFilterCidade] = useState<string>("__all__");
   const [filterLideranca, setFilterLideranca] = useState<string>("__all__");
   const [open, setOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [editing, setEditing] = useState<EleitorRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<EleitorRow | null>(null);
 
@@ -86,9 +89,16 @@ export default function Eleitores() {
               Cadastro e desempenho de base eleitoral por liderança
             </p>
           </div>
-          <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Eleitor
-          </Button>
+          <div className="flex items-center gap-2">
+            {showExport && (
+              <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2">
+                <Download className="h-4 w-4" /> Exportar Dados
+              </Button>
+            )}
+            <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Eleitor
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -232,6 +242,13 @@ export default function Eleitores() {
         </Tabs>
 
         <NovoEleitorDialog open={open} onOpenChange={setOpen} editing={editing} />
+
+        <ExportEleitoresDialog
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+          eleitores={filtered}
+          liderancaMap={liderancaMap}
+        />
 
         <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
           <AlertDialogContent>
