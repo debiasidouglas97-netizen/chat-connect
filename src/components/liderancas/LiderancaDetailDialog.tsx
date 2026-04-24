@@ -231,12 +231,12 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
 
               {(l.phone || l.whatsapp || l.email || l.telegram_username) && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-2">Contatos</p>
+                  <p className="text-muted-foreground text-xs mb-2">Contatos {hideContacts && <span className="ml-1 text-[10px]">🔒 restrito</span>}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    {l.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" /> {l.phone}</p>}
-                    {l.whatsapp && <p className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-muted-foreground" /> {l.whatsapp}</p>}
-                    {l.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3 text-muted-foreground" /> {l.email}</p>}
-                    {l.telegram_username && <p className="flex items-center gap-1"><AtSign className="h-3 w-3 text-muted-foreground" /> {l.telegram_username}</p>}
+                    {l.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.phone) : l.phone}</p>}
+                    {l.whatsapp && <p className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.whatsapp) : l.whatsapp}</p>}
+                    {l.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.email) : l.email}</p>}
+                    {l.telegram_username && <p className="flex items-center gap-1"><AtSign className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.telegram_username) : l.telegram_username}</p>}
                   </div>
                 </div>
               )}
@@ -254,7 +254,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
               )}
 
               {/* Address */}
-              {l.address_street && (
+              {l.address_street && !hideContacts && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-1">Endereço</p>
                   <p className="text-sm">{l.address_street}{l.address_number ? `, ${l.address_number}` : ""} — {l.address_neighborhood}, {l.address_city}/{l.address_state}</p>
