@@ -128,45 +128,84 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   };
 
   const handleSubmit = async () => {
-    // Validações
+    // Validações de liderança (sempre obrigatórias)
     if (!name.trim() || !cargo.trim() || !cidadePrincipal.trim()) {
       toast.error("Nome, cargo e cidade principal são obrigatórios");
       return;
     }
-    if (!email.trim() || !email.includes("@")) {
-      toast.error("Informe um e-mail válido para o acesso ao sistema");
-      return;
-    }
-    const cpfDigits = cpf.replace(/\D/g, "");
-    if (cpfDigits.length !== 11) {
-      toast.error("CPF deve ter 11 dígitos");
-      return;
-    }
-    if (!/^[a-zA-Z0-9_.]{3,}$/.test(username.trim())) {
-      toast.error("Username inválido (mínimo 3 caracteres, apenas letras, números, _ ou .)");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("Senha deve ter no mínimo 8 caracteres");
-      return;
-    }
-    if (password !== passwordConfirm) {
-      toast.error("Senhas não conferem");
-      return;
-    }
+
+    const img = name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    const atuacaoFinal = atuacao.length > 0
+      ? atuacao
+      : [{ cidadeNome: cidadePrincipal.trim(), intensidade: "Alta" as const }];
 
     setSubmitting(true);
-    const img = name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
     try {
-      const { data, error } = await supabase.functions.invoke("create-lideranca-user", {
-        body: {
-          mode: "create",
-          // acesso
-          email: email.trim().toLowerCase(),
-          cpf: cpfDigits,
-          username: username.trim(),
-          password,
-          // liderança
+      if (criarAcesso) {
+        // Validações de acesso
+        if (!email.trim() || !email.includes("@")) {
+          toast.error("Informe um e-mail válido para o acesso ao sistema");
+          return;
+        }
+        const cpfDigits = cpf.replace(/\D/g, "");
+        if (cpfDigits.length !== 11) {
+          toast.error("CPF deve ter 11 dígitos");
+          return;
+        }
+        if (!/^[a-zA-Z0-9_.]{3,}$/.test(username.trim())) {
+          toast.error("Username inválido (mínimo 3 caracteres, apenas letras, números, _ ou .)");
+          return;
+        }
+        if (password.length < 8) {
+          toast.error("Senha deve ter no mínimo 8 caracteres");
+          return;
+        }
+        if (password !== passwordConfirm) {
+          toast.error("Senhas não conferem");
+          return;
+        }
+
+        // Cria liderança + acesso atômico via edge function
+        const { data, error } = await supabase.functions.invoke("create-lideranca-user", {
+          body: {
+            mode: "create",
+            email: email.trim().toLowerCase(),
+            cpf: cpfDigits,
+            username: username.trim(),
+            password,
+            name: name.trim(),
+            img,
+            cargo: cargo.trim(),
+            cidadePrincipal: cidadePrincipal.trim(),
+            influencia,
+            tipo,
+            engajamento: 50,
+            atuacao: atuacaoFinal,
+            phone: phone || null,
+            whatsapp: whatsapp || null,
+            telegram_username: telegram || null,
+            instagram: instagramVal || null,
+            facebook: facebookVal || null,
+            youtube: youtubeVal || null,
+            avatar_url: avatarPreview,
+            address_cep: addressCep || null,
+            address_street: addressStreet || null,
+            address_number: addressNumber || null,
+            address_neighborhood: addressNeighborhood || null,
+            address_city: addressCity || null,
+            address_state: addressState || null,
+            meta_votos_tipo: metaTipo,
+            meta_votos_valor: metaValor,
+          },
+        });
+        if (error || (data as any)?.error) {
+          toast.error((data as any)?.error || error?.message || "Erro ao cadastrar");
+          return;
+        }
+        toast.success("Liderança cadastrada e acesso ao sistema criado!");
+      } else {
+        // Cadastra apenas no CRM (sem acesso ao sistema)
+        await insertLideranca({
           name: name.trim(),
           img,
           cargo: cargo.trim(),
@@ -174,29 +213,19 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           influencia,
           tipo,
           engajamento: 50,
-          atuacao: atuacao.length > 0 ? atuacao : [{ cidadeNome: cidadePrincipal.trim(), intensidade: "Alta" }],
-          phone: phone || null,
-          whatsapp: whatsapp || null,
-          telegram_username: telegram || null,
-          instagram: instagramVal || null,
-          facebook: facebookVal || null,
-          youtube: youtubeVal || null,
+          atuacao: atuacaoFinal,
+          phone, whatsapp,
+          email: email.trim() || "",
+          telegram_username: telegram,
+          instagram: instagramVal, facebook: facebookVal, youtube: youtubeVal,
           avatar_url: avatarPreview,
-          address_cep: addressCep || null,
-          address_street: addressStreet || null,
-          address_number: addressNumber || null,
-          address_neighborhood: addressNeighborhood || null,
-          address_city: addressCity || null,
-          address_state: addressState || null,
-          meta_votos_tipo: metaTipo,
-          meta_votos_valor: metaValor,
-        },
-      });
-      if (error || (data as any)?.error) {
-        toast.error((data as any)?.error || error?.message || "Erro ao cadastrar");
-        return;
+          address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
+          address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
+          meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
+        } as any);
+        toast.success("Liderança cadastrada! Você pode criar o acesso ao sistema depois pelo detalhe da liderança.");
       }
-      toast.success("Liderança cadastrada e acesso ao sistema criado!");
+
       reset();
       onOpenChange(false);
       onCreated?.();
