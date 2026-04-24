@@ -42,12 +42,7 @@ export default function PerformanceLideranca() {
 
   const marketShare = dados
     .filter((d) => d.cat === "market_share")
-    .sort((a, b) => {
-      const pa = a.eleitoresCidade > 0 ? a.meta / a.eleitoresCidade : 0;
-      const pb = b.eleitoresCidade > 0 ? b.meta / b.eleitoresCidade : 0;
-      if (pb !== pa) return pb - pa;
-      return b.meta - a.meta;
-    });
+    .sort((a, b) => b.meta - a.meta);
   const operacional = dados
     .filter((d) => d.cat === "operacional")
     .sort((a, b) => {
