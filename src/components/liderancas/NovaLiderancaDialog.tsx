@@ -407,7 +407,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
 
           <div className="flex items-center gap-2 pt-2 border-t">
             <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting ? "Cadastrando..." : "Cadastrar Liderança + Acesso"}
+              {submitting ? "Cadastrando..." : criarAcesso ? "Cadastrar Liderança + Acesso" : "Cadastrar Liderança"}
             </Button>
             <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }} disabled={submitting}>Cancelar</Button>
           </div>
