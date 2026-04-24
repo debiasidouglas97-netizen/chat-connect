@@ -7,6 +7,7 @@ import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
 import type { Demanda } from "@/components/demandas/types";
 import { useDemandas } from "@/hooks/use-demandas";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import {
