@@ -50,7 +50,7 @@ const DEFAULT_FIELDS: (keyof EleitorRow)[] = ["nome", "whatsapp", "cidade", "tel
 function escapeCSV(value: any): string {
   if (value === null || value === undefined) return "";
   const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+  if (str.includes(";") || str.includes('"') || str.includes("\n") || str.includes(",")) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
@@ -135,9 +135,10 @@ export default function ExportEleitoresDialog({ open, onOpenChange, eleitores, l
     if (format === "csv") {
       const headers = Object.keys(rows[0] || {});
       const csv = [
-        headers.join(","),
-        ...rows.map((r) => headers.map((h) => escapeCSV(r[h])).join(",")),
-      ].join("\n");
+        "sep=;",
+        headers.join(";"),
+        ...rows.map((r) => headers.map((h) => escapeCSV(r[h])).join(";")),
+      ].join("\r\n");
       downloadFile("\ufeff" + csv, `${filename}.csv`, "text/csv;charset=utf-8");
     } else if (format === "json") {
       downloadFile(JSON.stringify(rows, null, 2), `${filename}.json`, "application/json");
