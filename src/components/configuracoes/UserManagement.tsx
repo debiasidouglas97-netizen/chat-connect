@@ -81,7 +81,7 @@ export default function UserManagement() {
     username: "",
     whatsapp: "",
     telegram_username: "",
-    role: "lideranca" as AppRole,
+    role: "secretario" as AppRole,
     lideranca_id: null as string | null,
     cities: [] as string[],
     citiesInput: "",
@@ -106,6 +106,7 @@ export default function UserManagement() {
       .select("*")
       .eq("tenant_id", tenantId)
       .neq("role", "super_admin")
+      .neq("role", "lideranca")
       .order("created_at", { ascending: false });
     if (data) setUsers(data as unknown as Profile[]);
     setLoading(false);
@@ -139,7 +140,7 @@ export default function UserManagement() {
     setForm({
       full_name: "", email: "", password: "", password_confirm: "",
       cpf: "", username: "", whatsapp: "", telegram_username: "",
-      role: "lideranca", lideranca_id: null, cities: [], citiesInput: "",
+      role: "secretario", lideranca_id: null, cities: [], citiesInput: "",
     });
     setLinkedLideranca(null);
   };

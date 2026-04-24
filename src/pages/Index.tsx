@@ -292,7 +292,7 @@ export default function Index() {
 
       {/* Dialogs */}
       <NovaDemandaDialog open={demandaOpen} onOpenChange={setDemandaOpen} onSave={handleSaveDemanda} />
-      <NovaLiderancaDialog open={liderancaOpen} onOpenChange={setLiderancaOpen} onAdd={handleAddLideranca} />
+      <NovaLiderancaDialog open={liderancaOpen} onOpenChange={setLiderancaOpen} />
       <NovoEventoDialog open={eventoOpen} onOpenChange={setEventoOpen} onSave={handleSaveEvento} />
       <CidadeFormDialog
         open={cidadeOpen}

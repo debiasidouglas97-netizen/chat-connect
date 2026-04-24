@@ -8,17 +8,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCidades } from "@/hooks/use-cidades";
 import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube } from "lucide-react";
+import { Plus, X, Upload, Phone, Mail, AtSign, MessageCircle, Instagram, Facebook, Youtube, KeyRound, User as UserIcon, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (l: LiderancaBase & Record<string, any>) => void;
+  /** Chamado após criar com sucesso. Pode disparar refresh local. */
+  onCreated?: () => void;
 }
 
-export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props) {
+function maskCPF(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+function passwordStrength(p: string): { label: string; color: string; pct: number } {
+  let score = 0;
+  if (p.length >= 8) score++;
+  if (p.length >= 12) score++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+  if (/\d/.test(p)) score++;
+  if (/[^a-zA-Z0-9]/.test(p)) score++;
+  if (score <= 1) return { label: "Fraca", color: "bg-destructive", pct: 25 };
+  if (score === 2) return { label: "Razoável", color: "bg-warning", pct: 50 };
+  if (score === 3) return { label: "Boa", color: "bg-primary", pct: 75 };
+  return { label: "Forte", color: "bg-success", pct: 100 };
+}
+
+export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: Props) {
   const { cidades: cidadesData } = useCidades();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
@@ -31,7 +54,6 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
   const [novaIntensidade, setNovaIntensidade] = useState<"Alta" | "Média" | "Baixa">("Média");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
   const [instagramVal, setInstagramVal] = useState("");
   const [facebookVal, setFacebookVal] = useState("");
@@ -46,16 +68,27 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
   const [metaTipo, setMetaTipo] = useState<MetaVotosTipo>("percentual");
   const [metaValor, setMetaValor] = useState<number | null>(null);
 
+  // Acesso ao sistema (obrigatório)
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const cidadeOptions = cidadesData.map((c) => c.name);
 
   const reset = () => {
     setName(""); setCargo(""); setCidadePrincipal(""); setInfluencia("Média");
     setTipo("Comunitária"); setAtuacao([]); setNovaCidade(""); setNovaIntensidade("Média");
-    setPhone(""); setWhatsapp(""); setEmail(""); setTelegram("");
+    setPhone(""); setWhatsapp(""); setTelegram("");
     setInstagramVal(""); setFacebookVal(""); setYoutubeVal(""); setAvatarPreview(null);
     setAddressCep(""); setAddressStreet(""); setAddressNumber(""); setAddressNeighborhood("");
     setAddressCity(""); setAddressState("");
     setMetaTipo("percentual"); setMetaValor(null);
+    setEmail(""); setCpf(""); setUsername(""); setPassword(""); setPasswordConfirm("");
+    setShowPassword(false);
   };
 
   const addCidade = () => {
@@ -89,23 +122,87 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
     } catch { toast.error("Erro ao buscar CEP"); }
   };
 
-  const handleSubmit = () => {
-    if (!name.trim() || !cargo.trim() || !cidadePrincipal.trim()) return;
+  const handleSubmit = async () => {
+    // Validações
+    if (!name.trim() || !cargo.trim() || !cidadePrincipal.trim()) {
+      toast.error("Nome, cargo e cidade principal são obrigatórios");
+      return;
+    }
+    if (!email.trim() || !email.includes("@")) {
+      toast.error("Informe um e-mail válido para o acesso ao sistema");
+      return;
+    }
+    const cpfDigits = cpf.replace(/\D/g, "");
+    if (cpfDigits.length !== 11) {
+      toast.error("CPF deve ter 11 dígitos");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.]{3,}$/.test(username.trim())) {
+      toast.error("Username inválido (mínimo 3 caracteres, apenas letras, números, _ ou .)");
+      return;
+    }
+    if (password.length < 8) {
+      toast.error("Senha deve ter no mínimo 8 caracteres");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      toast.error("Senhas não conferem");
+      return;
+    }
+
+    setSubmitting(true);
     const img = name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-    onAdd({
-      name: name.trim(), img, cargo: cargo.trim(), cidadePrincipal: cidadePrincipal.trim(),
-      influencia, tipo, engajamento: 50,
-      atuacao: atuacao.length > 0 ? atuacao : [{ cidadeNome: cidadePrincipal.trim(), intensidade: "Alta" }],
-      phone, whatsapp, email, telegram_username: telegram,
-      instagram: instagramVal, facebook: facebookVal, youtube: youtubeVal,
-      avatar_url: avatarPreview,
-      address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
-      address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
-      meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
-    });
-    reset();
-    onOpenChange(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-lideranca-user", {
+        body: {
+          mode: "create",
+          // acesso
+          email: email.trim().toLowerCase(),
+          cpf: cpfDigits,
+          username: username.trim(),
+          password,
+          // liderança
+          name: name.trim(),
+          img,
+          cargo: cargo.trim(),
+          cidadePrincipal: cidadePrincipal.trim(),
+          influencia,
+          tipo,
+          engajamento: 50,
+          atuacao: atuacao.length > 0 ? atuacao : [{ cidadeNome: cidadePrincipal.trim(), intensidade: "Alta" }],
+          phone: phone || null,
+          whatsapp: whatsapp || null,
+          telegram_username: telegram || null,
+          instagram: instagramVal || null,
+          facebook: facebookVal || null,
+          youtube: youtubeVal || null,
+          avatar_url: avatarPreview,
+          address_cep: addressCep || null,
+          address_street: addressStreet || null,
+          address_number: addressNumber || null,
+          address_neighborhood: addressNeighborhood || null,
+          address_city: addressCity || null,
+          address_state: addressState || null,
+          meta_votos_tipo: metaTipo,
+          meta_votos_valor: metaValor,
+        },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || error?.message || "Erro ao cadastrar");
+        return;
+      }
+      toast.success("Liderança cadastrada e acesso ao sistema criado!");
+      reset();
+      onOpenChange(false);
+      onCreated?.();
+    } catch (e: any) {
+      toast.error("Erro ao cadastrar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const strength = passwordStrength(password);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
@@ -147,6 +244,50 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
             </div>
           </div>
 
+          {/* Acesso ao Sistema */}
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+            <div className="flex items-center gap-2 text-primary">
+              <ShieldCheck className="h-4 w-4" />
+              <p className="text-sm font-semibold">Acesso ao Sistema</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail *</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
+              </div>
+              <div>
+                <Label className="text-xs">CPF *</Label>
+                <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
+                <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
+              </div>
+              <div className="row-span-2">
+                <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
+                <div className="relative">
+                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {password && (
+                  <div className="mt-1.5 space-y-1">
+                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full transition-all ${strength.color}`} style={{ width: `${strength.pct}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Força: {strength.label}</p>
+                  </div>
+                )}
+                <Label className="text-xs flex items-center gap-1 mt-2">Confirmar senha *</Label>
+                <Input type={showPassword ? "text" : "password"} value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
           {/* Meta de votos */}
           <MetaVotosInput
             cargo={cargo}
@@ -157,11 +298,10 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
           />
 
           {/* Contacts */}
-          <p className="text-xs font-medium text-muted-foreground pt-2">Contatos</p>
+          <p className="text-xs font-medium text-muted-foreground pt-2">Contatos adicionais</p>
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
             <div><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> WhatsApp</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
-            <div><Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
             <div><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> Telegram</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
           </div>
 
@@ -206,8 +346,10 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onAdd }: Props
           )}
 
           <div className="flex items-center gap-2 pt-2 border-t">
-            <Button onClick={handleSubmit} disabled={!name.trim() || !cargo.trim() || !cidadePrincipal}>Cadastrar</Button>
-            <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }}>Cancelar</Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Cadastrando..." : "Cadastrar Liderança + Acesso"}
+            </Button>
+            <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }} disabled={submitting}>Cancelar</Button>
           </div>
         </div>
       </DialogContent>

@@ -13,6 +13,7 @@ import { useEleitores } from "@/hooks/use-eleitores";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 import EngagementSection from "./EngagementSection";
+import LiderancaAccessSection from "./LiderancaAccessSection";
 import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -269,6 +270,17 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                   ))}
                 </div>
               </div>
+
+              {/* Acesso ao sistema (apenas admins) */}
+              {canWriteLiderancas && (
+                <div className="border-t pt-3">
+                  <LiderancaAccessSection
+                    liderancaId={(l as any).id}
+                    liderancaName={lideranca.name}
+                    liderancaEmail={l.email ?? null}
+                  />
+                </div>
+              )}
 
               {/* Engagement Section */}
               <div className="border-t pt-3">
