@@ -10,8 +10,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useCidades } from "@/hooks/use-cidades";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useEleitores, type EleitorInput, type EleitorRow } from "@/hooks/use-eleitores";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
-import { Loader2, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Search, Check, ChevronsUpDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -38,6 +39,7 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const { cidades } = useCidades();
   const { liderancas } = useLiderancas();
   const { insert, update } = useEleitores();
+  const { isLideranca, linkedLiderancaId } = usePermissions();
 
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -55,10 +57,16 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const [saving, setSaving] = useState(false);
   const [liderancaOpen, setLiderancaOpen] = useState(false);
 
-  const liderancasOrdenadas = [...(liderancas as any[])].sort((a, b) =>
+  // Se o usuário logado é uma liderança, restringe a lista apenas a ele mesmo
+  const liderancasDisponiveis = isLideranca && linkedLiderancaId
+    ? (liderancas as any[]).filter((l) => l.id === linkedLiderancaId)
+    : (liderancas as any[]);
+
+  const liderancasOrdenadas = [...liderancasDisponiveis].sort((a, b) =>
     (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
   );
   const liderancaSelecionada = liderancasOrdenadas.find((l) => l.id === liderancaId);
+  const liderancaLocked = isLideranca && !!linkedLiderancaId;
 
   useEffect(() => {
     if (open && editing) {
@@ -72,18 +80,19 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
       setNumero(editing.numero || "");
       setBairro(editing.bairro || "");
       setEstado(editing.estado || "");
-      setLiderancaId(editing.lideranca_id || "__none__");
+      setLiderancaId(editing.lideranca_id || (liderancaLocked ? linkedLiderancaId! : "__none__"));
       setObservacoes(editing.observacoes || "");
     } else if (open && !editing) {
       reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editing]);
+  }, [open, editing, liderancaLocked, linkedLiderancaId]);
 
   const reset = () => {
     setNome(""); setWhatsapp(""); setCidade(""); setTelegram(""); setEmail("");
     setCep(""); setLogradouro(""); setNumero(""); setBairro(""); setEstado("");
-    setLiderancaId("__none__"); setObservacoes("");
+    setLiderancaId(liderancaLocked && linkedLiderancaId ? linkedLiderancaId : "__none__");
+    setObservacoes("");
   };
 
   const buscarCep = async () => {
@@ -191,63 +200,81 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
           <p className="text-xs font-medium text-muted-foreground pt-2">Vínculo político</p>
           <div>
             <Label className="text-xs">Vinculado à Liderança</Label>
-            <Popover open={liderancaOpen} onOpenChange={setLiderancaOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={liderancaOpen}
-                  className="w-full justify-between font-normal"
-                >
-                  <span className={cn("truncate", liderancaId === "__none__" && "text-muted-foreground")}>
-                    {liderancaId === "__none__"
-                      ? "Selecione uma liderança (opcional)"
-                      : liderancaSelecionada
-                        ? `${liderancaSelecionada.name} · ${liderancaSelecionada.cargo} · ${liderancaSelecionada.cidadePrincipal}`
-                        : "Selecione uma liderança (opcional)"}
+            {liderancaLocked ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted/40">
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm truncate">
+                    {liderancaSelecionada
+                      ? `${liderancaSelecionada.name} · ${liderancaSelecionada.cargo} · ${liderancaSelecionada.cidadePrincipal}`
+                      : "Sua liderança"}
                   </span>
-                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command
-                  filter={(value, search) => {
-                    if (value.toLowerCase().includes(search.toLowerCase())) return 1;
-                    return 0;
-                  }}
-                >
-                  <CommandInput placeholder="Buscar liderança..." className="h-9" />
-                  <CommandList>
-                    <CommandEmpty>Nenhuma liderança encontrada.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="— Sem vínculo —"
-                        onSelect={() => { setLiderancaId("__none__"); setLiderancaOpen(false); }}
-                      >
-                        <Check className={cn("mr-2 h-3.5 w-3.5", liderancaId === "__none__" ? "opacity-100" : "opacity-0")} />
-                        — Sem vínculo —
-                      </CommandItem>
-                      {liderancasOrdenadas.map((l: any) => {
-                        const label = `${l.name} · ${l.cargo} · ${l.cidadePrincipal}`;
-                        return (
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Este eleitor será automaticamente vinculado à sua conta de liderança.
+                </p>
+              </>
+            ) : (
+              <>
+                <Popover open={liderancaOpen} onOpenChange={setLiderancaOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={liderancaOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className={cn("truncate", liderancaId === "__none__" && "text-muted-foreground")}>
+                        {liderancaId === "__none__"
+                          ? "Selecione uma liderança (opcional)"
+                          : liderancaSelecionada
+                            ? `${liderancaSelecionada.name} · ${liderancaSelecionada.cargo} · ${liderancaSelecionada.cidadePrincipal}`
+                            : "Selecione uma liderança (opcional)"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command
+                      filter={(value, search) => {
+                        if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                        return 0;
+                      }}
+                    >
+                      <CommandInput placeholder="Buscar liderança..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma liderança encontrada.</CommandEmpty>
+                        <CommandGroup>
                           <CommandItem
-                            key={l.id}
-                            value={label}
-                            onSelect={() => { setLiderancaId(l.id); setLiderancaOpen(false); }}
+                            value="— Sem vínculo —"
+                            onSelect={() => { setLiderancaId("__none__"); setLiderancaOpen(false); }}
                           >
-                            <Check className={cn("mr-2 h-3.5 w-3.5", liderancaId === l.id ? "opacity-100" : "opacity-0")} />
-                            {label}
+                            <Check className={cn("mr-2 h-3.5 w-3.5", liderancaId === "__none__" ? "opacity-100" : "opacity-0")} />
+                            — Sem vínculo —
                           </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Eleitor cadastrado contará para a meta operacional desta liderança.
-            </p>
+                          {liderancasOrdenadas.map((l: any) => {
+                            const label = `${l.name} · ${l.cargo} · ${l.cidadePrincipal}`;
+                            return (
+                              <CommandItem
+                                key={l.id}
+                                value={label}
+                                onSelect={() => { setLiderancaId(l.id); setLiderancaOpen(false); }}
+                              >
+                                <Check className={cn("mr-2 h-3.5 w-3.5", liderancaId === l.id ? "opacity-100" : "opacity-0")} />
+                                {label}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Eleitor cadastrado contará para a meta operacional desta liderança.
+                </p>
+              </>
+            )}
           </div>
 
           <p className="text-xs font-medium text-muted-foreground pt-2">Endereço</p>
