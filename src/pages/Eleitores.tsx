@@ -243,6 +243,13 @@ export default function Eleitores() {
 
         <NovoEleitorDialog open={open} onOpenChange={setOpen} editing={editing} />
 
+        <ExportEleitoresDialog
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+          eleitores={filtered}
+          liderancaMap={liderancaMap}
+        />
+
         <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
