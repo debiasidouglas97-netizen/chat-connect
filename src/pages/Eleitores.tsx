@@ -11,11 +11,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download } from "lucide-react";
 import { useEleitores, type EleitorRow } from "@/hooks/use-eleitores";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
 import NovoEleitorDialog from "@/components/eleitores/NovoEleitorDialog";
+import ExportEleitoresDialog from "@/components/eleitores/ExportEleitoresDialog";
 import PerformanceLideranca from "@/components/eleitores/PerformanceLideranca";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
