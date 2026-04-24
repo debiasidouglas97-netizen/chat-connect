@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useProposicoes, useTramitacoes, Proposicao } from "@/hooks/use-proposicoes";
+import { usePermissions } from "@/hooks/use-permissions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -33,6 +34,7 @@ const TIPOS = ["PL", "PEC", "PLP", "REQ", "PDL", "MPV", "INC", "RIC"];
 
 export default function Proposicoes() {
   const { data: proposicoes, isLoading, syncNow, addToKanban } = useProposicoes();
+  const { canWriteProposicoes } = usePermissions();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState("all");
@@ -95,10 +97,12 @@ export default function Proposicoes() {
           <h1 className="text-2xl font-bold text-foreground">Proposições</h1>
           <p className="text-sm text-muted-foreground">Monitoramento de proposições legislativas do deputado</p>
         </div>
-        <Button onClick={handleSync} disabled={syncNow.isPending} variant="outline" className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${syncNow.isPending ? "animate-spin" : ""}`} />
-          {syncNow.isPending ? "Sincronizando..." : "Sincronizar agora"}
-        </Button>
+        {canWriteProposicoes && (
+          <Button onClick={handleSync} disabled={syncNow.isPending} variant="outline" className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${syncNow.isPending ? "animate-spin" : ""}`} />
+            {syncNow.isPending ? "Sincronizando..." : "Sincronizar agora"}
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
