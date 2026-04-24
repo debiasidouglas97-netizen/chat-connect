@@ -1,0 +1,1 @@
+DELETE FROM public.user_roles WHERE user_id = '6d6f8632-259e-45d2-b81b-c8c2363cbe37' AND role = 'lideranca';
