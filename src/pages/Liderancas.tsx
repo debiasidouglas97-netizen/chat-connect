@@ -380,7 +380,7 @@ export default function Liderancas() {
 
       <LiderancaNotesDialog open={notesOpen} onOpenChange={setNotesOpen} liderancaName={selectedLider} />
       <LiderancaDetailDialog open={detailOpen} onOpenChange={setDetailOpen} lideranca={detailLider} onSave={handleSave} onDelete={handleDelete} showScore={showScore} />
-      <NovaLiderancaDialog open={novaOpen} onOpenChange={setNovaOpen} onAdd={handleAdd} />
+      <NovaLiderancaDialog open={novaOpen} onOpenChange={setNovaOpen} />
 
       {photoLightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out" onClick={() => setPhotoLightbox(null)}>
