@@ -50,7 +50,7 @@ const DEFAULT_FIELDS: (keyof EleitorRow)[] = ["nome", "whatsapp", "cidade", "tel
 function escapeCSV(value: any): string {
   if (value === null || value === undefined) return "";
   const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+  if (str.includes(";") || str.includes('"') || str.includes("\n") || str.includes(",")) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
