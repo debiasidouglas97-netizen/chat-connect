@@ -278,49 +278,75 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             </div>
           </div>
 
-          {/* Acesso ao Sistema */}
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
-            <div className="flex items-center gap-2 text-primary">
-              <ShieldCheck className="h-4 w-4" />
-              <p className="text-sm font-semibold">Acesso ao Sistema</p>
+          {/* Acesso ao Sistema (opcional) */}
+          <div className={`rounded-lg border p-3 space-y-3 transition-colors ${criarAcesso ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="criar-acesso"
+                checked={criarAcesso}
+                onCheckedChange={(v) => setCriarAcesso(v === true)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <label htmlFor="criar-acesso" className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer">
+                  <ShieldCheck className="h-4 w-4" />
+                  Criar acesso ao sistema agora
+                </label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {criarAcesso
+                    ? "A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente."
+                    : "A liderança será cadastrada apenas no CRM. Você pode criar o acesso a qualquer momento pelo detalhe da liderança."}
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] text-muted-foreground -mt-1">
-              A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail *</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
-              </div>
-              <div>
-                <Label className="text-xs">CPF *</Label>
-                <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
-              </div>
-              <div>
-                <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
-                <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
-              </div>
-              <div className="row-span-2">
-                <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
-                <div className="relative">
-                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+
+            {criarAcesso && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail *</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
                 </div>
-                {password && (
-                  <div className="mt-1.5 space-y-1">
-                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full transition-all ${strength.color}`} style={{ width: `${strength.pct}%` }} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Força: {strength.label}</p>
+                <div>
+                  <Label className="text-xs">CPF *</Label>
+                  <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
+                  <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
+                </div>
+                <div className="row-span-2">
+                  <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
+                  <div className="relative">
+                    <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                )}
-                <Label className="text-xs flex items-center gap-1 mt-2">Confirmar senha *</Label>
-                <Input type={showPassword ? "text" : "password"} value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                  {password && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full transition-all ${strength.color}`} style={{ width: `${strength.pct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Força: {strength.label}</p>
+                    </div>
+                  )}
+                  <Label className="text-xs flex items-center gap-1 mt-2">Confirmar senha *</Label>
+                  <Input type={showPassword ? "text" : "password"} value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
+
+          {/* E-mail de contato (visível apenas quando NÃO criar acesso) */}
+          {!criarAcesso && (
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail de contato (opcional)</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                <Info className="h-3 w-3" /> Útil para criar o acesso ao sistema mais tarde sem precisar redigitar.
+              </p>
+            </div>
+          )}
 
           {/* Meta de votos */}
           <MetaVotosInput
