@@ -132,7 +132,10 @@ export function useAuth() {
   const isAdmin = profile?.role === "deputado" || profile?.role === "chefe_gabinete";
 
   const userAvatarUrl = profile?.avatar_url || linkedLideranca?.avatar_url || linkedLideranca?.img || null;
-  const userDisplayName = profile?.full_name || "Usuário";
+  // Para lideranças, prioriza o nome da liderança vinculada (mais reconhecível que o full_name do profile)
+  const userDisplayName = (profile?.role === "lideranca" && linkedLideranca?.name)
+    ? linkedLideranca.name
+    : (profile?.full_name || linkedLideranca?.name || "Usuário");
   const userInitials = getInitials(userDisplayName);
 
   return {
