@@ -17,8 +17,9 @@ interface Props {
   onChange: (tipo: MetaVotosTipo, valor: number | null) => void;
 }
 
-function detectCargoCategoria(cargo: string): "prefeito" | "vereador" | "outros" {
+function detectCargoCategoria(cargo: string): "prefeito" | "vice_prefeito" | "vereador" | "outros" {
   const c = (cargo || "").toLowerCase();
+  if (c.includes("vice") && c.includes("prefeit")) return "vice_prefeito";
   if (c.includes("prefeit")) return "prefeito";
   if (c.includes("vereador")) return "vereador";
   return "outros";
@@ -27,6 +28,7 @@ function detectCargoCategoria(cargo: string): "prefeito" | "vereador" | "outros"
 function getDefaults(cargo: string): { tipo: MetaVotosTipo; valor: number } {
   const cat = detectCargoCategoria(cargo);
   if (cat === "prefeito") return { tipo: "percentual", valor: 3 };
+  if (cat === "vice_prefeito") return { tipo: "percentual", valor: 0.6 };
   if (cat === "vereador") return { tipo: "percentual", valor: 0.3 };
   return { tipo: "fixo", valor: 100 };
 }
@@ -36,8 +38,9 @@ function getRangeOptions(cargo: string): number[] {
   if (cat === "prefeito") {
     return Array.from({ length: 20 }, (_, i) => i + 1); // 1..20
   }
-  if (cat === "vereador") {
-    return Array.from({ length: 100 }, (_, i) => Number(((i + 1) / 10).toFixed(1))); // 0.1..10.0
+  if (cat === "vice_prefeito" || cat === "vereador") {
+    // 0.1..10.0 com passo 0.1 — permite escolher 0,6% etc.
+    return Array.from({ length: 100 }, (_, i) => Number(((i + 1) / 10).toFixed(1)));
   }
   // outros: também oferecemos %, mas com passo padrão
   return Array.from({ length: 20 }, (_, i) => i + 1);
