@@ -167,7 +167,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    // Fallback to a safe, "not-authenticated, still loading" state. This avoids
+    // hard crashes during HMR or if a consumer renders briefly outside the provider.
+    return {
+      user: null,
+      session: null,
+      profile: null,
+      linkedLideranca: null,
+      loading: true,
+      signIn: async () => ({ error: new Error("AuthProvider not mounted") }),
+      signUp: async () => ({ error: new Error("AuthProvider not mounted") }),
+      signOut: async () => {},
+      isAdmin: false,
+      fetchProfile: async () => {},
+      userAvatarUrl: null,
+      userDisplayName: "Usuário",
+      userInitials: "U",
+    } as AuthContextValue;
   }
   return ctx;
 }
