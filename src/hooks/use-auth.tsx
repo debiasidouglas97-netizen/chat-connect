@@ -56,37 +56,52 @@ export function useAuth() {
           .eq("id", p.lideranca_id)
           .single();
         if (lid) setLinkedLideranca(lid);
+        else setLinkedLideranca(null);
       } else {
         setLinkedLideranca(null);
       }
+    } else {
+      setProfile(null);
+      setLinkedLideranca(null);
     }
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+      async (_event, newSession) => {
+        if (!mounted) return;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        if (newSession?.user) {
+          // Defer to avoid deadlocks with Supabase auth callback
+          setTimeout(async () => {
+            await fetchProfile(newSession.user.id);
+            if (mounted) setLoading(false);
+          }, 0);
         } else {
           setProfile(null);
           setLinkedLideranca(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      if (!mounted) return;
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      if (initialSession?.user) {
+        await fetchProfile(initialSession.user.id);
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
