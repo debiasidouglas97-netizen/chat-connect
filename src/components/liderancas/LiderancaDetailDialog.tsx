@@ -38,9 +38,12 @@ interface Props {
 export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, onSave, onDelete, showScore }: Props) {
   const { cidades: cidadesData } = useCidades();
   const { eleitores } = useEleitores();
-  const { canWriteLiderancas, isLideranca, linkedLiderancaId } = usePermissions();
+  const { canWriteLiderancas, isAdmin, isOperator, isLideranca, linkedLiderancaId, role } = usePermissions();
   const isOwnRecord = lideranca ? (lideranca as any).id === linkedLiderancaId : false;
-  const hideContacts = isLideranca && !isOwnRecord;
+  // Fail-closed: contatos só visíveis para admin/operador OU quando o usuário é a própria liderança.
+  // Enquanto o profile/role ainda não carregou (role === undefined), também escondemos.
+  const canSeeContacts = (isAdmin || isOperator) || (isLideranca && isOwnRecord);
+  const hideContacts = !canSeeContacts;
   const mask = (v?: string | null) => (v ? "••••••••" : "");
   const cidadeOptions = cidadesData.map((c) => c.name);
   const eleitoresVinculados = lideranca ? eleitores.filter((e) => e.lideranca_id === (lideranca as any).id).length : 0;
