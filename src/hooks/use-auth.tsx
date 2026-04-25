@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -33,7 +33,25 @@ export function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function useAuth() {
+interface AuthContextValue {
+  user: User | null;
+  session: Session | null;
+  profile: Profile | null;
+  linkedLideranca: LinkedLideranca | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signOut: () => Promise<void>;
+  isAdmin: boolean;
+  fetchProfile: (userId: string) => Promise<void>;
+  userAvatarUrl: string | null;
+  userDisplayName: string;
+  userInitials: string;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -132,15 +150,24 @@ export function useAuth() {
   const isAdmin = profile?.role === "deputado" || profile?.role === "chefe_gabinete";
 
   const userAvatarUrl = profile?.avatar_url || linkedLideranca?.avatar_url || linkedLideranca?.img || null;
-  // Para lideranças, prioriza o nome da liderança vinculada (mais reconhecível que o full_name do profile)
   const userDisplayName = (profile?.role === "lideranca" && linkedLideranca?.name)
     ? linkedLideranca.name
     : (profile?.full_name || linkedLideranca?.name || "Usuário");
   const userInitials = getInitials(userDisplayName);
 
-  return {
+  const value: AuthContextValue = {
     user, session, profile, linkedLideranca, loading,
     signIn, signUp, signOut, isAdmin, fetchProfile,
     userAvatarUrl, userDisplayName, userInitials,
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return ctx;
 }
