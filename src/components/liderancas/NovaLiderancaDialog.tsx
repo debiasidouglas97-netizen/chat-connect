@@ -51,7 +51,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   const [cargo, setCargo] = useState("");
   const [cidadePrincipal, setCidadePrincipal] = useState("");
   const [influencia, setInfluencia] = useState<"Alta" | "Média" | "Baixa">("Média");
-  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vereador(a)">("Comunitária");
+  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vice-Prefeito(a)" | "Vereador(a)">("Comunitária");
   const [atuacao, setAtuacao] = useState<AtuacaoCidade[]>([]);
   const [novaCidade, setNovaCidade] = useState("");
   const [novaIntensidade, setNovaIntensidade] = useState<"Alta" | "Média" | "Baixa">("Média");
