@@ -9,6 +9,7 @@ export type CategoriaMeta = "market_share" | "operacional";
 
 export function detectCategoriaMeta(cargo: string | null | undefined): CategoriaMeta {
   const c = (cargo || "").toLowerCase();
+  // "vice-prefeit..." também é market_share (capturado pelo includes "prefeit")
   if (c.includes("prefeit")) return "market_share";
   if (c.includes("vereador")) return "market_share";
   return "operacional";
