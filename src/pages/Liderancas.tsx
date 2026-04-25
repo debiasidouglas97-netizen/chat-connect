@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, MapPin, Star, StickyNote, X, Search, ArrowUpAZ, ArrowDownAZ, Filter } from "lucide-react";
+import { Plus, MapPin, Star, StickyNote, X, Search, ArrowUpAZ, ArrowDownAZ, Filter, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcularScoreLideranca, canViewScore, type UserRole, type CidadeBase, type LiderancaComScore } from "@/lib/scoring";
@@ -11,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import LiderancaNotesDialog from "@/components/liderancas/LiderancaNotesDialog";
 import LiderancaDetailDialog from "@/components/liderancas/LiderancaDetailDialog";
 import NovaLiderancaDialog from "@/components/liderancas/NovaLiderancaDialog";
+import ExportLiderancasDialog from "@/components/liderancas/ExportLiderancasDialog";
 import { toast } from "sonner";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
@@ -33,6 +34,7 @@ export default function Liderancas() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLider, setDetailLider] = useState<LiderancaComScore | null>(null);
   const [novaOpen, setNovaOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ url: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<"nome" | "cidade">("nome");
@@ -186,9 +188,14 @@ export default function Liderancas() {
           <p className="text-sm text-muted-foreground">CRM político — gestão de lideranças territoriais</p>
         </div>
         {canWriteLiderancas && (
-          <Button className="gap-2" onClick={() => setNovaOpen(true)}>
-            <Plus className="h-4 w-4" /> Nova Liderança
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setExportOpen(true)}>
+              <Download className="h-4 w-4" /> Exportar Dados
+            </Button>
+            <Button className="gap-2" onClick={() => setNovaOpen(true)}>
+              <Plus className="h-4 w-4" /> Nova Liderança
+            </Button>
+          </div>
         )}
       </div>
 
@@ -381,6 +388,7 @@ export default function Liderancas() {
       <LiderancaNotesDialog open={notesOpen} onOpenChange={setNotesOpen} liderancaName={selectedLider} />
       <LiderancaDetailDialog open={detailOpen} onOpenChange={setDetailOpen} lideranca={detailLider} onSave={handleSave} onDelete={handleDelete} showScore={showScore} />
       <NovaLiderancaDialog open={novaOpen} onOpenChange={setNovaOpen} />
+      <ExportLiderancasDialog open={exportOpen} onOpenChange={setExportOpen} liderancas={filteredLiderancas} />
 
       {photoLightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out" onClick={() => setPhotoLightbox(null)}>
