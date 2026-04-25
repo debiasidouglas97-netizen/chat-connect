@@ -13,12 +13,16 @@ const LIDERANCA_BLOCKED_PREFIXES = [
 ];
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const { isSuperAdmin, loading: tenantLoading } = useTenant();
   const { isLideranca } = usePermissions();
   const location = useLocation();
 
-  if (loading || tenantLoading) {
+  // Wait for auth + tenant + profile (if authenticated). Profile is needed before
+  // rendering protected pages to avoid flashes of unauthorized content while the
+  // role is still being resolved.
+  const profilePending = !!user && !profile;
+  if (loading || tenantLoading || profilePending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-5 animate-fade-in">
