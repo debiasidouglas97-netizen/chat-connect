@@ -274,7 +274,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             </div>
             <div>
               <Label className="text-xs">Tipo</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vice-Prefeito(a)">Vice-Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
             </div>
           </div>
 
