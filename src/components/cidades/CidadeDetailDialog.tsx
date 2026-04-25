@@ -9,6 +9,7 @@ import { useDemandas } from "@/hooks/use-demandas";
 import { useEmendas } from "@/hooks/use-emendas";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface CidadeDetailDialogProps {
   open: boolean;
@@ -52,6 +53,7 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
   const { eventos } = useEventos();
   const { demandas } = useDemandas();
   const { emendas } = useEmendas();
+  const { isAdmin, isOperator, isLideranca, linkedLiderancaId } = usePermissions();
   const [openSection, setOpenSection] = useState<SectionKey>(null);
 
   const cityKey = useMemo(() => (cidade?.name || "").split("/")[0].trim().toLowerCase(), [cidade]);
@@ -384,12 +386,16 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
                     </p>
                     <p className="text-xs text-muted-foreground">{(l as any).cargo || "Liderança"}</p>
                   </div>
-                  {(l as any).phone && (
-                    <Badge variant="outline" className="text-[10px] gap-1 shrink-0">
-                      <Phone className="h-3 w-3" />
-                      {(l as any).phone}
-                    </Badge>
-                  )}
+                  {(l as any).phone && (() => {
+                    const isOwn = (l as any).id === linkedLiderancaId;
+                    const canSee = isAdmin || isOperator || (isLideranca && isOwn);
+                    return (
+                      <Badge variant="outline" className="text-[10px] gap-1 shrink-0">
+                        <Phone className="h-3 w-3" />
+                        {canSee ? (l as any).phone : "••••••••"}
+                      </Badge>
+                    );
+                  })()}
                 </button>
               ))}
             </div>
