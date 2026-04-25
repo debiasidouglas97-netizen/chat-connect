@@ -184,7 +184,12 @@ export default function Liderancas() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Lideranças</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold text-foreground">Lideranças</h1>
+            <Badge variant="secondary" className="text-xs font-semibold">
+              {liderancas.length} {liderancas.length === 1 ? "cadastrada" : "cadastradas"}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">CRM político — gestão de lideranças territoriais</p>
         </div>
         {canWriteLiderancas && (
