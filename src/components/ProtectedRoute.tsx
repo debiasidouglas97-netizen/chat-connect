@@ -20,8 +20,23 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading || tenantLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-5 animate-fade-in">
+          {/* Spinner com anéis concêntricos */}
+          <div className="relative h-16 w-16">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/15" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin" />
+            <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-primary/60 animate-spin [animation-duration:1.5s] [animation-direction:reverse]" />
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="text-sm font-semibold text-foreground tracking-wide">Carregando seu painel</p>
+            <div className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
