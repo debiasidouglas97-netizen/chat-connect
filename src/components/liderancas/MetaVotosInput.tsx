@@ -125,7 +125,7 @@ export default function MetaVotosInput({ cargo, cidadePrincipal, tipo, valor, on
             <SelectContent className="max-h-60">
               {rangeOptions.map((opt) => (
                 <SelectItem key={opt} value={String(opt)}>
-                  {cat === "vereador" ? opt.toFixed(1).replace(".", ",") : opt}%
+                  {(cat === "vereador" || cat === "vice_prefeito") ? opt.toFixed(1).replace(".", ",") : opt}%
                 </SelectItem>
               ))}
             </SelectContent>
