@@ -52,7 +52,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [cargo, setCargo] = useState("");
   const [cidadePrincipal, setCidadePrincipal] = useState("");
   const [influencia, setInfluencia] = useState<"Alta" | "Média" | "Baixa">("Média");
-  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vereador(a)">("Comunitária");
+  const [tipo, setTipo] = useState<"Eleitoral" | "Comunitária" | "Política" | "Prefeito(a)" | "Vice-Prefeito(a)" | "Vereador(a)">("Comunitária");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
