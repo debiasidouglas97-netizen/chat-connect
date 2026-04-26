@@ -69,19 +69,26 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
 export function useLiderancas() {
   const queryClient = useQueryClient();
   const { tenantId } = useTenant();
+  const { isLideranca, linkedLiderancaId } = usePermissions();
 
   const query = useQuery({
-    queryKey: ["liderancas", tenantId],
+    queryKey: ["liderancas", tenantId, isLideranca ? linkedLiderancaId : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("liderancas")
         .select("*")
         .eq("tenant_id", tenantId!)
         .order("created_at", { ascending: false });
+      // Defense-in-depth: lideranças só podem ver a si mesmas
+      if (isLideranca) {
+        if (!linkedLiderancaId) return [];
+        q = q.eq("id", linkedLiderancaId);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return (data as unknown as LiderancaRow[]).map(rowToBase);
     },
-    enabled: !!tenantId,
+    enabled: !!tenantId && (!isLideranca || !!linkedLiderancaId),
   });
 
   const insertMutation = useMutation({
