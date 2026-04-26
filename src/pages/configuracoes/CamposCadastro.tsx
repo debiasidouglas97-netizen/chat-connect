@@ -19,6 +19,7 @@ function CamposCadastroSegment({ segment, segmentLabel }: Props) {
   const { config, isLoading, save } = useFormConfig(segment);
   const { isAdmin } = usePermissions();
   const [draft, setDraft] = useState<SegmentFormConfig>(config);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     setDraft(config);
@@ -32,65 +33,70 @@ function CamposCadastroSegment({ segment, segmentLabel }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6">
-      <div className="space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
-              Campos nativos — {segmentLabel}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NativeFieldsConfigList
-              segment={segment}
-              config={draft.nativeFields}
-              onChange={(nf) => setDraft({ ...draft, nativeFields: nf })}
-            />
-          </CardContent>
-        </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            Campos nativos — {segmentLabel}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NativeFieldsConfigList
+            segment={segment}
+            config={draft.nativeFields}
+            onChange={(nf) => setDraft({ ...draft, nativeFields: nf })}
+          />
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Wand2 className="h-4 w-4 text-primary" />
-              Campos personalizados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CustomFieldsConfigList
-              fields={draft.customFields}
-              onChange={(cf) => setDraft({ ...draft, customFields: cf })}
-            />
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-primary" />
+            Campos personalizados
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CustomFieldsConfigList
+            fields={draft.customFields}
+            onChange={(cf) => setDraft({ ...draft, customFields: cf })}
+          />
+        </CardContent>
+      </Card>
 
-        <div className="flex items-center justify-end gap-2 sticky bottom-2 z-10">
-          {dirty && (
-            <Button variant="outline" onClick={() => setDraft(config)}>
-              Descartar
-            </Button>
-          )}
-          <Button
-            disabled={!dirty || !isAdmin || save.isPending}
-            onClick={() => save.mutate(draft)}
-            className="gap-1.5 shadow-md"
-          >
-            <Save className="h-4 w-4" />
-            {save.isPending ? "Salvando..." : "Salvar configuração"}
+      <div className="flex items-center justify-end gap-2 sticky bottom-2 z-10">
+        <Button variant="outline" onClick={() => setPreviewOpen(true)} className="gap-1.5">
+          <Eye className="h-4 w-4" />
+          Visualizar formulário
+        </Button>
+        {dirty && (
+          <Button variant="outline" onClick={() => setDraft(config)}>
+            Descartar
           </Button>
-        </div>
-
-        {!isAdmin && (
-          <p className="text-xs text-muted-foreground text-center">
-            Apenas o deputado e o chefe de gabinete podem alterar esta configuração.
-          </p>
         )}
+        <Button
+          disabled={!dirty || !isAdmin || save.isPending}
+          onClick={() => save.mutate(draft)}
+          className="gap-1.5 shadow-md"
+        >
+          <Save className="h-4 w-4" />
+          {save.isPending ? "Salvando..." : "Salvar configuração"}
+        </Button>
       </div>
 
-      <div className="hidden lg:block">
-        <FormPreview segment={segment} config={draft} />
-      </div>
+      {!isAdmin && (
+        <p className="text-xs text-muted-foreground text-center">
+          Apenas o deputado e o chefe de gabinete podem alterar esta configuração.
+        </p>
+      )}
+
+      <FormPreview
+        segment={segment}
+        config={draft}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </div>
   );
 }
