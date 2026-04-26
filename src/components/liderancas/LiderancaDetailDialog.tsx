@@ -290,10 +290,12 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <EngagementSection leaderId={(l as any).id} />
               </div>
 
-              {canWriteLiderancas && (
+              {(canWriteLiderancas || (isLideranca && isOwnRecord)) && (
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Button size="sm" variant="outline" className="gap-1" onClick={startEdit}><Pencil className="h-3.5 w-3.5" /> Editar</Button>
-                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
+                  {canWriteLiderancas && (
+                    <Button size="sm" variant="destructive" className="gap-1" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
+                  )}
                 </div>
               )}
             </div>
