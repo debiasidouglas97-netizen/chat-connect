@@ -1118,6 +1118,7 @@ export type Database = {
           cidade_principal: string
           classificacao_manual: string | null
           created_at: string
+          custom_field_values: Json
           email: string | null
           engajamento: number
           facebook: string | null
@@ -1149,6 +1150,7 @@ export type Database = {
           cidade_principal: string
           classificacao_manual?: string | null
           created_at?: string
+          custom_field_values?: Json
           email?: string | null
           engajamento?: number
           facebook?: string | null
@@ -1180,6 +1182,7 @@ export type Database = {
           cidade_principal?: string
           classificacao_manual?: string | null
           created_at?: string
+          custom_field_values?: Json
           email?: string | null
           engajamento?: number
           facebook?: string | null
@@ -1639,6 +1642,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "telegram_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_form_config: {
+        Row: {
+          created_at: string
+          custom_fields: Json
+          id: string
+          native_fields: Json
+          segment: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_fields?: Json
+          id?: string
+          native_fields?: Json
+          segment: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_fields?: Json
+          id?: string
+          native_fields?: Json
+          segment?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_form_config_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

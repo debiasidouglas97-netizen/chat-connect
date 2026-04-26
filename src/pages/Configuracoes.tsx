@@ -15,6 +15,7 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/configuracoes/UserManagement";
+import CamposCadastro from "@/pages/configuracoes/CamposCadastro";
 import EngagementConfigCard from "@/components/configuracoes/EngagementConfigCard";
 import { useStreamConfig } from "@/hooks/use-stream-config";
 import { toast } from "sonner";
@@ -445,6 +446,9 @@ export default function Configuracoes() {
           <TabsTrigger value="usuarios" className="gap-1.5">
             <Users className="h-4 w-4" /> Usuários
           </TabsTrigger>
+          <TabsTrigger value="campos" className="gap-1.5">
+            <Settings className="h-4 w-4" /> Campos de Cadastro
+          </TabsTrigger>
           <TabsTrigger value="aparencia" className="gap-1.5">
             <Palette className="h-4 w-4" /> Aparência
           </TabsTrigger>
@@ -455,6 +459,10 @@ export default function Configuracoes() {
 
         <TabsContent value="usuarios" className="mt-4">
           <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="campos" className="mt-4">
+          <CamposCadastro />
         </TabsContent>
 
         <TabsContent value="integracoes" className="mt-4 space-y-6">
