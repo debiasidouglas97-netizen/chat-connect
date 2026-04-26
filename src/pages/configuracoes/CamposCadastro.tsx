@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Wand2, Layers } from "lucide-react";
+import { Save, Wand2, Layers, Eye } from "lucide-react";
 import NativeFieldsConfigList from "@/components/form-builder/NativeFieldsConfigList";
 import CustomFieldsConfigList from "@/components/form-builder/CustomFieldsConfigList";
 import FormPreview from "@/components/form-builder/FormPreview";
