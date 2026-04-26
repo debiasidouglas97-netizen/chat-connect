@@ -445,6 +445,9 @@ export default function Configuracoes() {
           <TabsTrigger value="usuarios" className="gap-1.5">
             <Users className="h-4 w-4" /> Usuários
           </TabsTrigger>
+          <TabsTrigger value="campos" className="gap-1.5">
+            <Settings className="h-4 w-4" /> Campos de Cadastro
+          </TabsTrigger>
           <TabsTrigger value="aparencia" className="gap-1.5">
             <Palette className="h-4 w-4" /> Aparência
           </TabsTrigger>
@@ -455,6 +458,10 @@ export default function Configuracoes() {
 
         <TabsContent value="usuarios" className="mt-4">
           <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="campos" className="mt-4">
+          <CamposCadastro />
         </TabsContent>
 
         <TabsContent value="integracoes" className="mt-4 space-y-6">
