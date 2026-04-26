@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { LiderancaBase, AtuacaoCidade } from "@/lib/scoring";
 import { useTenant } from "@/hooks/use-tenant";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export interface LiderancaRow {
   id: string;
