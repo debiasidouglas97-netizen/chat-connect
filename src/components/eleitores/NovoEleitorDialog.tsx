@@ -223,12 +223,24 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
       );
       out.push({ group, items: sorted });
     }
-    // Mantém ordem de aparição dos grupos no catálogo
-    const groupOrder = catalog.reduce<Record<string, number>>((acc, def, idx) => {
+    // Ordem dos grupos: usa formCfg.groupOrder se disponível; fallback para ordem do catálogo
+    const catalogOrder = catalog.reduce<Record<string, number>>((acc, def, idx) => {
       if (acc[def.group] === undefined) acc[def.group] = idx;
       return acc;
     }, {});
-    out.sort((a, b) => (groupOrder[a.group] ?? 0) - (groupOrder[b.group] ?? 0));
+    const cfgOrder = formCfg.groupOrder ?? [];
+    const groupOrderIdx: Record<string, number> = {};
+    cfgOrder.forEach((g, i) => {
+      groupOrderIdx[g] = i;
+    });
+    out.sort((a, b) => {
+      const ai = groupOrderIdx[a.group];
+      const bi = groupOrderIdx[b.group];
+      if (ai !== undefined && bi !== undefined) return ai - bi;
+      if (ai !== undefined) return -1;
+      if (bi !== undefined) return 1;
+      return (catalogOrder[a.group] ?? 0) - (catalogOrder[b.group] ?? 0);
+    });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formCfg, showAll]);
