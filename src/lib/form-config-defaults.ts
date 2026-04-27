@@ -106,16 +106,31 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
 };
 
 /**
- * Default mais conservador: tudo visível, nada obrigatório (exceto locked
- * que sempre são required + visible). Ordem segue o catálogo.
+ * Conjunto de campos que devem vir VISÍVEIS por padrão em cada segmento.
+ * Se ausente → todos visíveis. Campos `locked` são sempre visíveis.
+ */
+const DEFAULT_VISIBLE_BY_SEGMENT: Partial<Record<FormSegment, Set<string>>> = {
+  eleitores: new Set(["nome", "cidade", "whatsapp", "bairro"]),
+};
+
+/**
+ * Default conservador: ordem segue o catálogo. Visibilidade segue
+ * `DEFAULT_VISIBLE_BY_SEGMENT` se definido, senão tudo visível. Campos
+ * `locked` sempre visíveis e obrigatórios.
  */
 export function buildDefaultSegmentConfig(segment: FormSegment): SegmentFormConfig {
   const catalog = NATIVE_FIELDS_CATALOG[segment];
+  const defaultVisible = DEFAULT_VISIBLE_BY_SEGMENT[segment];
   const nativeFields: SegmentFormConfig["nativeFields"] = {};
   catalog.forEach((def, idx) => {
+    const visible = def.locked
+      ? true
+      : defaultVisible
+        ? defaultVisible.has(def.key)
+        : true;
     nativeFields[def.key] = {
       key: def.key,
-      visible: true,
+      visible,
       required: !!def.locked,
       order: idx,
     };
