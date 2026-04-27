@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, TrendingUp, Users, Target } from "lucide-react";
 import { useLiderancas } from "@/hooks/use-liderancas";
@@ -66,8 +67,25 @@ export default function PerformanceLideranca() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* Market Share — Azul */}
+      <Tabs defaultValue="market_share" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="market_share" className="gap-2">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Market Share
+            <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+              {marketShare.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="operacional" className="gap-2">
+            <Users className="h-3.5 w-3.5" />
+            Lideranças Operacionais
+            <Badge variant="secondary" className="ml-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+              {operacional.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="market_share" className="space-y-6">
         <Card className="border-blue-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -120,7 +138,9 @@ export default function PerformanceLideranca() {
             })}
           </CardContent>
         </Card>
+        </TabsContent>
 
+        <TabsContent value="operacional" className="space-y-6">
         {/* Operacional — Verde */}
         <Card className="border-emerald-200">
           <CardHeader className="pb-3">
@@ -167,7 +187,8 @@ export default function PerformanceLideranca() {
             })}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+      </Tabs>
     </TooltipProvider>
   );
 }
