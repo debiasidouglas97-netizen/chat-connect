@@ -2,20 +2,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useTenant } from "@/hooks/use-tenant";
 import { usePermissions } from "@/hooks/use-permissions";
-
-// Routes blocked for "lideranca" role
-const LIDERANCA_BLOCKED_PREFIXES = [
-  "/documentos",
-  "/mensagens",
-  "/mobilizacao",
-  "/busca",
-  "/configuracoes",
-];
+import { MODULES } from "@/lib/permissions-defaults";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const { isSuperAdmin, loading: tenantLoading } = useTenant();
-  const { isLideranca } = usePermissions();
+  const { can, isAdmin } = usePermissions();
   const location = useLocation();
 
   // Wait for auth + tenant + profile (if authenticated). Profile is needed before

@@ -66,25 +66,12 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { profile } = useDeputyProfile();
   const { signOut, profile: authProfile, userAvatarUrl, userDisplayName, userInitials } = useAuth();
-  const { isLideranca } = usePermissions();
+  const { visibleRoutes } = usePermissions();
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
-  // Items hidden from "lideranca" role
-  const liderancaHiddenUrls = new Set([
-    "/documentos",
-    "/mensagens",
-    "/mobilizacao",
-    "/busca",
-    "/configuracoes",
-  ]);
-
-  const visibleMainItems = isLideranca
-    ? mainItems.filter((i) => !liderancaHiddenUrls.has(i.url))
-    : mainItems;
-  const visibleSystemItems = isLideranca
-    ? systemItems.filter((i) => !liderancaHiddenUrls.has(i.url))
-    : systemItems;
+  const visibleMainItems = mainItems.filter((i) => visibleRoutes.has(i.url));
+  const visibleSystemItems = systemItems.filter((i) => visibleRoutes.has(i.url));
 
   return (
     <Sidebar collapsible="icon">
