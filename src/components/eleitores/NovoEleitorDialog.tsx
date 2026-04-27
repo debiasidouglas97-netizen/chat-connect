@@ -27,10 +27,12 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useFormConfig } from "@/hooks/use-form-config";
 import CustomFieldsBlock from "@/components/form-builder/CustomFieldsBlock";
 import { colorDotForKey, badgeClassesForKey } from "@/lib/eleitor-colors";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NATIVE_FIELDS_CATALOG } from "@/lib/form-config-defaults";
+import { useRef } from "react";
 
 interface Props {
   open: boolean;
