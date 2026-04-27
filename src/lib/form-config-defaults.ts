@@ -115,6 +115,29 @@ const DEFAULT_VISIBLE_BY_SEGMENT: Partial<Record<FormSegment, Set<string>>> = {
 };
 
 /**
+ * Grupo que fica TRAVADO no topo de cada segmento (não pode ser reordenado).
+ */
+export const LOCKED_FIRST_GROUP: Record<FormSegment, string> = {
+  liderancas: "Identificação",
+  eleitores: "Informações Básicas",
+  usuarios: "Identificação",
+};
+
+/** Deriva a ordem natural dos grupos a partir do catálogo (1ª ocorrência). */
+function deriveGroupOrderFromCatalog(segment: FormSegment): string[] {
+  const seen: string[] = [];
+  for (const def of NATIVE_FIELDS_CATALOG[segment]) {
+    if (!seen.includes(def.group)) seen.push(def.group);
+  }
+  // Garante que o grupo travado venha primeiro
+  const locked = LOCKED_FIRST_GROUP[segment];
+  if (locked && seen.includes(locked)) {
+    return [locked, ...seen.filter((g) => g !== locked)];
+  }
+  return seen;
+}
+
+/**
  * Default conservador: ordem segue o catálogo. Visibilidade segue
  * `DEFAULT_VISIBLE_BY_SEGMENT` se definido, senão tudo visível. Campos
  * `locked` sempre visíveis e obrigatórios.
@@ -136,7 +159,11 @@ export function buildDefaultSegmentConfig(segment: FormSegment): SegmentFormConf
       order: idx,
     };
   });
-  return { nativeFields, customFields: [] };
+  return {
+    nativeFields,
+    customFields: [],
+    groupOrder: deriveGroupOrderFromCatalog(segment),
+  };
 }
 
 /**
