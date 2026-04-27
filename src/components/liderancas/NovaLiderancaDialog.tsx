@@ -276,37 +276,72 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             </div>
           </div>
 
-          {/* Basic */}
+          {/* Basic - nome / cargo (sempre obrigatórios e nesta ordem fixa) */}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Nome completo *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: João da Silva" /></div>
-            <div><Label className="text-xs">Cargo *</Label><Input value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Ex: Presidente da Associação" /></div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs">Cidade principal *</Label>
-              <Select value={cidadePrincipal} onValueChange={setCidadePrincipal}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{cidadeOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-            </div>
-            <div>
-              <Label className="text-xs">Influência</Label>
-              <Select value={influencia} onValueChange={(v) => setInfluencia(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Alta">Alta</SelectItem><SelectItem value="Média">Média</SelectItem><SelectItem value="Baixa">Baixa</SelectItem></SelectContent></Select>
-            </div>
-            <div>
-              <Label className="text-xs">Tipo</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vice-Prefeito(a)">Vice-Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
-            </div>
+            {isVisible("name") && (
+              <div><Label className="text-xs">{lbl("name", "Nome completo")} *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: João da Silva" /></div>
+            )}
+            {isVisible("cargo") && (
+              <div><Label className="text-xs">{lbl("cargo", "Cargo")} *</Label><Input value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Ex: Presidente da Associação" /></div>
+            )}
           </div>
 
-          {/* Documentos */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">CPF{criarAcesso ? " *" : ""}</Label>
-              <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+          {/* Cidade principal / Influência / Tipo / Classificação - respeitando ordem */}
+          {(() => {
+            const keys = orderedKeys(["cidadePrincipal", "influencia", "tipo", "classificacao_manual"]);
+            if (keys.length === 0) return null;
+            const renderers: Record<string, JSX.Element> = {
+              cidadePrincipal: (
+                <div key="cidadePrincipal">
+                  <Label className="text-xs">{lbl("cidadePrincipal", "Cidade principal")} *</Label>
+                  <Select value={cidadePrincipal} onValueChange={setCidadePrincipal}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{cidadeOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                </div>
+              ),
+              influencia: (
+                <div key="influencia">
+                  <Label className="text-xs">{lbl("influencia", "Influência")}{isReq("influencia") ? " *" : ""}</Label>
+                  <Select value={influencia} onValueChange={(v) => setInfluencia(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Alta">Alta</SelectItem><SelectItem value="Média">Média</SelectItem><SelectItem value="Baixa">Baixa</SelectItem></SelectContent></Select>
+                </div>
+              ),
+              tipo: (
+                <div key="tipo">
+                  <Label className="text-xs">{lbl("tipo", "Tipo")}{isReq("tipo") ? " *" : ""}</Label>
+                  <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vice-Prefeito(a)">Vice-Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
+                </div>
+              ),
+              classificacao_manual: (
+                <div key="classificacao_manual">
+                  <Label className="text-xs">{lbl("classificacao_manual", "Classificação")}{isReq("classificacao_manual") ? " *" : ""}</Label>
+                  <Input disabled placeholder="(definida automaticamente)" />
+                </div>
+              ),
+            };
+            return (
+              <div className="grid grid-cols-3 gap-3">
+                {keys.map((k) => renderers[k]).filter(Boolean)}
+              </div>
+            );
+          })()}
+
+          {/* Documentos - CPF / RG na ordem configurada */}
+          {(isVisible("cpf") || isVisible("rg")) && (
+            <div className="grid grid-cols-2 gap-3">
+              {orderedKeys(["cpf", "rg"]).map((k) =>
+                k === "cpf" ? (
+                  <div key="cpf">
+                    <Label className="text-xs">{lbl("cpf", "CPF")}{(criarAcesso || isReq("cpf")) ? " *" : ""}</Label>
+                    <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+                  </div>
+                ) : (
+                  <div key="rg">
+                    <Label className="text-xs">{lbl("rg", "RG")}{isReq("rg") ? " *" : ""}</Label>
+                    <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" />
+                  </div>
+                ),
+              )}
             </div>
-            <div>
-              <Label className="text-xs">RG</Label>
-              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" />
-            </div>
-          </div>
+          )}
+
 
           {/* Acesso ao Sistema (opcional) */}
           <div className={`rounded-lg border p-3 space-y-3 transition-colors ${criarAcesso ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
