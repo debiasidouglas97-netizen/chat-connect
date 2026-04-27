@@ -284,13 +284,11 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
 
           {/* Documentos */}
           <div className="grid grid-cols-2 gap-3">
-            {!criarAcesso && (
-              <div>
-                <Label className="text-xs">CPF</Label>
-                <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
-              </div>
-            )}
-            <div className={criarAcesso ? "col-span-2" : ""}>
+            <div>
+              <Label className="text-xs">CPF{criarAcesso ? " *" : ""}</Label>
+              <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+            </div>
+            <div>
               <Label className="text-xs">RG</Label>
               <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" />
             </div>
@@ -312,7 +310,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
                 </label>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {criarAcesso
-                    ? "A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente."
+                    ? "A liderança poderá entrar no sistema usando e-mail, username ou CPF (definido em Documentos)."
                     : "A liderança será cadastrada apenas no CRM. Você pode criar o acesso a qualquer momento pelo detalhe da liderança."}
                 </p>
               </div>
@@ -325,14 +323,10 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
                 </div>
                 <div>
-                  <Label className="text-xs">CPF *</Label>
-                  <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
-                </div>
-                <div>
                   <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
                   <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
                 </div>
-                <div className="row-span-2">
+                <div className="col-span-2">
                   <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
                   <div className="relative">
                     <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
