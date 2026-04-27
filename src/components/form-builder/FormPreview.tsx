@@ -407,27 +407,57 @@ function PreviewLiderancas({ config, segment }: { config: SegmentFormConfig; seg
 /** Fallback genérico para outros segmentos (eleitores/usuarios). */
 function PreviewGeneric({ config, segment }: { config: SegmentFormConfig; segment: FormSegment }) {
   const catalog = NATIVE_FIELDS_CATALOG[segment];
-  const visibleNatives = catalog
-    .map((def) => ({ def, cfg: config.nativeFields[def.key] }))
-    .filter((x) => x.cfg?.visible !== false)
-    .sort((a, b) => (a.cfg?.order ?? 0) - (b.cfg?.order ?? 0));
+  const defByKey = new Map(catalog.map((d) => [d.key, d]));
+
+  // Agrupa visíveis por grupo
+  const visibleByGroup: Record<string, { def: typeof catalog[number]; cfg: any }[]> = {};
+  for (const def of catalog) {
+    const cfg = config.nativeFields[def.key];
+    if (cfg?.visible === false) continue;
+    (visibleByGroup[def.group] ||= []).push({ def, cfg });
+  }
+  // ordena dentro de cada grupo
+  for (const g of Object.keys(visibleByGroup)) {
+    visibleByGroup[g].sort((a, b) => (a.cfg?.order ?? 0) - (b.cfg?.order ?? 0));
+  }
+
+  // Ordem dos grupos vinda da config
+  const groupOrder =
+    config.groupOrder && config.groupOrder.length > 0
+      ? config.groupOrder
+      : Object.keys(visibleByGroup);
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        {visibleNatives.map(({ def, cfg }) => {
-          const label = (cfg?.label?.trim() || def.defaultLabel) ?? def.defaultLabel;
-          return (
-            <div
-              key={def.key}
-              className={def.inputType === "textarea" || def.inputType === "checkbox" ? "col-span-2" : ""}
-            >
-              <FieldLabel required={cfg?.required}>{label}</FieldLabel>
-              <Input disabled placeholder={`(${def.inputType})`} className="bg-muted/30" />
+    <div className="space-y-5">
+      {groupOrder.map((group) => {
+        const items = visibleByGroup[group];
+        if (!items || items.length === 0) return null;
+        return (
+          <div key={group} className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {group}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {items.map(({ def, cfg }) => {
+                const label = (cfg?.label?.trim() || def.defaultLabel) ?? def.defaultLabel;
+                return (
+                  <div
+                    key={def.key}
+                    className={
+                      def.inputType === "textarea" || def.inputType === "checkbox"
+                        ? "col-span-2"
+                        : ""
+                    }
+                  >
+                    <FieldLabel required={cfg?.required}>{label}</FieldLabel>
+                    <Input disabled placeholder={`(${def.inputType})`} className="bg-muted/30" />
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
 
       {config.customFields.filter((f) => f.visible).length > 0 && (
         <div className="pt-3 border-t">

@@ -2,29 +2,55 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUp, Lock } from "lucide-react";
-import { NATIVE_FIELDS_CATALOG } from "@/lib/form-config-defaults";
+import { ArrowDown, ArrowUp, Lock, ChevronUp, ChevronDown } from "lucide-react";
+import { NATIVE_FIELDS_CATALOG, LOCKED_FIRST_GROUP } from "@/lib/form-config-defaults";
 import type { FormSegment, NativeFieldConfig } from "@/lib/form-config-types";
+import { useMemo } from "react";
 
 interface Props {
   segment: FormSegment;
   config: Record<string, NativeFieldConfig>;
   onChange: (next: Record<string, NativeFieldConfig>) => void;
+  groupOrder: string[];
+  onGroupOrderChange: (next: string[]) => void;
 }
 
 /**
  * Lista os campos nativos do segmento agrupados, com toggles de visibilidade,
  * obrigatoriedade, label customizável e reordenação dentro do grupo.
+ *
+ * Permite também reordenar os GRUPOS (com o primeiro grupo travado conforme
+ * `LOCKED_FIRST_GROUP`).
  */
-export default function NativeFieldsConfigList({ segment, config, onChange }: Props) {
+export default function NativeFieldsConfigList({
+  segment,
+  config,
+  onChange,
+  groupOrder,
+  onGroupOrderChange,
+}: Props) {
   const catalog = NATIVE_FIELDS_CATALOG[segment];
+  const lockedFirst = LOCKED_FIRST_GROUP[segment];
 
-  // Agrupa por `group`, mantendo ordem do catálogo dentro de cada grupo
-  // mas exibindo conforme `order` da config.
-  const grouped = catalog.reduce<Record<string, typeof catalog>>((acc, def) => {
-    (acc[def.group] ||= []).push(def);
-    return acc;
-  }, {});
+  // Agrupa por `group`
+  const grouped = useMemo(() => {
+    return catalog.reduce<Record<string, typeof catalog>>((acc, def) => {
+      (acc[def.group] ||= []).push(def);
+      return acc;
+    }, {});
+  }, [catalog]);
+
+  // Ordem efetiva de grupos: usa groupOrder, fallback para ordem natural
+  const effectiveGroupOrder = useMemo(() => {
+    const allGroups = Object.keys(grouped);
+    const fromConfig = (groupOrder || []).filter((g) => allGroups.includes(g));
+    const missing = allGroups.filter((g) => !fromConfig.includes(g));
+    let result = [...fromConfig, ...missing];
+    if (lockedFirst && result.includes(lockedFirst)) {
+      result = [lockedFirst, ...result.filter((g) => g !== lockedFirst)];
+    }
+    return result;
+  }, [grouped, groupOrder, lockedFirst]);
 
   const update = (key: string, patch: Partial<NativeFieldConfig>) => {
     onChange({
@@ -41,7 +67,6 @@ export default function NativeFieldsConfigList({ segment, config, onChange }: Pr
   };
 
   const move = (key: string, dir: -1 | 1) => {
-    // Reordena dentro do grupo do campo
     const def = catalog.find((d) => d.key === key);
     if (!def) return;
     const groupKeys = (grouped[def.group] || []).map((d) => d.key);
@@ -60,18 +85,75 @@ export default function NativeFieldsConfigList({ segment, config, onChange }: Pr
     onChange(newConfig);
   };
 
+  const moveGroup = (group: string, dir: -1 | 1) => {
+    const idx = effectiveGroupOrder.indexOf(group);
+    if (idx < 0) return;
+    const target = idx + dir;
+    // Não pode mover o lockedFirst nem mover algo para a posição 0 (do locked)
+    if (group === lockedFirst) return;
+    if (target <= 0 && lockedFirst && effectiveGroupOrder[0] === lockedFirst) return;
+    if (target < 0 || target >= effectiveGroupOrder.length) return;
+    const next = [...effectiveGroupOrder];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onGroupOrderChange(next);
+  };
+
   return (
     <div className="space-y-5">
-      {Object.entries(grouped).map(([group, defs]) => {
+      {effectiveGroupOrder.map((group, gIdx) => {
+        const defs = grouped[group] || [];
         const ordered = [...defs].sort(
           (a, b) => (config[a.key]?.order ?? 0) - (config[b.key]?.order ?? 0),
         );
+        const isLocked = group === lockedFirst;
+        // primeiro grupo movível é o índice 1 quando lockedFirst está presente,
+        // ou 0 caso contrário
+        const firstMovableIdx = lockedFirst && effectiveGroupOrder[0] === lockedFirst ? 1 : 0;
+        const canUp = !isLocked && gIdx > firstMovableIdx;
+        const canDown = !isLocked && gIdx < effectiveGroupOrder.length - 1;
+
         return (
-          <div key={group} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {group}
-            </p>
-            <div className="border rounded-lg divide-y">
+          <div key={group} className="rounded-lg border overflow-hidden">
+            {/* Cabeçalho do grupo */}
+            <div className="flex items-center justify-between gap-2 px-3 py-2 bg-muted/40 border-b">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group}
+                </p>
+                {isLocked && (
+                  <Badge variant="outline" className="gap-1 text-[10px] py-0">
+                    <Lock className="h-2.5 w-2.5" /> fixo no topo
+                  </Badge>
+                )}
+              </div>
+              {!isLocked && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => moveGroup(group, -1)}
+                    disabled={!canUp}
+                    title="Mover grupo para cima"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => moveGroup(group, 1)}
+                    disabled={!canDown}
+                    title="Mover grupo para baixo"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Campos do grupo */}
+            <div className="divide-y">
               {ordered.map((def) => {
                 const cfg = config[def.key] || {
                   key: def.key,
@@ -85,7 +167,7 @@ export default function NativeFieldsConfigList({ segment, config, onChange }: Pr
                     key={def.key}
                     className="flex flex-wrap items-center gap-3 p-3 hover:bg-muted/30 transition-colors"
                   >
-                    {/* reorder */}
+                    {/* reorder dentro do grupo */}
                     <div className="flex flex-col">
                       <Button
                         size="icon"

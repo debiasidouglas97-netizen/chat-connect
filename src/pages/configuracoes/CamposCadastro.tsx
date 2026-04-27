@@ -46,6 +46,8 @@ function CamposCadastroSegment({ segment, segmentLabel }: Props) {
             segment={segment}
             config={draft.nativeFields}
             onChange={(nf) => setDraft({ ...draft, nativeFields: nf })}
+            groupOrder={draft.groupOrder ?? []}
+            onGroupOrderChange={(go) => setDraft({ ...draft, groupOrder: go })}
           />
         </CardContent>
       </Card>

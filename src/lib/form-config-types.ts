@@ -44,6 +44,8 @@ export interface CustomFieldConfig {
 export interface SegmentFormConfig {
   nativeFields: Record<string, NativeFieldConfig>;
   customFields: CustomFieldConfig[];
+  /** Ordem dos GRUPOS (nomes) na exibição. Primeiro item é o grupo travado no topo. */
+  groupOrder?: string[];
 }
 
 /** Metadado de um campo nativo, usado para listagem na tela de configuração. */

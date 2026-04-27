@@ -29,10 +29,16 @@ export function useFormConfig(segment: FormSegment) {
         .maybeSingle();
 
       if (error) throw error;
+      // groupOrder pode estar embutido em native_fields.__groupOrder
+      const nativeRaw = (data ? (data as any).native_fields : null) || {};
+      const embeddedOrder = Array.isArray(nativeRaw.__groupOrder)
+        ? (nativeRaw.__groupOrder as string[])
+        : undefined;
       const raw: Partial<SegmentFormConfig> | null = data
         ? {
-            nativeFields: (data as any).native_fields || {},
+            nativeFields: nativeRaw,
             customFields: (data as any).custom_fields || [],
+            groupOrder: embeddedOrder,
           }
         : null;
       return resolveSegmentConfig(segment, raw);
@@ -42,10 +48,15 @@ export function useFormConfig(segment: FormSegment) {
   const save = useMutation({
     mutationFn: async (config: SegmentFormConfig) => {
       if (!tenantId) throw new Error("Tenant não identificado");
+      // Serializa groupOrder dentro de native_fields como chave reservada
+      const nativeFieldsPayload: Record<string, any> = { ...config.nativeFields };
+      if (config.groupOrder && config.groupOrder.length > 0) {
+        nativeFieldsPayload.__groupOrder = config.groupOrder;
+      }
       const payload = {
         tenant_id: tenantId,
         segment,
-        native_fields: config.nativeFields as any,
+        native_fields: nativeFieldsPayload as any,
         custom_fields: config.customFields as any,
       };
       const { error } = await supabase
