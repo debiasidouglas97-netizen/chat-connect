@@ -22,6 +22,8 @@ export interface LiderancaRow {
   instagram: string | null;
   facebook: string | null;
   youtube: string | null;
+  cpf: string | null;
+  rg: string | null;
   address_cep: string | null;
   address_street: string | null;
   address_number: string | null;
