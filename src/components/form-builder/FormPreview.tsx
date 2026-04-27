@@ -43,6 +43,7 @@ const PLACEHOLDERS: Record<string, string> = {
   atuacao: "Cidades de atuação",
   email: "lideranca@exemplo.com",
   cpf: "000.000.000-00",
+  rg: "00.000.000-0",
   username: "ex: joao.silva",
   phone: "(00) 0000-0000",
   whatsapp: "(00) 00000-0000",
