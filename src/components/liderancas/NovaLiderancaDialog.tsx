@@ -403,14 +403,15 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           {/* E-mail é renderizado dentro de "Contatos adicionais" quando "Criar acesso" está desativado */}
 
           {/* Meta de votos */}
-          <MetaVotosInput
-            cargo={cargo}
-            cidadePrincipal={cidadePrincipal}
-            tipo={metaTipo}
-            valor={metaValor}
-            onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
-          />
-
+          {isVisible("meta_votos") && (
+            <MetaVotosInput
+              cargo={cargo}
+              cidadePrincipal={cidadePrincipal}
+              tipo={metaTipo}
+              valor={metaValor}
+              onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
+            />
+          )}
           {/* Contatos adicionais - respeitando ordem configurada */}
           {(() => {
             // E-mail só aparece aqui quando o bloco "Acesso ao sistema" não está visível
