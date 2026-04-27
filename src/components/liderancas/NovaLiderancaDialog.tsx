@@ -75,6 +75,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   const [criarAcesso, setCriarAcesso] = useState(true);
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
+  const [rg, setRg] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -92,7 +93,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
     setAddressCity(""); setAddressState("");
     setMetaTipo("percentual"); setMetaValor(null);
     setCriarAcesso(true);
-    setEmail(""); setCpf(""); setUsername(""); setPassword(""); setPasswordConfirm("");
+    setEmail(""); setCpf(""); setRg(""); setUsername(""); setPassword(""); setPasswordConfirm("");
     setShowPassword(false);
   };
 
@@ -196,6 +197,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             address_state: addressState || null,
             meta_votos_tipo: metaTipo,
             meta_votos_valor: metaValor,
+            rg: rg || null,
           },
         });
         if (error || (data as any)?.error) {
@@ -222,6 +224,8 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
           address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
           meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
+          cpf: cpf ? cpf.replace(/\D/g, "") : "",
+          rg,
         } as any);
         toast.success("Liderança cadastrada! Você pode criar o acesso ao sistema depois pelo detalhe da liderança.");
       }
@@ -275,6 +279,20 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             <div>
               <Label className="text-xs">Tipo</Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Eleitoral">Eleitoral</SelectItem><SelectItem value="Comunitária">Comunitária</SelectItem><SelectItem value="Política">Política</SelectItem><SelectItem value="Prefeito(a)">Prefeito(a)</SelectItem><SelectItem value="Vice-Prefeito(a)">Vice-Prefeito(a)</SelectItem><SelectItem value="Vereador(a)">Vereador(a)</SelectItem></SelectContent></Select>
+            </div>
+          </div>
+
+          {/* Documentos */}
+          <div className="grid grid-cols-2 gap-3">
+            {!criarAcesso && (
+              <div>
+                <Label className="text-xs">CPF</Label>
+                <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+              </div>
+            )}
+            <div className={criarAcesso ? "col-span-2" : ""}>
+              <Label className="text-xs">RG</Label>
+              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" />
             </div>
           </div>
 

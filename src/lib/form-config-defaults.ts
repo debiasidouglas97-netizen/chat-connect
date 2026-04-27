@@ -19,6 +19,8 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
     { key: "name", defaultLabel: "Nome completo", group: "Identificação", locked: true, inputType: "text" },
     { key: "avatar", defaultLabel: "Foto", group: "Identificação", inputType: "text" },
     { key: "cargo", defaultLabel: "Cargo", group: "Identificação", locked: true, inputType: "text" },
+    { key: "cpf", defaultLabel: "CPF", group: "Identificação", inputType: "text" },
+    { key: "rg", defaultLabel: "RG", group: "Identificação", inputType: "text" },
     { key: "tipo", defaultLabel: "Tipo de liderança", group: "Identificação", inputType: "select" },
     { key: "influencia", defaultLabel: "Influência", group: "Identificação", inputType: "select" },
     { key: "classificacao_manual", defaultLabel: "Classificação", group: "Identificação", inputType: "select" },

@@ -63,6 +63,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [instagramVal, setInstagramVal] = useState("");
   const [facebookVal, setFacebookVal] = useState("");
   const [youtubeVal, setYoutubeVal] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [rg, setRg] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [addressCep, setAddressCep] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
@@ -92,6 +94,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setInstagramVal(l.instagram || "");
     setFacebookVal(l.facebook || "");
     setYoutubeVal(l.youtube || "");
+    setCpf(l.cpf || "");
+    setRg(l.rg || "");
     setAvatarPreview(l.avatar_url || null);
     setAddressCep(l.address_cep || "");
     setAddressStreet(l.address_street || "");
@@ -145,6 +149,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       name, cargo, cidadePrincipal, influencia, tipo,
       phone, whatsapp, email, telegram_username: telegram,
       instagram: instagramVal, facebook: facebookVal, youtube: youtubeVal,
+      cpf, rg,
       avatar_url: avatarPreview,
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
@@ -233,7 +238,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
               )}
 
 
-              {(l.phone || l.whatsapp || l.email || l.telegram_username) && (
+              {(l.phone || l.whatsapp || l.email || l.telegram_username || l.cpf || l.rg) && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-2">Contatos {hideContacts && <span className="ml-1 text-[10px]">🔒 restrito</span>}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -241,6 +246,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                     {l.whatsapp && <p className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.whatsapp) : l.whatsapp}</p>}
                     {l.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.email) : l.email}</p>}
                     {l.telegram_username && <p className="flex items-center gap-1"><AtSign className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.telegram_username) : l.telegram_username}</p>}
+                    {l.cpf && <p className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground font-semibold">CPF</span> {hideContacts ? mask(l.cpf) : l.cpf}</p>}
+                    {l.rg && <p className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground font-semibold">RG</span> {hideContacts ? mask(l.rg) : l.rg}</p>}
                   </div>
                 </div>
               )}
@@ -354,6 +361,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> WhatsApp</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
                 <div><Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
                 <div><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> Telegram</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
+                <div><Label className="text-xs">CPF</Label><Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" /></div>
+                <div><Label className="text-xs">RG</Label><Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" /></div>
               </div>
 
               {/* Social */}

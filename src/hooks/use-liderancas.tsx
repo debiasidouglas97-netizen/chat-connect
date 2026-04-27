@@ -22,6 +22,8 @@ export interface LiderancaRow {
   instagram: string | null;
   facebook: string | null;
   youtube: string | null;
+  cpf: string | null;
+  rg: string | null;
   address_cep: string | null;
   address_street: string | null;
   address_number: string | null;
@@ -54,6 +56,8 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
     instagram: r.instagram,
     facebook: r.facebook,
     youtube: r.youtube,
+    cpf: r.cpf,
+    rg: r.rg,
     address_cep: r.address_cep,
     address_street: r.address_street,
     address_number: r.address_number,
@@ -110,6 +114,8 @@ export function useLiderancas() {
         instagram: l.instagram || null,
         facebook: l.facebook || null,
         youtube: l.youtube || null,
+        cpf: l.cpf || null,
+        rg: l.rg || null,
         address_cep: l.address_cep || null,
         address_street: l.address_street || null,
         address_number: l.address_number || null,
@@ -144,6 +150,8 @@ export function useLiderancas() {
       if (l.instagram !== undefined) payload.instagram = l.instagram || null;
       if (l.facebook !== undefined) payload.facebook = l.facebook || null;
       if (l.youtube !== undefined) payload.youtube = l.youtube || null;
+      if (l.cpf !== undefined) payload.cpf = l.cpf || null;
+      if (l.rg !== undefined) payload.rg = l.rg || null;
       if (l.address_cep !== undefined) payload.address_cep = l.address_cep || null;
       if (l.address_street !== undefined) payload.address_street = l.address_street || null;
       if (l.address_number !== undefined) payload.address_number = l.address_number || null;
