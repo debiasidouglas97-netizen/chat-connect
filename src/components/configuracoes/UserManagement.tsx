@@ -10,13 +10,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Users, Plus, Search, Link2, Eye, EyeOff, ChevronsUpDown, Check, X } from "lucide-react";
+import { Users, Plus, Search, Link2, Eye, EyeOff, ChevronsUpDown, Check, X, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AppRole, Profile } from "@/hooks/use-auth";
 import { getInitials } from "@/hooks/use-auth";
 import { useTenant } from "@/hooks/use-tenant";
+import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
+import RolePermissionsDialog from "@/components/configuracoes/RolePermissionsDialog";
 
 interface Lideranca {
   id: string;
@@ -63,11 +65,13 @@ function maskWhatsApp(v: string) {
 
 export default function UserManagement() {
   const { tenantId } = useTenant();
+  const { isAdmin } = usePermissions();
   const [users, setUsers] = useState<Profile[]>([]);
   const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [editUser, setEditUser] = useState<(Profile & { cpf?: string | null; username?: string | null; whatsapp?: string | null; telegram_username?: string | null }) | null>(null);
   const [deactivateUser, setDeactivateUser] = useState<Profile | null>(null);
 
@@ -288,8 +292,17 @@ export default function UserManagement() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9" />
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setPermissionsOpen(true)} className="gap-2">
+              <ShieldCheck className="h-4 w-4" /> Permissões por Tipo
+            </Button>
+          )}
+          <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
+        </div>
       </div>
+
+      <RolePermissionsDialog open={permissionsOpen} onOpenChange={setPermissionsOpen} />
 
       <Card>
         <CardContent className="p-0">

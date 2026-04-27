@@ -2,20 +2,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useTenant } from "@/hooks/use-tenant";
 import { usePermissions } from "@/hooks/use-permissions";
-
-// Routes blocked for "lideranca" role
-const LIDERANCA_BLOCKED_PREFIXES = [
-  "/documentos",
-  "/mensagens",
-  "/mobilizacao",
-  "/busca",
-  "/configuracoes",
-];
+import { MODULES } from "@/lib/permissions-defaults";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const { isSuperAdmin, loading: tenantLoading } = useTenant();
-  const { isLideranca } = usePermissions();
+  const { can, isAdmin } = usePermissions();
   const location = useLocation();
 
   // Wait for auth + tenant + profile (if authenticated). Profile is needed before
@@ -59,12 +51,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/" replace />;
   }
 
-  // Liderança trying to access blocked routes → redirect to /
-  if (
-    isLideranca &&
-    LIDERANCA_BLOCKED_PREFIXES.some((p) => location.pathname.startsWith(p))
-  ) {
-    return <Navigate to="/" replace />;
+  // Block routes the user cannot view (matrix-driven). Admin always passes.
+  if (!isAdmin && !isSuperAdmin) {
+    const matched = MODULES.find((m) =>
+      m.route === "/" ? false : location.pathname.startsWith(m.route)
+    );
+    if (matched && !can(matched.key, "view")) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;
