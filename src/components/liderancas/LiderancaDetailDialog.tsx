@@ -63,6 +63,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
   const [instagramVal, setInstagramVal] = useState("");
   const [facebookVal, setFacebookVal] = useState("");
   const [youtubeVal, setYoutubeVal] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [rg, setRg] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [addressCep, setAddressCep] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
