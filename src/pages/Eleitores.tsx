@@ -19,6 +19,7 @@ import NovoEleitorDialog from "@/components/eleitores/NovoEleitorDialog";
 import ExportEleitoresDialog from "@/components/eleitores/ExportEleitoresDialog";
 import PerformanceLideranca from "@/components/eleitores/PerformanceLideranca";
 import { badgeClassesForKey } from "@/lib/eleitor-colors";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
@@ -202,7 +203,17 @@ export default function Eleitores() {
                       const prio = cf.prioridade as string | undefined;
                       return (
                         <TableRow key={e.id}>
-                          <TableCell className="font-medium">{e.nome}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-7 w-7">
+                                {(e as any).avatar_url ? <AvatarImage src={(e as any).avatar_url} className="object-cover" /> : null}
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                  {e.nome ? e.nome.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{e.nome}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-xs">{e.whatsapp}</TableCell>
                           <TableCell className="text-xs">{e.cidade}</TableCell>
                           <TableCell>

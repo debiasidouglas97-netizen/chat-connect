@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,10 +27,12 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useFormConfig } from "@/hooks/use-form-config";
 import CustomFieldsBlock from "@/components/form-builder/CustomFieldsBlock";
 import { colorDotForKey, badgeClassesForKey } from "@/lib/eleitor-colors";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NATIVE_FIELDS_CATALOG } from "@/lib/form-config-defaults";
+
 
 interface Props {
   open: boolean;
@@ -83,6 +85,8 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const [estado, setEstado] = useState("");
   const [liderancaId, setLiderancaId] = useState<string>("__none__");
   const [observacoes, setObservacoes] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   // Campos extras armazenados em custom_field_values (JSONB)
   const [extras, setExtras] = useState<Record<string, any>>({});
   const [customValues, setCustomValues] = useState<Record<string, any>>({});
@@ -117,6 +121,7 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
       setEstado(editing.estado || "");
       setLiderancaId(editing.lideranca_id || (liderancaLocked ? linkedLiderancaId! : "__none__"));
       setObservacoes(editing.observacoes || "");
+      setAvatarPreview((editing as any).avatar_url || null);
       const cfv = (editing as any).custom_field_values || {};
       // Separa extras nativos (chaves do catálogo) dos custom fields configurados
       const customKeys = new Set(formCfg.customFields.map((f) => f.key));
@@ -148,9 +153,22 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
     setEstado("");
     setLiderancaId(liderancaLocked && linkedLiderancaId ? linkedLiderancaId : "__none__");
     setObservacoes("");
+    setAvatarPreview(null);
     setExtras({});
     setCustomValues({});
     setShowAll(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx 2MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
   };
 
   const buscarCep = async () => {
@@ -230,6 +248,39 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
     );
 
     switch (key) {
+      case "avatar_url":
+        return (
+          <div key={key} className="col-span-2">
+            {labelEl}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-16 w-16 border border-primary/20">
+                {avatarPreview ? <AvatarImage src={avatarPreview} className="object-cover" /> : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                  {nome ? nome.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-1.5">
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5 mr-1" />
+                  {avatarPreview ? "Trocar foto" : "Enviar foto"}
+                </Button>
+                {avatarPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive h-7 px-2"
+                    onClick={() => setAvatarPreview(null)}
+                  >
+                    <X className="h-3 w-3 mr-1" /> Remover
+                  </Button>
+                )}
+                <p className="text-[10px] text-muted-foreground">JPG/PNG até 2MB</p>
+              </div>
+            </div>
+          </div>
+        );
       case "nome":
         return (
           <div key={key} className="col-span-2">
@@ -419,6 +470,7 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
       estado: estado.trim() || null,
       lideranca_id: liderancaId === "__none__" ? null : liderancaId,
       observacoes: observacoes.trim() || null,
+      avatar_url: avatarPreview,
       custom_field_values: mergedCustom,
     };
 
