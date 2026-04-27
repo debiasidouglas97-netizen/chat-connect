@@ -1117,6 +1117,7 @@ export type Database = {
           cargo: string
           cidade_principal: string
           classificacao_manual: string | null
+          cpf: string | null
           created_at: string
           custom_field_values: Json
           email: string | null
@@ -1130,6 +1131,7 @@ export type Database = {
           meta_votos_valor: number | null
           name: string
           phone: string | null
+          rg: string | null
           telegram_username: string | null
           tenant_id: string | null
           tipo: string
@@ -1149,6 +1151,7 @@ export type Database = {
           cargo: string
           cidade_principal: string
           classificacao_manual?: string | null
+          cpf?: string | null
           created_at?: string
           custom_field_values?: Json
           email?: string | null
@@ -1162,6 +1165,7 @@ export type Database = {
           meta_votos_valor?: number | null
           name: string
           phone?: string | null
+          rg?: string | null
           telegram_username?: string | null
           tenant_id?: string | null
           tipo?: string
@@ -1181,6 +1185,7 @@ export type Database = {
           cargo?: string
           cidade_principal?: string
           classificacao_manual?: string | null
+          cpf?: string | null
           created_at?: string
           custom_field_values?: Json
           email?: string | null
@@ -1194,6 +1199,7 @@ export type Database = {
           meta_votos_valor?: number | null
           name?: string
           phone?: string | null
+          rg?: string | null
           telegram_username?: string | null
           tenant_id?: string | null
           tipo?: string
