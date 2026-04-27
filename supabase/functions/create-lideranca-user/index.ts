@@ -51,6 +51,7 @@ interface Payload {
   address_state?: string | null;
   meta_votos_tipo?: string | null;
   meta_votos_valor?: number | null;
+  rg?: string | null;
 }
 
 Deno.serve(async (req) => {
