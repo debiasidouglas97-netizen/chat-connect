@@ -75,6 +75,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
   const [criarAcesso, setCriarAcesso] = useState(true);
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
+  const [rg, setRg] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
