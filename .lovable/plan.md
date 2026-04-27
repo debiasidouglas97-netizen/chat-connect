@@ -1,44 +1,81 @@
-## Problema
+## Objetivo
 
-Ao salvar uma nova ordem de grupos em **Configurações → Campos de Cadastro → Lideranças** (por exemplo: Identificação → Contatos → Estratégia → Redes Sociais → Localização), o **diálogo "Nova Liderança"** não respeita essa ordem — os blocos visuais (Endereço, Redes sociais, Meta de votos, Contatos adicionais) estão **hardcoded** no JSX.
+Hoje as permissões dos usuários (Deputado, Chefe de Gabinete, Secretário, Liderança) são **fixas em código** (`src/hooks/use-permissions.tsx` + checagens em `ProtectedRoute` e várias páginas). O Deputado/Admin não consegue customizar — por exemplo: "Secretário pode criar/editar liderança mas não excluir" ou "Secretário não vê Agenda".
 
-A configuração já é lida (`useFormConfig`) e usada para visibilidade/labels/ordem de subcampos, mas a ordem dos **grupos inteiros** é ignorada.
+A proposta é introduzir uma **matriz de permissões por papel (role) configurável**, com CRUD por módulo, gerenciada apenas por Admin (Deputado / Chefe de Gabinete) dentro de **Configurações → Usuários**.
 
-## Solução
+## Como ficará para o usuário
 
-Refatorar `src/components/liderancas/NovaLiderancaDialog.tsx` para renderizar os blocos por grupo, na ordem definida em `formCfg.groupOrder`.
+Na aba **Usuários** de Configurações, ao lado do botão "Novo Usuário", aparece um novo botão **"Permissões por Tipo"** (visível apenas para Admin). Ao abrir, surge um diálogo com:
 
-### Mapeamento bloco → grupo
-- **Identificação** (fixo no topo, sempre primeiro): Foto, Nome/Cargo, Cidade/Influência/Tipo/Classificação, CPF/RG (Documentos), bloco "Acesso ao sistema".
-- **Estratégia**: bloco `MetaVotosInput`.
-- **Contatos**: bloco "Contatos adicionais" (telefone, whatsapp, telegram, email quando sem acesso).
-- **Redes Sociais**: bloco Instagram/Facebook/YouTube.
-- **Localização**: bloco Endereço (CEP, Rua, Número, Bairro, Cidade, Estado) + bloco "Cidades de atuação".
+- **Seletor de Tipo de Usuário** (Chefe de Gabinete, Secretário, Liderança).
+  - Deputado fica fora (sempre tem tudo) e Super Admin também.
+- **Tabela de módulos** com colunas: `Visualizar` · `Criar` · `Editar` · `Excluir`, e linhas por módulo:
+  - Dashboard, Demandas, Lideranças, Eleitores, Cidades, Mapa, Emendas, Proposições, Mandato em Foco, Agenda, Documentos, Mensagens, Mobilização Digital, Busca Global, Configurações.
+- Cada célula é um checkbox. Marcar/desmarcar `Visualizar` = controla acesso à rota. Os outros 3 viram regras de UI/RLS.
+- Botão **"Restaurar padrão"** por papel (volta aos defaults atuais: Admin tudo, Secretário escreve quase tudo, Liderança só lê + cria/edita seus eleitores).
+- **Salvar** persiste no banco (escopo por tenant — cada mandato tem sua matriz).
 
-Os campos personalizados continuam no final (após todos os grupos).
+Exemplos suportados:
+- Secretário: `Lideranças` → Visualizar ✓, Criar ✓, Editar ✓, Excluir ✗.
+- Secretário: `Agenda` → Visualizar ✗ (some do menu lateral e bloqueia rota).
+- Liderança: `Eleitores` → Visualizar ✓, Criar ✓, Editar ✓, Excluir ✗ (já é o default).
 
-### Mudança no JSX
-Dentro de `<div className="space-y-4">`:
+## Mudanças técnicas
 
-1. Manter a primeira parte (Identificação) como já está renderizada — sempre primeiro.
-2. Substituir os blocos hardcoded posteriores por um `IIFE` que monta um dicionário:
-   ```
-   const blocksByGroup: Record<string, JSX.Element | null> = {
-     "Estratégia": estrategiaBlock,
-     "Contatos": contatosBlock,
-     "Redes Sociais": redesBlock,
-     "Localização": localizacaoBlock,
-   };
-   const order = (formCfg.groupOrder ?? [])
-     .filter(g => g !== "Identificação");
-   // adiciona grupos faltantes ao final como fallback
-   ```
-3. Renderizar `order.map(g => blocksByGroup[g]).filter(Boolean)`.
+### 1. Banco (nova tabela)
 
-O bloco "Cidades de atuação" passa para dentro do grupo **Localização** (junto do Endereço), o que faz sentido semanticamente.
+`role_permissions`:
+- `id uuid pk`
+- `tenant_id uuid` (FK lógica)
+- `role app_role` (apenas: `chefe_gabinete`, `secretario`, `lideranca` — Deputado e Super Admin nunca ficam restringidos)
+- `module text` (slug fixo: `dashboard`, `demandas`, `liderancas`, `eleitores`, `cidades`, `mapa`, `emendas`, `proposicoes`, `mandato_foco`, `agenda`, `documentos`, `mensagens`, `mobilizacao`, `busca`, `configuracoes`)
+- `can_view bool`, `can_create bool`, `can_edit bool`, `can_delete bool`
+- `updated_at timestamptz`
+- Unique `(tenant_id, role, module)`
+- RLS: SELECT permitido para qualquer membro do tenant; INSERT/UPDATE/DELETE só para `deputado`/`chefe_gabinete` do tenant (via `has_role`).
 
-### Resultado
-A ordem dos grupos no formulário "Nova Liderança" passa a refletir exatamente a configuração salva em **Configurações → Campos de Cadastro**. Identificação permanece sempre primeiro (já é o grupo travado). Reordenando "Redes Sociais" para o segundo lugar nas configurações, ela aparecerá logo após a Identificação no cadastro real.
+### 2. Camada de defaults
 
-### Escopo
-Apenas o arquivo `src/components/liderancas/NovaLiderancaDialog.tsx`. Nada muda na config, defaults, hook, banco ou no `NovoEleitorDialog` (que pode ser feito em iteração separada se necessário, com a mesma estratégia).
+Novo arquivo `src/lib/permissions-defaults.ts` com a matriz default por papel (espelhando hoje o `use-permissions.tsx`). Usado como fallback quando não há linha em `role_permissions` e como base do "Restaurar padrão".
+
+### 3. Hook centralizado
+
+Refatorar `src/hooks/use-permissions.tsx` para:
+- Buscar a matriz do tenant via React Query (cacheada).
+- Expor:
+  - `can(module, action)` (action = `view|create|edit|delete`).
+  - Helpers compatíveis com hoje: `canWriteLiderancas`, `canDeleteEleitores`, etc., agora derivados da matriz.
+  - `visibleModules` (lista de módulos com `can_view`) para o sidebar.
+- Admin (`deputado`/`chefe_gabinete`) sempre retorna `true`.
+
+### 4. Aplicação das permissões
+
+- **`AppSidebar.tsx`**: filtrar itens do menu por `can('<module>', 'view')`.
+- **`ProtectedRoute.tsx`**: substituir `LIDERANCA_BLOCKED_PREFIXES` por checagem dinâmica via mapa rota → módulo.
+- **Páginas que já consultam `usePermissions()`** (Liderancas, Eleitores, Demandas, Emendas, Cidades, Agenda, Proposicoes, dialogs): trocar flags antigas pelas novas (mantendo nomes como `canWriteLiderancas` para não quebrar — eles passam a ser derivados).
+- Botões de criar/editar/excluir continuam aparecendo conforme as flags.
+
+### 5. UI de configuração
+
+Novo componente `src/components/configuracoes/RolePermissionsDialog.tsx`:
+- Disparado por botão "Permissões por Tipo" em `UserManagement.tsx`, **apenas se** `usePermissions().isAdmin`.
+- Tabs por role (Chefe de Gabinete · Secretário · Liderança).
+- Tabela com switch por (módulo, ação). Salvar faz upsert em `role_permissions`.
+
+### 6. Segurança
+
+- Permissões de UI são UX. A camada real continua sendo **RLS no Supabase**. Como hoje as RLS já validam por `role` e `tenant_id`, o controle "excluir liderança" precisa de uma RLS adicional baseada em `role_permissions` para Secretário (DELETE em `liderancas` só se `can_delete=true`). Faremos isso para as tabelas afetadas pelas decisões mais sensíveis: `liderancas`, `eleitores`, `demandas`, `emendas`, `eventos`. Função SQL helper `public.has_permission(_user_id, _module, _action)` (security definer) usada nas policies.
+
+## Escopo de arquivos
+
+- **Migração SQL**: criar tabela `role_permissions`, função `has_permission`, ajustar RLS de `liderancas` / `eleitores` / `demandas` / `emendas` / `eventos` para respeitar `has_permission` em UPDATE/DELETE/INSERT (Admin segue irrestrito).
+- **Novo**: `src/lib/permissions-defaults.ts`, `src/components/configuracoes/RolePermissionsDialog.tsx`.
+- **Editar**: `src/hooks/use-permissions.tsx`, `src/components/AppSidebar.tsx`, `src/components/ProtectedRoute.tsx`, `src/components/configuracoes/UserManagement.tsx`.
+- **Sem mudanças funcionais** nas páginas que já usam `usePermissions()` — apenas validamos que continuam funcionando com as flags derivadas.
+
+## Fora de escopo
+
+- Permissões a nível de campo (apenas a nível de módulo+ação).
+- Editar permissões do Deputado / Super Admin (sempre admin pleno).
+- Trilha de auditoria das mudanças na matriz (pode entrar em iteração futura via `activity_logs`).
