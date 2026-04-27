@@ -197,6 +197,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             address_state: addressState || null,
             meta_votos_tipo: metaTipo,
             meta_votos_valor: metaValor,
+            rg: rg || null,
           },
         });
         if (error || (data as any)?.error) {
