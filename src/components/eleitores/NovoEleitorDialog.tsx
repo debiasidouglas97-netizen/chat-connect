@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NATIVE_FIELDS_CATALOG } from "@/lib/form-config-defaults";
-import { useRef } from "react";
+
 
 interface Props {
   open: boolean;
