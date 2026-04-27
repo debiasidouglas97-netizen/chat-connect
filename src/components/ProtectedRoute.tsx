@@ -51,12 +51,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/" replace />;
   }
 
-  // Liderança trying to access blocked routes → redirect to /
-  if (
-    isLideranca &&
-    LIDERANCA_BLOCKED_PREFIXES.some((p) => location.pathname.startsWith(p))
-  ) {
-    return <Navigate to="/" replace />;
+  // Block routes the user cannot view (matrix-driven). Admin always passes.
+  if (!isAdmin && !isSuperAdmin) {
+    const matched = MODULES.find((m) =>
+      m.route === "/" ? false : location.pathname.startsWith(m.route)
+    );
+    if (matched && !can(matched.key, "view")) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;
