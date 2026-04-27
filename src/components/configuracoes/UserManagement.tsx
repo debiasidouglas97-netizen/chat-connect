@@ -65,11 +65,13 @@ function maskWhatsApp(v: string) {
 
 export default function UserManagement() {
   const { tenantId } = useTenant();
+  const { isAdmin } = usePermissions();
   const [users, setUsers] = useState<Profile[]>([]);
   const [liderancas, setLiderancas] = useState<Lideranca[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [editUser, setEditUser] = useState<(Profile & { cpf?: string | null; username?: string | null; whatsapp?: string | null; telegram_username?: string | null }) | null>(null);
   const [deactivateUser, setDeactivateUser] = useState<Profile | null>(null);
 
