@@ -212,7 +212,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             meta_votos_tipo: metaTipo,
             meta_votos_valor: metaValor,
             rg: rg || null,
-          },
+            custom_field_values: customValues,
         });
         if (error || (data as any)?.error) {
           toast.error((data as any)?.error || error?.message || "Erro ao cadastrar");
