@@ -222,8 +222,6 @@ function PreviewLiderancas({ config, segment }: { config: SegmentFormConfig; seg
         </div>
       )}
 
-      )}
-
       {/* Documentos (CPF aparece aqui apenas se não há bloco de acesso) */}
       {((!acessoVisible && isVisible("cpf")) || isVisible("rg")) && (
         <div className="rounded-lg border p-3 bg-muted/20 space-y-3">
