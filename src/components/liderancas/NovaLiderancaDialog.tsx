@@ -241,6 +241,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
           cpf: cpf ? cpf.replace(/\D/g, "") : "",
           rg,
+          custom_field_values: customValues,
         } as any);
         toast.success("Liderança cadastrada! Você pode criar o acesso ao sistema depois pelo detalhe da liderança.");
       }
