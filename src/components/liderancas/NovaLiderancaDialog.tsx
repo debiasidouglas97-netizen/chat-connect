@@ -109,6 +109,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
     setCriarAcesso(true);
     setEmail(""); setCpf(""); setRg(""); setUsername(""); setPassword(""); setPasswordConfirm("");
     setShowPassword(false);
+    setCustomValues({});
   };
 
   const addCidade = () => {
