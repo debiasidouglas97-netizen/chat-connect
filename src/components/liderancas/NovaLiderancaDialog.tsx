@@ -398,16 +398,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             )}
           </div>
 
-          {/* E-mail de contato (visível apenas quando NÃO criar acesso) */}
-          {!criarAcesso && (
-            <div>
-              <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> E-mail de contato (opcional)</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
-              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                <Info className="h-3 w-3" /> Útil para criar o acesso ao sistema mais tarde sem precisar redigitar.
-              </p>
-            </div>
-          )}
+          {/* E-mail é renderizado dentro de "Contatos adicionais" quando "Criar acesso" está desativado */}
 
           {/* Meta de votos */}
           <MetaVotosInput
