@@ -51,6 +51,7 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
   ],
   eleitores: [
     // 1. Informações Básicas
+    { key: "avatar_url", defaultLabel: "Foto", group: "Informações Básicas", inputType: "image" },
     { key: "nome", defaultLabel: "Nome completo", group: "Informações Básicas", locked: true, inputType: "text" },
     { key: "cidade", defaultLabel: "Cidade", group: "Informações Básicas", locked: true, inputType: "text" },
     { key: "bairro", defaultLabel: "Bairro", group: "Informações Básicas", inputType: "text" },
