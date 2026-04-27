@@ -199,10 +199,6 @@ function PreviewLiderancas({ config, segment }: { config: SegmentFormConfig; seg
               <Input disabled placeholder={placeholderOf("email")} className="bg-muted/30" />
             </div>
             <div>
-              <FieldLabel required>CPF</FieldLabel>
-              <Input disabled placeholder={placeholderOf("cpf")} className="bg-muted/30" />
-            </div>
-            <div>
               <FieldLabel required>
                 <span className="inline-flex items-center gap-1">
                   <UserIcon className="h-3 w-3" /> Username
@@ -210,7 +206,7 @@ function PreviewLiderancas({ config, segment }: { config: SegmentFormConfig; seg
               </FieldLabel>
               <Input disabled placeholder={placeholderOf("username")} className="bg-muted/30" />
             </div>
-            <div>
+            <div className="col-span-2">
               <FieldLabel required>
                 <span className="inline-flex items-center gap-1">
                   <KeyRound className="h-3 w-3" /> Senha
@@ -222,14 +218,14 @@ function PreviewLiderancas({ config, segment }: { config: SegmentFormConfig; seg
         </div>
       )}
 
-      {/* Documentos (CPF aparece aqui apenas se não há bloco de acesso) */}
-      {((!acessoVisible && isVisible("cpf")) || isVisible("rg")) && (
+      {/* Documentos (CPF + RG) */}
+      {(isVisible("cpf") || isVisible("rg")) && (
         <div className="rounded-lg border p-3 bg-muted/20 space-y-3">
           <p className="text-xs font-medium text-muted-foreground">Documentos</p>
           <div className="grid grid-cols-2 gap-3">
-            {!acessoVisible && isVisible("cpf") && (
+            {isVisible("cpf") && (
               <div>
-                <FieldLabel required={isRequired("cpf")}>{labelOf("cpf")}</FieldLabel>
+                <FieldLabel required={isRequired("cpf") || acessoVisible}>{labelOf("cpf")}</FieldLabel>
                 <Input disabled placeholder={placeholderOf("cpf")} className="bg-background" />
               </div>
             )}
