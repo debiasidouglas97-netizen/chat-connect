@@ -138,7 +138,9 @@ export default function PerformanceLideranca() {
             })}
           </CardContent>
         </Card>
+        </TabsContent>
 
+        <TabsContent value="operacional" className="space-y-6">
         {/* Operacional — Verde */}
         <Card className="border-emerald-200">
           <CardHeader className="pb-3">
@@ -185,7 +187,8 @@ export default function PerformanceLideranca() {
             })}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+      </Tabs>
     </TooltipProvider>
   );
 }
