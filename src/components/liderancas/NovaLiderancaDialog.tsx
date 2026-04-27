@@ -48,6 +48,8 @@ function passwordStrength(p: string): { label: string; color: string; pct: numbe
 export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: Props) {
   const { cidades: cidadesData } = useCidades();
   const { insert: insertLideranca } = useLiderancas();
+  const { config: formCfg } = useFormConfig("liderancas");
+  const [customValues, setCustomValues] = useState<Record<string, any>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [cargo, setCargo] = useState("");
