@@ -56,6 +56,8 @@ function rowToBase(r: LiderancaRow): LiderancaBase & Record<string, any> {
     instagram: r.instagram,
     facebook: r.facebook,
     youtube: r.youtube,
+    cpf: r.cpf,
+    rg: r.rg,
     address_cep: r.address_cep,
     address_street: r.address_street,
     address_number: r.address_number,
