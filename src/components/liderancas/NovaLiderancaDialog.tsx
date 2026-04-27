@@ -88,6 +88,16 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
 
   const cidadeOptions = cidadesData.map((c) => c.name);
 
+  // Helpers para respeitar a configuração de campos (visibilidade, label, ordem, obrigatoriedade)
+  const fcfg = (k: string) => formCfg.nativeFields[k];
+  const isVisible = (k: string) => fcfg(k)?.visible !== false;
+  const isReq = (k: string) => !!fcfg(k)?.required;
+  const lbl = (k: string, fallback: string) => fcfg(k)?.label?.trim() || fallback;
+  const orderedKeys = (keys: string[]) =>
+    [...keys]
+      .filter(isVisible)
+      .sort((a, b) => (fcfg(a)?.order ?? 0) - (fcfg(b)?.order ?? 0));
+
   const reset = () => {
     setName(""); setCargo(""); setCidadePrincipal(""); setInfluencia("Média");
     setTipo("Comunitária"); setAtuacao([]); setNovaCidade(""); setNovaIntensidade("Média");
