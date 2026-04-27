@@ -10,13 +10,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Users, Plus, Search, Link2, Eye, EyeOff, ChevronsUpDown, Check, X } from "lucide-react";
+import { Users, Plus, Search, Link2, Eye, EyeOff, ChevronsUpDown, Check, X, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AppRole, Profile } from "@/hooks/use-auth";
 import { getInitials } from "@/hooks/use-auth";
 import { useTenant } from "@/hooks/use-tenant";
+import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
+import RolePermissionsDialog from "@/components/configuracoes/RolePermissionsDialog";
 
 interface Lideranca {
   id: string;
