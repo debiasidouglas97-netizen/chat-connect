@@ -149,6 +149,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
       name, cargo, cidadePrincipal, influencia, tipo,
       phone, whatsapp, email, telegram_username: telegram,
       instagram: instagramVal, facebook: facebookVal, youtube: youtubeVal,
+      cpf, rg,
       avatar_url: avatarPreview,
       address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
       address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
