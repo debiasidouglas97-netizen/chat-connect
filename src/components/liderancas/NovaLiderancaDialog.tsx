@@ -264,17 +264,19 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
         </DialogHeader>
         <div className="space-y-4">
           {/* Photo */}
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16 border border-primary/20">
-              {avatarPreview ? <AvatarImage src={avatarPreview} className="object-cover" /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary font-bold">{name ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?"}</AvatarFallback>
-            </Avatar>
-            <div>
-              <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Upload className="h-3.5 w-3.5 mr-1" /> Foto</Button>
-              <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleFileChange} />
-              <p className="text-[10px] text-muted-foreground mt-1">JPG ou PNG</p>
+          {isVisible("avatar") && (
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16 border border-primary/20">
+                {avatarPreview ? <AvatarImage src={avatarPreview} className="object-cover" /> : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">{name ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?"}</AvatarFallback>
+              </Avatar>
+              <div>
+                <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Upload className="h-3.5 w-3.5 mr-1" /> {lbl("avatar", "Foto")}</Button>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleFileChange} />
+                <p className="text-[10px] text-muted-foreground mt-1">JPG ou PNG</p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Basic - nome / cargo (sempre obrigatórios e nesta ordem fixa) */}
           <div className="grid grid-cols-2 gap-3">
