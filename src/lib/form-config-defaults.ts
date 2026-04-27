@@ -177,14 +177,23 @@ export function resolveSegmentConfig(
 ): SegmentFormConfig {
   const base = buildDefaultSegmentConfig(segment);
   const catalog = NATIVE_FIELDS_CATALOG[segment];
+  const lockedFirst = LOCKED_FIRST_GROUP[segment];
+
+  // Extrai eventual __groupOrder gravado dentro de native_fields (chave reservada)
+  const rawNative = (raw?.nativeFields || {}) as Record<string, any>;
+  const embeddedGroupOrder: string[] | undefined = Array.isArray(rawNative.__groupOrder)
+    ? (rawNative.__groupOrder as string[])
+    : undefined;
 
   const merged: SegmentFormConfig = {
     nativeFields: { ...base.nativeFields },
     customFields: Array.isArray(raw?.customFields) ? [...raw!.customFields!] : [],
+    groupOrder: base.groupOrder,
   };
 
   if (raw?.nativeFields) {
     for (const key of Object.keys(raw.nativeFields)) {
+      if (key === "__groupOrder") continue; // chave reservada
       const incoming = (raw.nativeFields as any)[key];
       if (merged.nativeFields[key]) {
         merged.nativeFields[key] = { ...merged.nativeFields[key], ...incoming, key };
@@ -202,6 +211,23 @@ export function resolveSegmentConfig(
       };
     }
   }
+
+  // Resolve groupOrder: prioridade = raw.groupOrder > embedded > base
+  const catalogGroups = base.groupOrder || [];
+  const candidate = (raw?.groupOrder && Array.isArray(raw.groupOrder) && raw.groupOrder.length > 0
+    ? raw.groupOrder
+    : embeddedGroupOrder) || catalogGroups;
+  // Mantém apenas grupos válidos
+  let resolvedOrder = candidate.filter((g) => catalogGroups.includes(g));
+  // Adiciona grupos novos do catálogo ao final
+  for (const g of catalogGroups) {
+    if (!resolvedOrder.includes(g)) resolvedOrder.push(g);
+  }
+  // Garante grupo travado em primeiro
+  if (lockedFirst && resolvedOrder.includes(lockedFirst)) {
+    resolvedOrder = [lockedFirst, ...resolvedOrder.filter((g) => g !== lockedFirst)];
+  }
+  merged.groupOrder = resolvedOrder;
 
   // Sanitiza customFields
   merged.customFields = merged.customFields
