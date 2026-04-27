@@ -94,6 +94,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
     setInstagramVal(l.instagram || "");
     setFacebookVal(l.facebook || "");
     setYoutubeVal(l.youtube || "");
+    setCpf(l.cpf || "");
+    setRg(l.rg || "");
     setAvatarPreview(l.avatar_url || null);
     setAddressCep(l.address_cep || "");
     setAddressStreet(l.address_street || "");
