@@ -43,6 +43,7 @@ const PLACEHOLDERS: Record<string, string> = {
   atuacao: "Cidades de atuação",
   email: "lideranca@exemplo.com",
   cpf: "000.000.000-00",
+  rg: "00.000.000-0",
   username: "ex: joao.silva",
   phone: "(00) 0000-0000",
   whatsapp: "(00) 00000-0000",
@@ -217,6 +218,27 @@ function PreviewLiderancas({ config, segment }: { config: SegmentFormConfig; seg
               </FieldLabel>
               <Input disabled placeholder="Mínimo 8 caracteres" className="bg-muted/30" />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documentos (CPF aparece aqui apenas se não há bloco de acesso) */}
+      {((!acessoVisible && isVisible("cpf")) || isVisible("rg")) && (
+        <div className="rounded-lg border p-3 bg-muted/20 space-y-3">
+          <p className="text-xs font-medium text-muted-foreground">Documentos</p>
+          <div className="grid grid-cols-2 gap-3">
+            {!acessoVisible && isVisible("cpf") && (
+              <div>
+                <FieldLabel required={isRequired("cpf")}>{labelOf("cpf")}</FieldLabel>
+                <Input disabled placeholder={placeholderOf("cpf")} className="bg-background" />
+              </div>
+            )}
+            {isVisible("rg") && (
+              <div>
+                <FieldLabel required={isRequired("rg")}>{labelOf("rg")}</FieldLabel>
+                <Input disabled placeholder={placeholderOf("rg")} className="bg-background" />
+              </div>
+            )}
           </div>
         </div>
       )}
