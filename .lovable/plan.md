@@ -1,70 +1,44 @@
-## Objetivo
+## Problema
 
-Reorganizar a tela de **Configurações → Campos de Cadastro** para suportar **dois níveis de ordenação**:
+Ao salvar uma nova ordem de grupos em **Configurações → Campos de Cadastro → Lideranças** (por exemplo: Identificação → Contatos → Estratégia → Redes Sociais → Localização), o **diálogo "Nova Liderança"** não respeita essa ordem — os blocos visuais (Endereço, Redes sociais, Meta de votos, Contatos adicionais) estão **hardcoded** no JSX.
 
-1. **Ordem dos GRUPOS** (ex: "Identificação" sempre primeiro, depois "Contatos", "Estratégia", "Redes Sociais"…)
-2. **Ordem dos CAMPOS dentro de cada grupo** (já funciona hoje)
+A configuração já é lida (`useFormConfig`) e usada para visibilidade/labels/ordem de subcampos, mas a ordem dos **grupos inteiros** é ignorada.
 
-O grupo **"Identificação"** fica **fixo no topo** (não pode ser movido). Todos os outros grupos podem ser reordenados livremente com setas ↑/↓.
+## Solução
 
----
+Refatorar `src/components/liderancas/NovaLiderancaDialog.tsx` para renderizar os blocos por grupo, na ordem definida em `formCfg.groupOrder`.
 
-## Mudanças
+### Mapeamento bloco → grupo
+- **Identificação** (fixo no topo, sempre primeiro): Foto, Nome/Cargo, Cidade/Influência/Tipo/Classificação, CPF/RG (Documentos), bloco "Acesso ao sistema".
+- **Estratégia**: bloco `MetaVotosInput`.
+- **Contatos**: bloco "Contatos adicionais" (telefone, whatsapp, telegram, email quando sem acesso).
+- **Redes Sociais**: bloco Instagram/Facebook/YouTube.
+- **Localização**: bloco Endereço (CEP, Rua, Número, Bairro, Cidade, Estado) + bloco "Cidades de atuação".
 
-### 1. `src/lib/form-config-types.ts`
-Adicionar opcionalmente uma propriedade de ordem de grupo na config do segmento:
+Os campos personalizados continuam no final (após todos os grupos).
 
-```ts
-export interface SegmentFormConfig {
-  nativeFields: Record<string, NativeFieldConfig>;
-  customFields: CustomFieldConfig[];
-  groupOrder?: string[]; // NOVO — ordem dos grupos (nomes)
-}
-```
+### Mudança no JSX
+Dentro de `<div className="space-y-4">`:
 
-### 2. `src/lib/form-config-defaults.ts`
-- Em `buildDefaultSegmentConfig`, derivar `groupOrder` automaticamente a partir da ordem natural do catálogo (primeira ocorrência de cada grupo). Resultado para Eleitores: `["Informações Básicas", "Contato", "Informações Eleitorais", "Perfil Político", "Comunicação", "Demográficos", "Redes Sociais", "Endereço", "Sistema"]`. Para Lideranças: `["Identificação", "Localização", "Contatos", "Redes Sociais", "Estratégia"]`.
-- Em `resolveSegmentConfig`, fazer merge: começa pela `groupOrder` salva, adiciona ao final qualquer grupo novo do catálogo que não esteja na lista, e remove grupos órfãos. **Sempre força "Identificação" como primeiro item** (e equivalente em Eleitores: "Informações Básicas" como fixo no topo).
-- Exportar uma constante `LOCKED_FIRST_GROUP: Record<FormSegment, string>` para indicar qual grupo fica travado no topo de cada segmento:
-  - `liderancas` → `"Identificação"`
-  - `eleitores` → `"Informações Básicas"`
-  - `usuarios` → `"Identificação"`
+1. Manter a primeira parte (Identificação) como já está renderizada — sempre primeiro.
+2. Substituir os blocos hardcoded posteriores por um `IIFE` que monta um dicionário:
+   ```
+   const blocksByGroup: Record<string, JSX.Element | null> = {
+     "Estratégia": estrategiaBlock,
+     "Contatos": contatosBlock,
+     "Redes Sociais": redesBlock,
+     "Localização": localizacaoBlock,
+   };
+   const order = (formCfg.groupOrder ?? [])
+     .filter(g => g !== "Identificação");
+   // adiciona grupos faltantes ao final como fallback
+   ```
+3. Renderizar `order.map(g => blocksByGroup[g]).filter(Boolean)`.
 
-### 3. `src/components/form-builder/NativeFieldsConfigList.tsx` — refatorar
-- Aceitar e propagar a `groupOrder` (via novas props `groupOrder: string[]` e `onGroupOrderChange: (next: string[]) => void`).
-- Renderizar os grupos **na ordem definida por `groupOrder`** (não mais `Object.entries(grouped)`).
-- Em cada cabeçalho de grupo, mostrar **setas ↑/↓** para mover o grupo inteiro:
-  - O grupo `LOCKED_FIRST_GROUP[segment]` exibe um pequeno ícone de cadeado e **não tem setas** (sempre fixo no topo).
-  - O primeiro grupo movível não pode subir mais; o último não pode descer.
-- Visual do header do grupo passa a ser uma "barra" leve (`bg-muted/40`, `rounded-t-lg`), com título à esquerda e controles de reordenação à direita, para deixar claro o agrupamento.
-- Setas internas dos campos (já existentes) continuam funcionando como hoje, mas só reordenam dentro do grupo.
+O bloco "Cidades de atuação" passa para dentro do grupo **Localização** (junto do Endereço), o que faz sentido semanticamente.
 
-### 4. `src/pages/configuracoes/CamposCadastro.tsx`
-- Passar `groupOrder` e `onGroupOrderChange` ao `NativeFieldsConfigList`:
-  ```tsx
-  <NativeFieldsConfigList
-    segment={segment}
-    config={draft.nativeFields}
-    onChange={(nf) => setDraft({ ...draft, nativeFields: nf })}
-    groupOrder={draft.groupOrder ?? []}
-    onGroupOrderChange={(go) => setDraft({ ...draft, groupOrder: go })}
-  />
-  ```
+### Resultado
+A ordem dos grupos no formulário "Nova Liderança" passa a refletir exatamente a configuração salva em **Configurações → Campos de Cadastro**. Identificação permanece sempre primeiro (já é o grupo travado). Reordenando "Redes Sociais" para o segundo lugar nas configurações, ela aparecerá logo após a Identificação no cadastro real.
 
-### 5. `src/components/form-builder/FormPreview.tsx`
-- Quando renderizar a lista de campos no preview, **respeitar `config.groupOrder`** (em vez de hardcode da ordem). Pequeno ajuste para iterar pela `groupOrder` resolvida e, dentro de cada grupo, ordenar pelos `order` dos campos visíveis. O grupo travado continua sendo o primeiro automaticamente.
-
-### 6. Persistência
-Nada muda no schema do banco — o campo `custom_fields` e `native_fields` permanecem em JSONB. A nova `groupOrder` será gravada junto na coluna `native_fields` (como `__groupOrder` no JSON) **OU** preferimos uma terceira coluna? → **Decisão: gravar dentro de `native_fields` numa chave reservada `__groupOrder`** para evitar migração. O `resolveSegmentConfig` extrai e remove essa chave especial antes de tratar o resto como `Record<string, NativeFieldConfig>`. `useFormConfig.save` precisa, ao serializar, reinjetar `__groupOrder` em `native_fields`.
-
-> Alternativa: criar uma migração nova adicionando coluna `group_order JSONB`. Mais limpo, mas exige migration. **Vou pelo caminho sem migration** (chave `__groupOrder` dentro de `native_fields`) para manter a mudança rápida e reversível.
-
----
-
-## Resultado
-
-- O grupo **Identificação** (e em Eleitores, **Informações Básicas**) fica fixo no topo, com cadeado.
-- Cada outro grupo (Contatos, Estratégia, Redes Sociais, etc.) ganha setas ↑/↓ no cabeçalho que reordenam o **bloco inteiro**.
-- Os campos dentro de cada grupo continuam reordenáveis individualmente (comportamento atual preservado).
-- Tanto o **preview** quanto o **formulário real** (Nova Liderança / Novo Eleitor — em iteração futura) passarão a respeitar a nova ordem de grupos.
-- A configuração persiste via JSONB existente, sem migração.
+### Escopo
+Apenas o arquivo `src/components/liderancas/NovaLiderancaDialog.tsx`. Nada muda na config, defaults, hook, banco ou no `NovoEleitorDialog` (que pode ser feito em iteração separada se necessário, com a mesma estratégia).

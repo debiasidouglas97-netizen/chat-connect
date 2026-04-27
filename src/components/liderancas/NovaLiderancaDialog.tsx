@@ -266,6 +266,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           <DialogTitle>Nova Liderança</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* ============= GRUPO: IDENTIFICAÇÃO (sempre primeiro, fixo) ============= */}
           {/* Photo */}
           {isVisible("avatar") && (
             <div className="flex items-center gap-4">
@@ -328,7 +329,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             );
           })()}
 
-          {/* Documentos - CPF / RG na ordem configurada */}
+          {/* Documentos - CPF / RG na ordem configurada (parte da Identificação) */}
           {(isVisible("cpf") || isVisible("rg")) && (
             <div className="grid grid-cols-2 gap-3">
               {orderedKeys(["cpf", "rg"]).map((k) =>
@@ -347,8 +348,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             </div>
           )}
 
-
-          {/* Acesso ao Sistema (opcional) */}
+          {/* Acesso ao Sistema (parte da Identificação) */}
           <div className={`rounded-lg border p-3 space-y-3 transition-colors ${criarAcesso ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
             <div className="flex items-start gap-3">
               <Checkbox
@@ -403,133 +403,154 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             )}
           </div>
 
-          {/* E-mail é renderizado dentro de "Contatos adicionais" quando "Criar acesso" está desativado */}
-
-          {/* Meta de votos */}
-          {isVisible("meta_votos") && (
-            <MetaVotosInput
-              cargo={cargo}
-              cidadePrincipal={cidadePrincipal}
-              tipo={metaTipo}
-              valor={metaValor}
-              onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
-            />
-          )}
-          {/* Contatos adicionais - respeitando ordem configurada */}
+          {/* ============= GRUPOS REORDENÁVEIS (ordem vinda de formCfg.groupOrder) ============= */}
           {(() => {
-            // E-mail só aparece aqui quando o bloco "Acesso ao sistema" não está visível
-            const baseKeys = ["phone", "whatsapp", "telegram_username"];
-            if (!criarAcesso) baseKeys.push("email");
-            const keys = orderedKeys(baseKeys);
-            if (keys.length === 0) return null;
-            const renderers: Record<string, JSX.Element> = {
-              phone: (
-                <div key="phone"><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> {lbl("phone", "Telefone")}{isReq("phone") ? " *" : ""}</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
-              ),
-              whatsapp: (
-                <div key="whatsapp"><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {lbl("whatsapp", "WhatsApp")}{isReq("whatsapp") ? " *" : ""}</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
-              ),
-              telegram_username: (
-                <div key="telegram_username"><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> {lbl("telegram_username", "Telegram")}{isReq("telegram_username") ? " *" : ""}</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
-              ),
-              email: (
-                <div key="email"><Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> {lbl("email", "E-mail")}{isReq("email") ? " *" : ""}</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
-              ),
-            };
-            return (
-              <>
-                <p className="text-xs font-medium text-muted-foreground pt-2">Contatos adicionais</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {keys.map((k) => renderers[k]).filter(Boolean)}
-                </div>
-              </>
-            );
-          })()}
+            // Bloco "Estratégia" (meta de votos)
+            const estrategiaBlock = isVisible("meta_votos") ? (
+              <MetaVotosInput
+                key="grp-estrategia"
+                cargo={cargo}
+                cidadePrincipal={cidadePrincipal}
+                tipo={metaTipo}
+                valor={metaValor}
+                onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
+              />
+            ) : null;
 
-          {/* Redes sociais - respeitando ordem */}
-          {(() => {
-            const keys = orderedKeys(["instagram", "facebook", "youtube"]);
-            if (keys.length === 0) return null;
-            const renderers: Record<string, JSX.Element> = {
-              instagram: (
-                <div key="instagram"><Label className="text-xs flex items-center gap-1"><Instagram className="h-3 w-3" /> {lbl("instagram", "Instagram")}{isReq("instagram") ? " *" : ""}</Label><Input value={instagramVal} onChange={(e) => setInstagramVal(e.target.value)} placeholder="@perfil" /></div>
-              ),
-              facebook: (
-                <div key="facebook"><Label className="text-xs flex items-center gap-1"><Facebook className="h-3 w-3" /> {lbl("facebook", "Facebook")}{isReq("facebook") ? " *" : ""}</Label><Input value={facebookVal} onChange={(e) => setFacebookVal(e.target.value)} /></div>
-              ),
-              youtube: (
-                <div key="youtube"><Label className="text-xs flex items-center gap-1"><Youtube className="h-3 w-3" /> {lbl("youtube", "YouTube")}{isReq("youtube") ? " *" : ""}</Label><Input value={youtubeVal} onChange={(e) => setYoutubeVal(e.target.value)} /></div>
-              ),
-            };
-            return (
-              <>
-                <p className="text-xs font-medium text-muted-foreground pt-2">Redes sociais</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {keys.map((k) => renderers[k]).filter(Boolean)}
+            // Bloco "Contatos"
+            const contatosBlock = (() => {
+              const baseKeys = ["phone", "whatsapp", "telegram_username"];
+              if (!criarAcesso) baseKeys.push("email");
+              const keys = orderedKeys(baseKeys);
+              if (keys.length === 0) return null;
+              const renderers: Record<string, JSX.Element> = {
+                phone: (
+                  <div key="phone"><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> {lbl("phone", "Telefone")}{isReq("phone") ? " *" : ""}</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
+                ),
+                whatsapp: (
+                  <div key="whatsapp"><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {lbl("whatsapp", "WhatsApp")}{isReq("whatsapp") ? " *" : ""}</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
+                ),
+                telegram_username: (
+                  <div key="telegram_username"><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> {lbl("telegram_username", "Telegram")}{isReq("telegram_username") ? " *" : ""}</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
+                ),
+                email: (
+                  <div key="email"><Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> {lbl("email", "E-mail")}{isReq("email") ? " *" : ""}</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
+                ),
+              };
+              return (
+                <div key="grp-contatos">
+                  <p className="text-xs font-medium text-muted-foreground pt-2">Contatos adicionais</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {keys.map((k) => renderers[k]).filter(Boolean)}
+                  </div>
                 </div>
-              </>
-            );
-          })()}
+              );
+            })();
 
-          {/* Endereço - respeitando ordem (CEP destacado com botão "Buscar" se visível) */}
-          {(() => {
-            const allAddrKeys = ["address_cep", "address_street", "address_number", "address_neighborhood", "address_city", "address_state"];
-            const keys = orderedKeys(allAddrKeys);
-            if (keys.length === 0) return null;
-            const renderers: Record<string, JSX.Element> = {
-              address_cep: (
-                <div key="address_cep" className="flex items-end gap-2 col-span-3">
-                  <div className="flex-1"><Label className="text-xs">{lbl("address_cep", "CEP")}{isReq("address_cep") ? " *" : ""}</Label><Input value={addressCep} onChange={(e) => setAddressCep(e.target.value)} placeholder="01001-000" /></div>
-                  <Button variant="outline" size="sm" onClick={handleCepLookup}>Buscar</Button>
+            // Bloco "Redes Sociais"
+            const redesBlock = (() => {
+              const keys = orderedKeys(["instagram", "facebook", "youtube"]);
+              if (keys.length === 0) return null;
+              const renderers: Record<string, JSX.Element> = {
+                instagram: (
+                  <div key="instagram"><Label className="text-xs flex items-center gap-1"><Instagram className="h-3 w-3" /> {lbl("instagram", "Instagram")}{isReq("instagram") ? " *" : ""}</Label><Input value={instagramVal} onChange={(e) => setInstagramVal(e.target.value)} placeholder="@perfil" /></div>
+                ),
+                facebook: (
+                  <div key="facebook"><Label className="text-xs flex items-center gap-1"><Facebook className="h-3 w-3" /> {lbl("facebook", "Facebook")}{isReq("facebook") ? " *" : ""}</Label><Input value={facebookVal} onChange={(e) => setFacebookVal(e.target.value)} /></div>
+                ),
+                youtube: (
+                  <div key="youtube"><Label className="text-xs flex items-center gap-1"><Youtube className="h-3 w-3" /> {lbl("youtube", "YouTube")}{isReq("youtube") ? " *" : ""}</Label><Input value={youtubeVal} onChange={(e) => setYoutubeVal(e.target.value)} /></div>
+                ),
+              };
+              return (
+                <div key="grp-redes">
+                  <p className="text-xs font-medium text-muted-foreground pt-2">Redes sociais</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {keys.map((k) => renderers[k]).filter(Boolean)}
+                  </div>
                 </div>
-              ),
-              address_street: (
-                <div key="address_street" className="col-span-2"><Label className="text-xs">{lbl("address_street", "Rua")}{isReq("address_street") ? " *" : ""}</Label><Input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} /></div>
-              ),
-              address_number: (
-                <div key="address_number"><Label className="text-xs">{lbl("address_number", "Número")}{isReq("address_number") ? " *" : ""}</Label><Input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} /></div>
-              ),
-              address_neighborhood: (
-                <div key="address_neighborhood"><Label className="text-xs">{lbl("address_neighborhood", "Bairro")}{isReq("address_neighborhood") ? " *" : ""}</Label><Input value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} /></div>
-              ),
-              address_city: (
-                <div key="address_city"><Label className="text-xs">{lbl("address_city", "Cidade")}{isReq("address_city") ? " *" : ""}</Label><Input value={addressCity} onChange={(e) => setAddressCity(e.target.value)} /></div>
-              ),
-              address_state: (
-                <div key="address_state"><Label className="text-xs">{lbl("address_state", "Estado")}{isReq("address_state") ? " *" : ""}</Label><Input value={addressState} onChange={(e) => setAddressState(e.target.value)} /></div>
-              ),
-            };
-            return (
-              <>
-                <p className="text-xs font-medium text-muted-foreground pt-2">Endereço</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {keys.map((k) => renderers[k]).filter(Boolean)}
-                </div>
-              </>
-            );
-          })()}
+              );
+            })();
 
-          {/* Cidades de atuação */}
-          {isVisible("atuacao") && (
-            <>
-              <p className="text-xs font-medium text-muted-foreground pt-2">{lbl("atuacao", "Cidades de atuação")}</p>
-              <div className="flex items-center gap-2">
-                <Select value={novaCidade} onValueChange={setNovaCidade}><SelectTrigger className="flex-1"><SelectValue placeholder="Cidade" /></SelectTrigger><SelectContent>{cidadeOptions.filter((c) => !atuacao.some((a) => a.cidadeNome === c)).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-                <Select value={novaIntensidade} onValueChange={(v) => setNovaIntensidade(v as any)}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Alta">Alta</SelectItem><SelectItem value="Média">Média</SelectItem><SelectItem value="Baixa">Baixa</SelectItem></SelectContent></Select>
-                <Button size="icon" variant="outline" className="shrink-0" onClick={addCidade} disabled={!novaCidade}><Plus className="h-4 w-4" /></Button>
-              </div>
-              {atuacao.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {atuacao.map((a) => (
-                    <Badge key={a.cidadeNome} variant="secondary" className="text-xs gap-1">
-                      {a.cidadeNome} ({a.intensidade})
-                      <button onClick={() => removeCidade(a.cidadeNome)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
-                    </Badge>
-                  ))}
+            // Bloco "Localização" (endereço + cidades de atuação)
+            const localizacaoBlock = (() => {
+              const allAddrKeys = ["address_cep", "address_street", "address_number", "address_neighborhood", "address_city", "address_state"];
+              const keys = orderedKeys(allAddrKeys);
+              const showAtuacao = isVisible("atuacao");
+              if (keys.length === 0 && !showAtuacao) return null;
+              const renderers: Record<string, JSX.Element> = {
+                address_cep: (
+                  <div key="address_cep" className="flex items-end gap-2 col-span-3">
+                    <div className="flex-1"><Label className="text-xs">{lbl("address_cep", "CEP")}{isReq("address_cep") ? " *" : ""}</Label><Input value={addressCep} onChange={(e) => setAddressCep(e.target.value)} placeholder="01001-000" /></div>
+                    <Button variant="outline" size="sm" onClick={handleCepLookup}>Buscar</Button>
+                  </div>
+                ),
+                address_street: (
+                  <div key="address_street" className="col-span-2"><Label className="text-xs">{lbl("address_street", "Rua")}{isReq("address_street") ? " *" : ""}</Label><Input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} /></div>
+                ),
+                address_number: (
+                  <div key="address_number"><Label className="text-xs">{lbl("address_number", "Número")}{isReq("address_number") ? " *" : ""}</Label><Input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} /></div>
+                ),
+                address_neighborhood: (
+                  <div key="address_neighborhood"><Label className="text-xs">{lbl("address_neighborhood", "Bairro")}{isReq("address_neighborhood") ? " *" : ""}</Label><Input value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} /></div>
+                ),
+                address_city: (
+                  <div key="address_city"><Label className="text-xs">{lbl("address_city", "Cidade")}{isReq("address_city") ? " *" : ""}</Label><Input value={addressCity} onChange={(e) => setAddressCity(e.target.value)} /></div>
+                ),
+                address_state: (
+                  <div key="address_state"><Label className="text-xs">{lbl("address_state", "Estado")}{isReq("address_state") ? " *" : ""}</Label><Input value={addressState} onChange={(e) => setAddressState(e.target.value)} /></div>
+                ),
+              };
+              return (
+                <div key="grp-localizacao">
+                  {keys.length > 0 && (
+                    <>
+                      <p className="text-xs font-medium text-muted-foreground pt-2">Endereço</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {keys.map((k) => renderers[k]).filter(Boolean)}
+                      </div>
+                    </>
+                  )}
+                  {showAtuacao && (
+                    <>
+                      <p className="text-xs font-medium text-muted-foreground pt-2">{lbl("atuacao", "Cidades de atuação")}</p>
+                      <div className="flex items-center gap-2">
+                        <Select value={novaCidade} onValueChange={setNovaCidade}><SelectTrigger className="flex-1"><SelectValue placeholder="Cidade" /></SelectTrigger><SelectContent>{cidadeOptions.filter((c) => !atuacao.some((a) => a.cidadeNome === c)).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                        <Select value={novaIntensidade} onValueChange={(v) => setNovaIntensidade(v as any)}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Alta">Alta</SelectItem><SelectItem value="Média">Média</SelectItem><SelectItem value="Baixa">Baixa</SelectItem></SelectContent></Select>
+                        <Button size="icon" variant="outline" className="shrink-0" onClick={addCidade} disabled={!novaCidade}><Plus className="h-4 w-4" /></Button>
+                      </div>
+                      {atuacao.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {atuacao.map((a) => (
+                            <Badge key={a.cidadeNome} variant="secondary" className="text-xs gap-1">
+                              {a.cidadeNome} ({a.intensidade})
+                              <button onClick={() => removeCidade(a.cidadeNome)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              )}
-            </>
-          )}
+              );
+            })();
+
+            const blocksByGroup: Record<string, JSX.Element | null> = {
+              "Estratégia": estrategiaBlock,
+              "Contatos": contatosBlock,
+              "Redes Sociais": redesBlock,
+              "Localização": localizacaoBlock,
+            };
+
+            // Ordem dos grupos vinda da config (ignora "Identificação" — já renderizado acima)
+            const order = (formCfg.groupOrder ?? []).filter((g) => g !== "Identificação");
+            // Garante grupos faltantes (config antiga) ao final como fallback
+            for (const g of Object.keys(blocksByGroup)) {
+              if (!order.includes(g)) order.push(g);
+            }
+
+            return <>{order.map((g) => blocksByGroup[g]).filter(Boolean)}</>;
+          })()}
 
           {/* Campos personalizados (definidos em Configurações > Campos do cadastro) */}
           {formCfg.customFields.filter((f) => f.visible).length > 0 && (
