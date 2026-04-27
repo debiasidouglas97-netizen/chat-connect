@@ -150,6 +150,8 @@ export function useLiderancas() {
       if (l.instagram !== undefined) payload.instagram = l.instagram || null;
       if (l.facebook !== undefined) payload.facebook = l.facebook || null;
       if (l.youtube !== undefined) payload.youtube = l.youtube || null;
+      if (l.cpf !== undefined) payload.cpf = l.cpf || null;
+      if (l.rg !== undefined) payload.rg = l.rg || null;
       if (l.address_cep !== undefined) payload.address_cep = l.address_cep || null;
       if (l.address_street !== undefined) payload.address_street = l.address_street || null;
       if (l.address_number !== undefined) payload.address_number = l.address_number || null;
