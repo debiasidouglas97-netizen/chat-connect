@@ -26,6 +26,7 @@ import { useEleitores, type EleitorInput, type EleitorRow } from "@/hooks/use-el
 import { usePermissions } from "@/hooks/use-permissions";
 import { useFormConfig } from "@/hooks/use-form-config";
 import CustomFieldsBlock from "@/components/form-builder/CustomFieldsBlock";
+import { colorDotForKey, badgeClassesForKey } from "@/lib/eleitor-colors";
 import { toast } from "sonner";
 import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -357,22 +358,30 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
         // Campos extras (JSONB)
         const opts = SELECT_OPTIONS[key];
         if (opts) {
+          const currentValue = extras[key] || "";
+          const badgeCls = currentValue ? badgeClassesForKey(key, currentValue) : null;
           return (
             <div key={key}>
               {labelEl}
               <Select
-                value={extras[key] || ""}
+                value={currentValue}
                 onValueChange={(v) => setExtra(key, v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className={cn(badgeCls && "border-2", badgeCls || "")}>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {opts.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o}
-                    </SelectItem>
-                  ))}
+                  {opts.map((o) => {
+                    const dot = colorDotForKey(key, o);
+                    return (
+                      <SelectItem key={o} value={o}>
+                        <span className="flex items-center gap-2">
+                          {dot && <span className={cn("inline-block h-2.5 w-2.5 rounded-full", dot)} />}
+                          {o}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
