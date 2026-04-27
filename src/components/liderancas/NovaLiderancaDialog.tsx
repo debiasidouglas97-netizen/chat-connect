@@ -14,6 +14,8 @@ import MetaVotosInput, { type MetaVotosTipo } from "./MetaVotosInput";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLiderancas } from "@/hooks/use-liderancas";
+import { useFormConfig } from "@/hooks/use-form-config";
+import CustomFieldsBlock from "@/components/form-builder/CustomFieldsBlock";
 
 interface Props {
   open: boolean;
