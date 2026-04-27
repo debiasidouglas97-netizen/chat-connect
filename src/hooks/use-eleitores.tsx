@@ -17,6 +17,7 @@ export interface EleitorRow {
   estado: string | null;
   lideranca_id: string | null;
   observacoes: string | null;
+  custom_field_values: Record<string, any> | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +35,7 @@ export interface EleitorInput {
   estado?: string | null;
   lideranca_id?: string | null;
   observacoes?: string | null;
+  custom_field_values?: Record<string, any>;
 }
 
 export function useEleitores() {

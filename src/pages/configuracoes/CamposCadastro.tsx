@@ -115,15 +115,16 @@ export default function CamposCadastro() {
       <Tabs defaultValue="liderancas">
         <TabsList>
           <TabsTrigger value="liderancas">Lideranças</TabsTrigger>
-          <TabsTrigger value="eleitores" disabled>
-            Eleitores (em breve)
-          </TabsTrigger>
+          <TabsTrigger value="eleitores">Eleitores</TabsTrigger>
           <TabsTrigger value="usuarios" disabled>
             Usuários (em breve)
           </TabsTrigger>
         </TabsList>
         <TabsContent value="liderancas" className="mt-4">
           <CamposCadastroSegment segment="liderancas" segmentLabel="Lideranças" />
+        </TabsContent>
+        <TabsContent value="eleitores" className="mt-4">
+          <CamposCadastroSegment segment="eleitores" segmentLabel="Eleitores" />
         </TabsContent>
       </Tabs>
     </div>
