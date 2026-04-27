@@ -238,7 +238,7 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
               )}
 
 
-              {(l.phone || l.whatsapp || l.email || l.telegram_username) && (
+              {(l.phone || l.whatsapp || l.email || l.telegram_username || l.cpf || l.rg) && (
                 <div>
                   <p className="text-muted-foreground text-xs mb-2">Contatos {hideContacts && <span className="ml-1 text-[10px]">🔒 restrito</span>}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -246,6 +246,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                     {l.whatsapp && <p className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.whatsapp) : l.whatsapp}</p>}
                     {l.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.email) : l.email}</p>}
                     {l.telegram_username && <p className="flex items-center gap-1"><AtSign className="h-3 w-3 text-muted-foreground" /> {hideContacts ? mask(l.telegram_username) : l.telegram_username}</p>}
+                    {l.cpf && <p className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground font-semibold">CPF</span> {hideContacts ? mask(l.cpf) : l.cpf}</p>}
+                    {l.rg && <p className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground font-semibold">RG</span> {hideContacts ? mask(l.rg) : l.rg}</p>}
                   </div>
                 </div>
               )}
