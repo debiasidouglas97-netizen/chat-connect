@@ -18,6 +18,7 @@ import { useCidades } from "@/hooks/use-cidades";
 import NovoEleitorDialog from "@/components/eleitores/NovoEleitorDialog";
 import ExportEleitoresDialog from "@/components/eleitores/ExportEleitoresDialog";
 import PerformanceLideranca from "@/components/eleitores/PerformanceLideranca";
+import { badgeClassesForKey } from "@/lib/eleitor-colors";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
