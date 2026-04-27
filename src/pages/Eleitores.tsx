@@ -181,19 +181,24 @@ export default function Eleitores() {
                       <TableHead>WhatsApp</TableHead>
                       <TableHead>Cidade</TableHead>
                       <TableHead>Liderança</TableHead>
+                      <TableHead>Perfil</TableHead>
                       <TableHead>Contatos</TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">Carregando...</TableCell></TableRow>
                     )}
                     {!isLoading && filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">Nenhum eleitor encontrado.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">Nenhum eleitor encontrado.</TableCell></TableRow>
                     )}
                     {filtered.map((e) => {
                       const lid = e.lideranca_id ? liderancaMap.get(e.lideranca_id) : null;
+                      const cf = (e.custom_field_values || {}) as Record<string, any>;
+                      const intencao = cf.intencao_voto as string | undefined;
+                      const grau = cf.grau_apoio as string | undefined;
+                      const prio = cf.prioridade as string | undefined;
                       return (
                         <TableRow key={e.id}>
                           <TableCell className="font-medium">{e.nome}</TableCell>
@@ -207,6 +212,28 @@ export default function Eleitores() {
                             ) : (
                               <span className="text-[10px] text-muted-foreground">—</span>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {intencao && (
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${badgeClassesForKey("intencao_voto", intencao)}`}>
+                                  {intencao}
+                                </span>
+                              )}
+                              {grau && (
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${badgeClassesForKey("grau_apoio", grau)}`}>
+                                  {grau}
+                                </span>
+                              )}
+                              {prio && (
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${badgeClassesForKey("prioridade", prio)}`}>
+                                  {prio}
+                                </span>
+                              )}
+                              {!intencao && !grau && !prio && (
+                                <span className="text-[10px] text-muted-foreground">—</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1.5 text-muted-foreground">
