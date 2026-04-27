@@ -50,17 +50,48 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
     { key: "meta_votos", defaultLabel: "Meta de votos", group: "Estratégia", inputType: "number" },
   ],
   eleitores: [
-    { key: "nome", defaultLabel: "Nome", group: "Identificação", locked: true, inputType: "text" },
-    { key: "whatsapp", defaultLabel: "WhatsApp", group: "Contatos", locked: true, inputType: "phone" },
-    { key: "email", defaultLabel: "E-mail", group: "Contatos", inputType: "text" },
-    { key: "telegram", defaultLabel: "Telegram", group: "Contatos", inputType: "text" },
-    { key: "cidade", defaultLabel: "Cidade", group: "Localização", locked: true, inputType: "text" },
-    { key: "bairro", defaultLabel: "Bairro", group: "Localização", inputType: "text" },
-    { key: "logradouro", defaultLabel: "Logradouro", group: "Localização", inputType: "text" },
-    { key: "numero", defaultLabel: "Número", group: "Localização", inputType: "text" },
-    { key: "cep", defaultLabel: "CEP", group: "Localização", inputType: "text" },
-    { key: "estado", defaultLabel: "Estado", group: "Localização", inputType: "text" },
-    { key: "observacoes", defaultLabel: "Observações", group: "Outros", inputType: "textarea" },
+    // 1. Informações Básicas
+    { key: "nome", defaultLabel: "Nome completo", group: "Informações Básicas", locked: true, inputType: "text" },
+    { key: "cidade", defaultLabel: "Cidade", group: "Informações Básicas", locked: true, inputType: "text" },
+    { key: "bairro", defaultLabel: "Bairro", group: "Informações Básicas", inputType: "text" },
+    { key: "estado", defaultLabel: "Estado", group: "Informações Básicas", inputType: "text" },
+
+    // 2. Contato (Mobilização)
+    { key: "whatsapp", defaultLabel: "WhatsApp", group: "Contato", locked: true, inputType: "phone" },
+    { key: "telefone", defaultLabel: "Telefone", group: "Contato", inputType: "phone" },
+    { key: "email", defaultLabel: "E-mail", group: "Contato", inputType: "text" },
+
+    // 3. Informações Eleitorais
+    { key: "zona_eleitoral", defaultLabel: "Zona eleitoral", group: "Informações Eleitorais", inputType: "text" },
+    { key: "secao_eleitoral", defaultLabel: "Seção eleitoral", group: "Informações Eleitorais", inputType: "text" },
+    { key: "local_votacao", defaultLabel: "Local de votação", group: "Informações Eleitorais", inputType: "text" },
+
+    // 4. Perfil Político
+    { key: "intencao_voto", defaultLabel: "Intenção de voto", group: "Perfil Político", inputType: "select" },
+    { key: "grau_apoio", defaultLabel: "Grau de apoio", group: "Perfil Político", inputType: "select" },
+    { key: "prioridade", defaultLabel: "Prioridade", group: "Perfil Político", inputType: "select" },
+
+    // 5. Comunicação
+    { key: "canal_preferido", defaultLabel: "Canal preferido", group: "Comunicação", inputType: "select" },
+    { key: "telegram", defaultLabel: "Telegram", group: "Comunicação", inputType: "text" },
+
+    // 6. Demográficos
+    { key: "profissao", defaultLabel: "Profissão", group: "Demográficos", inputType: "text" },
+    { key: "faixa_etaria", defaultLabel: "Faixa etária", group: "Demográficos", inputType: "select" },
+    { key: "genero", defaultLabel: "Gênero", group: "Demográficos", inputType: "select" },
+
+    // 7. Redes Sociais
+    { key: "instagram", defaultLabel: "Instagram", group: "Redes Sociais", inputType: "text" },
+    { key: "facebook", defaultLabel: "Facebook", group: "Redes Sociais", inputType: "text" },
+
+    // 8. Endereço
+    { key: "cep", defaultLabel: "CEP", group: "Endereço", inputType: "text" },
+    { key: "logradouro", defaultLabel: "Rua", group: "Endereço", inputType: "text" },
+    { key: "numero", defaultLabel: "Número", group: "Endereço", inputType: "text" },
+
+    // 9. Sistema
+    { key: "tags", defaultLabel: "Tags", group: "Sistema", inputType: "text" },
+    { key: "observacoes", defaultLabel: "Observações", group: "Sistema", inputType: "textarea" },
   ],
   usuarios: [
     { key: "full_name", defaultLabel: "Nome completo", group: "Identificação", locked: true, inputType: "text" },
