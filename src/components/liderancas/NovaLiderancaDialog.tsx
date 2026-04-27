@@ -93,7 +93,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
     setAddressCity(""); setAddressState("");
     setMetaTipo("percentual"); setMetaValor(null);
     setCriarAcesso(true);
-    setEmail(""); setCpf(""); setUsername(""); setPassword(""); setPasswordConfirm("");
+    setEmail(""); setCpf(""); setRg(""); setUsername(""); setPassword(""); setPasswordConfirm("");
     setShowPassword(false);
   };
 
