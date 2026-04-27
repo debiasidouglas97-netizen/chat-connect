@@ -323,14 +323,10 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="lideranca@exemplo.com" />
                 </div>
                 <div>
-                  <Label className="text-xs">CPF *</Label>
-                  <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
-                </div>
-                <div>
                   <Label className="text-xs flex items-center gap-1"><UserIcon className="h-3 w-3" /> Username *</Label>
                   <Input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="ex: joao.silva" />
                 </div>
-                <div className="row-span-2">
+                <div className="col-span-2">
                   <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" /> Senha *</Label>
                   <div className="relative">
                     <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
