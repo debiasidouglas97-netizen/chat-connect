@@ -27,7 +27,6 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useFormConfig } from "@/hooks/use-form-config";
 import CustomFieldsBlock from "@/components/form-builder/CustomFieldsBlock";
 import { colorDotForKey, badgeClassesForKey } from "@/lib/eleitor-colors";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Loader2, Search, Check, ChevronsUpDown, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
