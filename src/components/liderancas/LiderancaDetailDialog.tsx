@@ -361,6 +361,8 @@ export default function LiderancaDetailDialog({ open, onOpenChange, lideranca, o
                 <div><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> WhatsApp</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
                 <div><Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
                 <div><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> Telegram</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
+                <div><Label className="text-xs">CPF</Label><Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" /></div>
+                <div><Label className="text-xs">RG</Label><Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" /></div>
               </div>
 
               {/* Social */}
