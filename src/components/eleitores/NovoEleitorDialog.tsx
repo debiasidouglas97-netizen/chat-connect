@@ -85,6 +85,8 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
   const [estado, setEstado] = useState("");
   const [liderancaId, setLiderancaId] = useState<string>("__none__");
   const [observacoes, setObservacoes] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   // Campos extras armazenados em custom_field_values (JSONB)
   const [extras, setExtras] = useState<Record<string, any>>({});
   const [customValues, setCustomValues] = useState<Record<string, any>>({});
@@ -119,6 +121,7 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
       setEstado(editing.estado || "");
       setLiderancaId(editing.lideranca_id || (liderancaLocked ? linkedLiderancaId! : "__none__"));
       setObservacoes(editing.observacoes || "");
+      setAvatarPreview((editing as any).avatar_url || null);
       const cfv = (editing as any).custom_field_values || {};
       // Separa extras nativos (chaves do catálogo) dos custom fields configurados
       const customKeys = new Set(formCfg.customFields.map((f) => f.key));
@@ -150,9 +153,22 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
     setEstado("");
     setLiderancaId(liderancaLocked && linkedLiderancaId ? linkedLiderancaId : "__none__");
     setObservacoes("");
+    setAvatarPreview(null);
     setExtras({});
     setCustomValues({});
     setShowAll(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx 2MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
   };
 
   const buscarCep = async () => {
