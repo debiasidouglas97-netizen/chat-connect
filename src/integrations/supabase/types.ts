@@ -572,6 +572,7 @@ export type Database = {
       }
       eleitores: {
         Row: {
+          avatar_url: string | null
           bairro: string | null
           cep: string | null
           cidade: string
@@ -591,6 +592,7 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          avatar_url?: string | null
           bairro?: string | null
           cep?: string | null
           cidade: string
@@ -610,6 +612,7 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          avatar_url?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string

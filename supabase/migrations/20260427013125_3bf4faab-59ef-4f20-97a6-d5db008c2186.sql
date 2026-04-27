@@ -1,0 +1,1 @@
+ALTER TABLE public.eleitores ADD COLUMN IF NOT EXISTS avatar_url text;
