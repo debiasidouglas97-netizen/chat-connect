@@ -224,6 +224,8 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
           address_cep: addressCep, address_street: addressStreet, address_number: addressNumber,
           address_neighborhood: addressNeighborhood, address_city: addressCity, address_state: addressState,
           meta_votos_tipo: metaTipo, meta_votos_valor: metaValor,
+          cpf: cpf ? cpf.replace(/\D/g, "") : "",
+          rg,
         } as any);
         toast.success("Liderança cadastrada! Você pode criar o acesso ao sistema depois pelo detalhe da liderança.");
       }
