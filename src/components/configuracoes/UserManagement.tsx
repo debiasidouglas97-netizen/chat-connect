@@ -292,8 +292,17 @@ export default function UserManagement() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9" />
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setPermissionsOpen(true)} className="gap-2">
+              <ShieldCheck className="h-4 w-4" /> Permissões por Tipo
+            </Button>
+          )}
+          <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
+        </div>
       </div>
+
+      <RolePermissionsDialog open={permissionsOpen} onOpenChange={setPermissionsOpen} />
 
       <Card>
         <CardContent className="p-0">
