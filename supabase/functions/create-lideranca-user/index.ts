@@ -216,6 +216,8 @@ Deno.serve(async (req) => {
           address_state: body.address_state ?? null,
           meta_votos_tipo: body.meta_votos_tipo ?? null,
           meta_votos_valor: body.meta_votos_valor ?? null,
+          cpf: cpfDigits,
+          rg: body.rg ?? null,
           tenant_id: tenantId,
         })
         .select("id")
