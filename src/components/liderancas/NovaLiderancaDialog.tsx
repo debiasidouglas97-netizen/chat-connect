@@ -418,35 +418,99 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             onChange={(t, v) => { setMetaTipo(t); setMetaValor(v); }}
           />
 
-          {/* Contacts */}
-          <p className="text-xs font-medium text-muted-foreground pt-2">Contatos adicionais</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Telefone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
-            <div><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> WhatsApp</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
-            <div><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> Telegram</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
-          </div>
+          {/* Contatos adicionais - respeitando ordem configurada */}
+          {(() => {
+            // E-mail só aparece aqui quando o bloco "Acesso ao sistema" não está visível
+            const baseKeys = ["phone", "whatsapp", "telegram_username"];
+            if (!criarAcesso) baseKeys.push("email");
+            const keys = orderedKeys(baseKeys);
+            if (keys.length === 0) return null;
+            const renderers: Record<string, JSX.Element> = {
+              phone: (
+                <div key="phone"><Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> {lbl("phone", "Telefone")}{isReq("phone") ? " *" : ""}</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
+              ),
+              whatsapp: (
+                <div key="whatsapp"><Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {lbl("whatsapp", "WhatsApp")}{isReq("whatsapp") ? " *" : ""}</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></div>
+              ),
+              telegram_username: (
+                <div key="telegram_username"><Label className="text-xs flex items-center gap-1"><AtSign className="h-3 w-3" /> {lbl("telegram_username", "Telegram")}{isReq("telegram_username") ? " *" : ""}</Label><Input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" /></div>
+              ),
+              email: (
+                <div key="email"><Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> {lbl("email", "E-mail")}{isReq("email") ? " *" : ""}</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
+              ),
+            };
+            return (
+              <>
+                <p className="text-xs font-medium text-muted-foreground pt-2">Contatos adicionais</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {keys.map((k) => renderers[k]).filter(Boolean)}
+                </div>
+              </>
+            );
+          })()}
 
-          {/* Social */}
-          <p className="text-xs font-medium text-muted-foreground pt-2">Redes sociais</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div><Label className="text-xs flex items-center gap-1"><Instagram className="h-3 w-3" /> Instagram</Label><Input value={instagramVal} onChange={(e) => setInstagramVal(e.target.value)} placeholder="@perfil" /></div>
-            <div><Label className="text-xs flex items-center gap-1"><Facebook className="h-3 w-3" /> Facebook</Label><Input value={facebookVal} onChange={(e) => setFacebookVal(e.target.value)} /></div>
-            <div><Label className="text-xs flex items-center gap-1"><Youtube className="h-3 w-3" /> YouTube</Label><Input value={youtubeVal} onChange={(e) => setYoutubeVal(e.target.value)} /></div>
-          </div>
+          {/* Redes sociais - respeitando ordem */}
+          {(() => {
+            const keys = orderedKeys(["instagram", "facebook", "youtube"]);
+            if (keys.length === 0) return null;
+            const renderers: Record<string, JSX.Element> = {
+              instagram: (
+                <div key="instagram"><Label className="text-xs flex items-center gap-1"><Instagram className="h-3 w-3" /> {lbl("instagram", "Instagram")}{isReq("instagram") ? " *" : ""}</Label><Input value={instagramVal} onChange={(e) => setInstagramVal(e.target.value)} placeholder="@perfil" /></div>
+              ),
+              facebook: (
+                <div key="facebook"><Label className="text-xs flex items-center gap-1"><Facebook className="h-3 w-3" /> {lbl("facebook", "Facebook")}{isReq("facebook") ? " *" : ""}</Label><Input value={facebookVal} onChange={(e) => setFacebookVal(e.target.value)} /></div>
+              ),
+              youtube: (
+                <div key="youtube"><Label className="text-xs flex items-center gap-1"><Youtube className="h-3 w-3" /> {lbl("youtube", "YouTube")}{isReq("youtube") ? " *" : ""}</Label><Input value={youtubeVal} onChange={(e) => setYoutubeVal(e.target.value)} /></div>
+              ),
+            };
+            return (
+              <>
+                <p className="text-xs font-medium text-muted-foreground pt-2">Redes sociais</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {keys.map((k) => renderers[k]).filter(Boolean)}
+                </div>
+              </>
+            );
+          })()}
 
-          {/* Address */}
-          <p className="text-xs font-medium text-muted-foreground pt-2">Endereço</p>
-          <div className="flex items-end gap-2">
-            <div className="flex-1"><Label className="text-xs">CEP</Label><Input value={addressCep} onChange={(e) => setAddressCep(e.target.value)} placeholder="01001-000" /></div>
-            <Button variant="outline" size="sm" onClick={handleCepLookup}>Buscar</Button>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2"><Label className="text-xs">Rua</Label><Input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} /></div>
-            <div><Label className="text-xs">Número</Label><Input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} /></div>
-            <div><Label className="text-xs">Bairro</Label><Input value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} /></div>
-            <div><Label className="text-xs">Cidade</Label><Input value={addressCity} onChange={(e) => setAddressCity(e.target.value)} /></div>
-            <div><Label className="text-xs">Estado</Label><Input value={addressState} onChange={(e) => setAddressState(e.target.value)} /></div>
-          </div>
+          {/* Endereço - respeitando ordem (CEP destacado com botão "Buscar" se visível) */}
+          {(() => {
+            const allAddrKeys = ["address_cep", "address_street", "address_number", "address_neighborhood", "address_city", "address_state"];
+            const keys = orderedKeys(allAddrKeys);
+            if (keys.length === 0) return null;
+            const renderers: Record<string, JSX.Element> = {
+              address_cep: (
+                <div key="address_cep" className="flex items-end gap-2 col-span-3">
+                  <div className="flex-1"><Label className="text-xs">{lbl("address_cep", "CEP")}{isReq("address_cep") ? " *" : ""}</Label><Input value={addressCep} onChange={(e) => setAddressCep(e.target.value)} placeholder="01001-000" /></div>
+                  <Button variant="outline" size="sm" onClick={handleCepLookup}>Buscar</Button>
+                </div>
+              ),
+              address_street: (
+                <div key="address_street" className="col-span-2"><Label className="text-xs">{lbl("address_street", "Rua")}{isReq("address_street") ? " *" : ""}</Label><Input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} /></div>
+              ),
+              address_number: (
+                <div key="address_number"><Label className="text-xs">{lbl("address_number", "Número")}{isReq("address_number") ? " *" : ""}</Label><Input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} /></div>
+              ),
+              address_neighborhood: (
+                <div key="address_neighborhood"><Label className="text-xs">{lbl("address_neighborhood", "Bairro")}{isReq("address_neighborhood") ? " *" : ""}</Label><Input value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} /></div>
+              ),
+              address_city: (
+                <div key="address_city"><Label className="text-xs">{lbl("address_city", "Cidade")}{isReq("address_city") ? " *" : ""}</Label><Input value={addressCity} onChange={(e) => setAddressCity(e.target.value)} /></div>
+              ),
+              address_state: (
+                <div key="address_state"><Label className="text-xs">{lbl("address_state", "Estado")}{isReq("address_state") ? " *" : ""}</Label><Input value={addressState} onChange={(e) => setAddressState(e.target.value)} /></div>
+              ),
+            };
+            return (
+              <>
+                <p className="text-xs font-medium text-muted-foreground pt-2">Endereço</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {keys.map((k) => renderers[k]).filter(Boolean)}
+                </div>
+              </>
+            );
+          })()}
 
           {/* Cidades de atuação */}
           <p className="text-xs font-medium text-muted-foreground pt-2">Cidades de atuação</p>
