@@ -114,6 +114,8 @@ export function useLiderancas() {
         instagram: l.instagram || null,
         facebook: l.facebook || null,
         youtube: l.youtube || null,
+        cpf: l.cpf || null,
+        rg: l.rg || null,
         address_cep: l.address_cep || null,
         address_street: l.address_street || null,
         address_number: l.address_number || null,
