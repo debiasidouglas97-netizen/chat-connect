@@ -310,7 +310,7 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
                 </label>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {criarAcesso
-                    ? "A liderança poderá entrar no sistema com estas credenciais. O e-mail é confirmado automaticamente."
+                    ? "A liderança poderá entrar no sistema usando e-mail, username ou CPF (definido em Documentos)."
                     : "A liderança será cadastrada apenas no CRM. Você pode criar o acesso a qualquer momento pelo detalhe da liderança."}
                 </p>
               </div>
