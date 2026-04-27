@@ -59,16 +59,6 @@ export function useFormConfig(segment: FormSegment) {
         native_fields: nativeFieldsPayload as any,
         custom_fields: config.customFields as any,
       };
-
-  const save = useMutation({
-    mutationFn: async (config: SegmentFormConfig) => {
-      if (!tenantId) throw new Error("Tenant não identificado");
-      const payload = {
-        tenant_id: tenantId,
-        segment,
-        native_fields: config.nativeFields as any,
-        custom_fields: config.customFields as any,
-      };
       const { error } = await supabase
         .from("tenant_form_config" as any)
         .upsert(payload, { onConflict: "tenant_id,segment" });
