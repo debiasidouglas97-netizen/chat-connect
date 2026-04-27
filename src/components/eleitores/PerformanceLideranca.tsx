@@ -67,8 +67,25 @@ export default function PerformanceLideranca() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* Market Share — Azul */}
+      <Tabs defaultValue="market_share" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="market_share" className="gap-2">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Market Share
+            <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+              {marketShare.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="operacional" className="gap-2">
+            <Users className="h-3.5 w-3.5" />
+            Lideranças Operacionais
+            <Badge variant="secondary" className="ml-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+              {operacional.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="market_share" className="space-y-6">
         <Card className="border-blue-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
