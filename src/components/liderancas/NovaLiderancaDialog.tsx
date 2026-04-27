@@ -282,6 +282,20 @@ export default function NovaLiderancaDialog({ open, onOpenChange, onCreated }: P
             </div>
           </div>
 
+          {/* Documentos */}
+          <div className="grid grid-cols-2 gap-3">
+            {!criarAcesso && (
+              <div>
+                <Label className="text-xs">CPF</Label>
+                <Input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
+              </div>
+            )}
+            <div className={criarAcesso ? "col-span-2" : ""}>
+              <Label className="text-xs">RG</Label>
+              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" />
+            </div>
+          </div>
+
           {/* Acesso ao Sistema (opcional) */}
           <div className={`rounded-lg border p-3 space-y-3 transition-colors ${criarAcesso ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
             <div className="flex items-start gap-3">
