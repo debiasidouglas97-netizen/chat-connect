@@ -1,81 +1,66 @@
-## Objetivo
+## Busca Global — Plataforma inteira em um único campo
 
-Hoje as permissões dos usuários (Deputado, Chefe de Gabinete, Secretário, Liderança) são **fixas em código** (`src/hooks/use-permissions.tsx` + checagens em `ProtectedRoute` e várias páginas). O Deputado/Admin não consegue customizar — por exemplo: "Secretário pode criar/editar liderança mas não excluir" ou "Secretário não vê Agenda".
+A rota `/busca` está no menu mas ainda não tem página. Vou criar uma busca **unificada estilo command palette** (Linear/Raycast) que pesquisa em tudo e leva direto ao registro/perfil correspondente.
 
-A proposta é introduzir uma **matriz de permissões por papel (role) configurável**, com CRUD por módulo, gerenciada apenas por Admin (Deputado / Chefe de Gabinete) dentro de **Configurações → Usuários**.
+### Como vai funcionar
 
-## Como ficará para o usuário
+- **Atalho global ⌘K / Ctrl+K**: abre um overlay de busca de qualquer lugar do app (montado no `AppLayout`).
+- **Página dedicada `/busca?q=...`**: mesma busca em layout maior, com filtros por categoria e resultados agrupados — útil quando o usuário quer "navegar" pelos resultados.
+- **Digitação livre**: ex. "Douglas de Biasi" → mostra a liderança/eleitor/usuário com esse nome; clicar abre o perfil. "São Paulo" → abre a cidade. "Emenda 2024 saúde" → lista emendas.
 
-Na aba **Usuários** de Configurações, ao lado do botão "Novo Usuário", aparece um novo botão **"Permissões por Tipo"** (visível apenas para Admin). Ao abrir, surge um diálogo com:
+### Categorias pesquisadas (tudo respeitando `tenant_id` + permissões `can_view`)
 
-- **Seletor de Tipo de Usuário** (Chefe de Gabinete, Secretário, Liderança).
-  - Deputado fica fora (sempre tem tudo) e Super Admin também.
-- **Tabela de módulos** com colunas: `Visualizar` · `Criar` · `Editar` · `Excluir`, e linhas por módulo:
-  - Dashboard, Demandas, Lideranças, Eleitores, Cidades, Mapa, Emendas, Proposições, Mandato em Foco, Agenda, Documentos, Mensagens, Mobilização Digital, Busca Global, Configurações.
-- Cada célula é um checkbox. Marcar/desmarcar `Visualizar` = controla acesso à rota. Os outros 3 viram regras de UI/RLS.
-- Botão **"Restaurar padrão"** por papel (volta aos defaults atuais: Admin tudo, Secretário escreve quase tudo, Liderança só lê + cria/edita seus eleitores).
-- **Salvar** persiste no banco (escopo por tenant — cada mandato tem sua matriz).
+```text
+🧑 Lideranças       → nome, whatsapp, cidade, cargo  → abre LiderancaDetailDialog
+👥 Eleitores        → nome, whatsapp, email, cidade  → abre detalhe do eleitor
+🏙  Cidades          → nome, região                   → abre CidadeDetailDialog
+📋 Demandas         → título, descrição, solicitante → abre DemandaDetailDialog
+💰 Emendas          → número, objeto, beneficiário   → abre EmendaDetailDialog
+📜 Proposições      → ementa, número                 → /proposicoes?focus=ID
+📅 Agenda           → título, local, descrição       → abre EventoDetailDialog
+📨 Mobilizações     → título, conteúdo               → abre MobilizacaoDetailDialog
+📂 Documentos       → nome do arquivo                → abre/baixa documento
+👤 Usuários         → nome, email, username          → /configuracoes (aba usuários)
+⚡ Ações rápidas     → "Nova liderança", "Novo eleitor", "Ir para Mapa", etc.
+```
 
-Exemplos suportados:
-- Secretário: `Lideranças` → Visualizar ✓, Criar ✓, Editar ✓, Excluir ✗.
-- Secretário: `Agenda` → Visualizar ✗ (some do menu lateral e bloqueia rota).
-- Liderança: `Eleitores` → Visualizar ✓, Criar ✓, Editar ✓, Excluir ✗ (já é o default).
+A busca por "Douglas de Biasi" pode aparecer em **mais de uma categoria** ao mesmo tempo (ex.: é usuário do sistema *e* uma liderança cadastrada) — mostramos ambos com badge da origem para o usuário escolher.
 
-## Mudanças técnicas
+### Comportamento e UX
 
-### 1. Banco (nova tabela)
+- **Resultados agrupados por categoria**, ordenados por relevância (match no início do nome > match parcial > match em campo secundário).
+- **Highlight** do trecho que casou com o termo.
+- **Ícones por tipo** + cor pastel da identidade (segue paleta atual).
+- **Histórico recente** (localStorage) — mostra últimas 5 buscas quando o campo está vazio.
+- **Atalhos sugeridos quando vazio**: "Ir para Dashboard", "Nova demanda", "Abrir Mapa" etc.
+- **Estado vazio**: "Nenhum resultado para 'xyz' — tente outro termo ou crie uma nova liderança."
+- **Loading com skeleton** por categoria (busca debounced, 250ms).
+- **Teclado**: ↑/↓ navega, Enter abre, Esc fecha, Tab alterna categoria.
 
-`role_permissions`:
-- `id uuid pk`
-- `tenant_id uuid` (FK lógica)
-- `role app_role` (apenas: `chefe_gabinete`, `secretario`, `lideranca` — Deputado e Super Admin nunca ficam restringidos)
-- `module text` (slug fixo: `dashboard`, `demandas`, `liderancas`, `eleitores`, `cidades`, `mapa`, `emendas`, `proposicoes`, `mandato_foco`, `agenda`, `documentos`, `mensagens`, `mobilizacao`, `busca`, `configuracoes`)
-- `can_view bool`, `can_create bool`, `can_edit bool`, `can_delete bool`
-- `updated_at timestamptz`
-- Unique `(tenant_id, role, module)`
-- RLS: SELECT permitido para qualquer membro do tenant; INSERT/UPDATE/DELETE só para `deputado`/`chefe_gabinete` do tenant (via `has_role`).
+### Arquitetura técnica
 
-### 2. Camada de defaults
+**Novos arquivos**
+- `src/pages/BuscaGlobal.tsx` — página `/busca` com layout completo (filtros laterais por categoria + resultados).
+- `src/components/busca/GlobalSearchPalette.tsx` — overlay ⌘K reutilizando `CommandDialog` (já existe em `src/components/ui/command.tsx`).
+- `src/components/busca/SearchResultItem.tsx` — item de resultado com ícone, título, subtítulo, badge de categoria, highlight.
+- `src/hooks/use-global-search.tsx` — hook central que recebe `query` + `enabledCategories` e devolve `{ results, isLoading }`. Faz queries paralelas via `Promise.all` no Supabase (`ilike` em campos relevantes, `limit 8` por categoria) com debounce.
+- `src/lib/search-actions.ts` — registro estático das "ações rápidas" (criar entidade, navegar para módulo).
 
-Novo arquivo `src/lib/permissions-defaults.ts` com a matriz default por papel (espelhando hoje o `use-permissions.tsx`). Usado como fallback quando não há linha em `role_permissions` e como base do "Restaurar padrão".
+**Edições**
+- `src/App.tsx` — adicionar rota `/busca` protegida por `module="busca"`.
+- `src/components/AppLayout.tsx` — montar `<GlobalSearchPalette />` global e listener de `⌘K`.
+- `src/components/AppSidebar.tsx` — mostrar dica "⌘K" ao lado do item "Busca Global".
+- `src/lib/permissions-defaults.ts` — módulo `busca` já existe; mantido.
 
-### 3. Hook centralizado
+**Detalhes de implementação**
+- Cada resultado guarda `onSelect()` que decide entre: abrir um dialog (passando o ID via state) ou navegar via `react-router`. Para abrir dialogs de fora das páginas-mãe, vamos disparar via `URLSearchParams` (ex.: `/liderancas?open=<id>`) e cada página já existente checa esse param no mount para abrir o detalhe — padrão simples e sem refactor de estado global.
+- RLS já garante isolamento por tenant; o hook só precisa filtrar por `tenant_id` redundantemente.
+- Permissões: a UI esconde categorias para as quais `can("modulo","view")` é falso.
 
-Refatorar `src/hooks/use-permissions.tsx` para:
-- Buscar a matriz do tenant via React Query (cacheada).
-- Expor:
-  - `can(module, action)` (action = `view|create|edit|delete`).
-  - Helpers compatíveis com hoje: `canWriteLiderancas`, `canDeleteEleitores`, etc., agora derivados da matriz.
-  - `visibleModules` (lista de módulos com `can_view`) para o sidebar.
-- Admin (`deputado`/`chefe_gabinete`) sempre retorna `true`.
+### Fora de escopo (pode virar v2)
+- Busca semântica/IA (embeddings) — começamos com `ilike` que é instantâneo e barato; se quiser, depois plugamos Lovable AI para "perguntas em linguagem natural".
+- Busca em conteúdo de anexos (PDFs).
+- Salvar buscas favoritas.
 
-### 4. Aplicação das permissões
-
-- **`AppSidebar.tsx`**: filtrar itens do menu por `can('<module>', 'view')`.
-- **`ProtectedRoute.tsx`**: substituir `LIDERANCA_BLOCKED_PREFIXES` por checagem dinâmica via mapa rota → módulo.
-- **Páginas que já consultam `usePermissions()`** (Liderancas, Eleitores, Demandas, Emendas, Cidades, Agenda, Proposicoes, dialogs): trocar flags antigas pelas novas (mantendo nomes como `canWriteLiderancas` para não quebrar — eles passam a ser derivados).
-- Botões de criar/editar/excluir continuam aparecendo conforme as flags.
-
-### 5. UI de configuração
-
-Novo componente `src/components/configuracoes/RolePermissionsDialog.tsx`:
-- Disparado por botão "Permissões por Tipo" em `UserManagement.tsx`, **apenas se** `usePermissions().isAdmin`.
-- Tabs por role (Chefe de Gabinete · Secretário · Liderança).
-- Tabela com switch por (módulo, ação). Salvar faz upsert em `role_permissions`.
-
-### 6. Segurança
-
-- Permissões de UI são UX. A camada real continua sendo **RLS no Supabase**. Como hoje as RLS já validam por `role` e `tenant_id`, o controle "excluir liderança" precisa de uma RLS adicional baseada em `role_permissions` para Secretário (DELETE em `liderancas` só se `can_delete=true`). Faremos isso para as tabelas afetadas pelas decisões mais sensíveis: `liderancas`, `eleitores`, `demandas`, `emendas`, `eventos`. Função SQL helper `public.has_permission(_user_id, _module, _action)` (security definer) usada nas policies.
-
-## Escopo de arquivos
-
-- **Migração SQL**: criar tabela `role_permissions`, função `has_permission`, ajustar RLS de `liderancas` / `eleitores` / `demandas` / `emendas` / `eventos` para respeitar `has_permission` em UPDATE/DELETE/INSERT (Admin segue irrestrito).
-- **Novo**: `src/lib/permissions-defaults.ts`, `src/components/configuracoes/RolePermissionsDialog.tsx`.
-- **Editar**: `src/hooks/use-permissions.tsx`, `src/components/AppSidebar.tsx`, `src/components/ProtectedRoute.tsx`, `src/components/configuracoes/UserManagement.tsx`.
-- **Sem mudanças funcionais** nas páginas que já usam `usePermissions()` — apenas validamos que continuam funcionando com as flags derivadas.
-
-## Fora de escopo
-
-- Permissões a nível de campo (apenas a nível de módulo+ação).
-- Editar permissões do Deputado / Super Admin (sempre admin pleno).
-- Trilha de auditoria das mudanças na matriz (pode entrar em iteração futura via `activity_logs`).
+### Resultado para o usuário
+Você digita "Douglas de Biasi" em qualquer tela (⌘K) e em < 300ms vê: o **usuário** Douglas, a **liderança** Douglas, eventuais **demandas** abertas por ele e **eventos** com o nome dele — clica e vai direto ao registro. Mesma coisa para cidades, emendas, proposições etc.
