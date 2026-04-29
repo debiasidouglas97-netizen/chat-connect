@@ -1,66 +1,42 @@
-## Busca Global — Plataforma inteira em um único campo
+# Destacar Estimativa de Votos no card de cidade
 
-A rota `/busca` está no menu mas ainda não tem página. Vou criar uma busca **unificada estilo command palette** (Linear/Raycast) que pesquisa em tudo e leva direto ao registro/perfil correspondente.
+## Contexto
+Hoje, no card de cidade (página `/cidades`, modo grid), a **Estimativa de Votos** aparece como uma linha discreta no grid de informações ("Est. Votos: —"), enquanto o número de **Votos — Eleição 2022** ganha destaque no canto direito com tipografia grande, em itálico e negrito.
 
-### Como vai funcionar
+Como a estimativa de votos é uma métrica estratégica (soma das metas das lideranças vinculadas à cidade), ela deve receber o mesmo tratamento visual de destaque, lado a lado com os votos de 2022, permitindo comparação direta entre o **potencial atual** e o **histórico eleitoral**.
 
-- **Atalho global ⌘K / Ctrl+K**: abre um overlay de busca de qualquer lugar do app (montado no `AppLayout`).
-- **Página dedicada `/busca?q=...`**: mesma busca em layout maior, com filtros por categoria e resultados agrupados — útil quando o usuário quer "navegar" pelos resultados.
-- **Digitação livre**: ex. "Douglas de Biasi" → mostra a liderança/eleitor/usuário com esse nome; clicar abre o perfil. "São Paulo" → abre a cidade. "Emenda 2024 saúde" → lista emendas.
+## O que muda visualmente
 
-### Categorias pesquisadas (tudo respeitando `tenant_id` + permissões `can_view`)
+No card de cidade (`src/pages/Cidades.tsx`, modo grid):
+
+1. **Remover** a linha "Est. Votos: —" do grid de 2 colunas com os outros dados (população, eleitores, visitas, etc).
+2. **Criar um bloco de destaque duplo** no rodapé do card, alinhado à direita, mostrando lado a lado:
+   - **Estimativa de Votos** (potencial mapeado pelas lideranças)
+   - **Votos — Eleição 2022** (histórico)
+
+Layout proposto:
 
 ```text
-🧑 Lideranças       → nome, whatsapp, cidade, cargo  → abre LiderancaDetailDialog
-👥 Eleitores        → nome, whatsapp, email, cidade  → abre detalhe do eleitor
-🏙  Cidades          → nome, região                   → abre CidadeDetailDialog
-📋 Demandas         → título, descrição, solicitante → abre DemandaDetailDialog
-💰 Emendas          → número, objeto, beneficiário   → abre EmendaDetailDialog
-📜 Proposições      → ementa, número                 → /proposicoes?focus=ID
-📅 Agenda           → título, local, descrição       → abre EventoDetailDialog
-📨 Mobilizações     → título, conteúdo               → abre MobilizacaoDetailDialog
-📂 Documentos       → nome do arquivo                → abre/baixa documento
-👤 Usuários         → nome, email, username          → /configuracoes (aba usuários)
-⚡ Ações rápidas     → "Nova liderança", "Novo eleitor", "Ir para Mapa", etc.
+                            1.250        |        4
+                  EST. VOTOS — POTENCIAL  |  VOTOS — ELEIÇÃO 2022
 ```
 
-A busca por "Douglas de Biasi" pode aparecer em **mais de uma categoria** ao mesmo tempo (ex.: é usuário do sistema *e* uma liderança cadastrada) — mostramos ambos com badge da origem para o usuário escolher.
+- Mesma tipografia do bloco atual de 2022: `text-2xl font-black italic` para o número, `text-[10px] uppercase tracking-wider italic` para o rótulo.
+- Separador visual sutil entre os dois (borda vertical fina ou gap).
+- Quando a estimativa for `0`, exibir `—` (sem ocultar), para manter o destaque mesmo em cidades sem metas mapeadas ainda — assim o usuário percebe a oportunidade de cadastrar metas.
+- Quando `votos2022 = 0`, manter o comportamento atual (oculta esse lado), e a estimativa ocupa o destaque sozinha.
 
-### Comportamento e UX
+## Detalhes técnicos
 
-- **Resultados agrupados por categoria**, ordenados por relevância (match no início do nome > match parcial > match em campo secundário).
-- **Highlight** do trecho que casou com o termo.
-- **Ícones por tipo** + cor pastel da identidade (segue paleta atual).
-- **Histórico recente** (localStorage) — mostra últimas 5 buscas quando o campo está vazio.
-- **Atalhos sugeridos quando vazio**: "Ir para Dashboard", "Nova demanda", "Abrir Mapa" etc.
-- **Estado vazio**: "Nenhum resultado para 'xyz' — tente outro termo ou crie uma nova liderança."
-- **Loading com skeleton** por categoria (busca debounced, 250ms).
-- **Teclado**: ↑/↓ navega, Enter abre, Esc fecha, Tab alterna categoria.
+**Arquivo único alterado:** `src/pages/Cidades.tsx`
 
-### Arquitetura técnica
+- Remover o `<span>` da linha 580–582 (Est. Votos do grid).
+- Substituir o bloco das linhas 588–599 por um container `flex items-end justify-end gap-4` contendo dois sub-blocos com a mesma estilização atual de "Votos 2022".
+- Reusar `getEstimativaVotos(c.name)` e `popClass.text` (já disponíveis no escopo do `.map`).
+- Não alterar o modo lista/tabela (apenas o modo grid, que é onde está a referência da imagem).
+- Não há mudanças em `CidadeDetailDialog`, banco, hooks ou tipos — apenas apresentação visual.
 
-**Novos arquivos**
-- `src/pages/BuscaGlobal.tsx` — página `/busca` com layout completo (filtros laterais por categoria + resultados).
-- `src/components/busca/GlobalSearchPalette.tsx` — overlay ⌘K reutilizando `CommandDialog` (já existe em `src/components/ui/command.tsx`).
-- `src/components/busca/SearchResultItem.tsx` — item de resultado com ícone, título, subtítulo, badge de categoria, highlight.
-- `src/hooks/use-global-search.tsx` — hook central que recebe `query` + `enabledCategories` e devolve `{ results, isLoading }`. Faz queries paralelas via `Promise.all` no Supabase (`ilike` em campos relevantes, `limit 8` por categoria) com debounce.
-- `src/lib/search-actions.ts` — registro estático das "ações rápidas" (criar entidade, navegar para módulo).
-
-**Edições**
-- `src/App.tsx` — adicionar rota `/busca` protegida por `module="busca"`.
-- `src/components/AppLayout.tsx` — montar `<GlobalSearchPalette />` global e listener de `⌘K`.
-- `src/components/AppSidebar.tsx` — mostrar dica "⌘K" ao lado do item "Busca Global".
-- `src/lib/permissions-defaults.ts` — módulo `busca` já existe; mantido.
-
-**Detalhes de implementação**
-- Cada resultado guarda `onSelect()` que decide entre: abrir um dialog (passando o ID via state) ou navegar via `react-router`. Para abrir dialogs de fora das páginas-mãe, vamos disparar via `URLSearchParams` (ex.: `/liderancas?open=<id>`) e cada página já existente checa esse param no mount para abrir o detalhe — padrão simples e sem refactor de estado global.
-- RLS já garante isolamento por tenant; o hook só precisa filtrar por `tenant_id` redundantemente.
-- Permissões: a UI esconde categorias para as quais `can("modulo","view")` é falso.
-
-### Fora de escopo (pode virar v2)
-- Busca semântica/IA (embeddings) — começamos com `ilike` que é instantâneo e barato; se quiser, depois plugamos Lovable AI para "perguntas em linguagem natural".
-- Busca em conteúdo de anexos (PDFs).
-- Salvar buscas favoritas.
-
-### Resultado para o usuário
-Você digita "Douglas de Biasi" em qualquer tela (⌘K) e em < 300ms vê: o **usuário** Douglas, a **liderança** Douglas, eventuais **demandas** abertas por ele e **eventos** com o nome dele — clica e vai direto ao registro. Mesma coisa para cidades, emendas, proposições etc.
+## Fora de escopo
+- Modo tabela da página de Cidades.
+- Página de detalhe da cidade (já tem destaque próprio para estimativa).
+- Cálculo da estimativa (lógica permanece idêntica).

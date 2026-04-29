@@ -577,26 +577,47 @@ export default function Cidades() {
                       <span className="flex items-center gap-1.5"><span className="font-semibold">Peso:</span> {c.peso}/10</span>
                       <span className="flex items-center gap-1.5"><Vote className="h-3 w-3" /><span className="font-semibold">Eleitores:</span> {(c as any).eleitores2024 > 0 ? ((c as any).eleitores2024 as number).toLocaleString("pt-BR") : "—"}</span>
                       <span className="flex items-center gap-1.5"><MapPinned className="h-3 w-3" /><span className="font-semibold">Visitas:</span> {getVisitas(c.name)}</span>
-                      <span className="flex items-center gap-1.5" title="Soma das metas de votos das lideranças vinculadas a esta cidade">
-                        <Vote className="h-3 w-3" /><span className="font-semibold">Est. Votos:</span> {getEstimativaVotos(c.name) > 0 ? getEstimativaVotos(c.name).toLocaleString("pt-BR") : "—"}
-                      </span>
                       <span className="flex items-center gap-1.5"><FileText className="h-3 w-3" /> {getDemandasCount(c.name)} demandas</span>
                       <span className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {c.liderancas} lideranças</span>
                       <span className="flex items-center gap-1.5"><Landmark className="h-3 w-3" /> {getEmendasCount(c.name)} emendas</span>
                       <span className="text-right opacity-80">{c.regiao}</span>
                     </div>
-                    {(c as any).votos2022 > 0 && (
-                      <div className="flex items-center justify-end mt-1">
-                        <div className="text-right">
-                          <p className="text-2xl font-black italic" style={{ color: popClass.text }}>
-                            {((c as any).votos2022 as number).toLocaleString("pt-BR")}
-                          </p>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider italic" style={{ color: popClass.text, opacity: 0.7 }}>
-                            Votos — Eleição 2022
-                          </p>
+                    {(() => {
+                      const estVotos = getEstimativaVotos(c.name);
+                      const votos2022 = (c as any).votos2022 || 0;
+                      if (estVotos <= 0 && votos2022 <= 0) return null;
+                      return (
+                        <div className="flex items-end justify-end gap-4 mt-1">
+                          <div
+                            className="text-right"
+                            title="Soma das metas de votos das lideranças vinculadas a esta cidade"
+                          >
+                            <p className="text-2xl font-black italic" style={{ color: popClass.text }}>
+                              {estVotos > 0 ? estVotos.toLocaleString("pt-BR") : "—"}
+                            </p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider italic" style={{ color: popClass.text, opacity: 0.7 }}>
+                              Est. Votos — Potencial
+                            </p>
+                          </div>
+                          {votos2022 > 0 && (
+                            <>
+                              <div
+                                className="self-stretch w-px opacity-30"
+                                style={{ backgroundColor: popClass.text }}
+                              />
+                              <div className="text-right">
+                                <p className="text-2xl font-black italic" style={{ color: popClass.text }}>
+                                  {(votos2022 as number).toLocaleString("pt-BR")}
+                                </p>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider italic" style={{ color: popClass.text, opacity: 0.7 }}>
+                                  Votos — Eleição 2022
+                                </p>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                     {canWriteCidades && (
                       <div className="flex gap-1 pt-1">
                         <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); setEditingCity(c); setFormOpen(true); }}>
