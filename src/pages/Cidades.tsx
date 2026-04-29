@@ -437,6 +437,26 @@ export default function Cidades() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
+                    variant={sortField === "estimativa" ? "default" : "outline"}
+                    className="gap-2"
+                    onClick={() => {
+                      if (sortField !== "estimativa") { setSortField("estimativa"); setSortDir("desc"); }
+                      else if (sortDir === "desc") { setSortDir("asc"); }
+                      else { setSortField("none"); }
+                    }}
+                  >
+                    {sortField === "estimativa" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                    Est. Votos
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {sortField !== "estimativa" ? "Ordenar por estimativa de votos (maior → menor)" : sortDir === "desc" ? "Ordenar por estimativa de votos (menor → maior)" : "Voltar ao score"}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
                     variant={sortField === "conversao" ? "default" : "outline"}
                     className="gap-2"
                     onClick={() => {
