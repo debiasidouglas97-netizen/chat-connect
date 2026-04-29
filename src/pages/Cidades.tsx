@@ -672,6 +672,7 @@ export default function Cidades() {
                 {showScore && <TableHead>Score</TableHead>}
                 <TableHead>Demandas</TableHead>
                 <TableHead>Lideranças</TableHead>
+                <TableHead>Est. Votos</TableHead>
                 <TableHead>Emendas</TableHead>
                 <TableHead>Votos 2022</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
