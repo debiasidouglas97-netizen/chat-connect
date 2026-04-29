@@ -587,7 +587,7 @@ export default function Cidades() {
                       const votos2022 = (c as any).votos2022 || 0;
                       if (estVotos <= 0 && votos2022 <= 0) return null;
                       return (
-                        <div className="flex items-end justify-end gap-4 mt-1">
+                        <div className="flex items-end justify-center gap-6 mt-1">
                           <div
                             className="text-right"
                             title="Soma das metas de votos das lideranças vinculadas a esta cidade"
