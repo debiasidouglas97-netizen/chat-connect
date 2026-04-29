@@ -741,6 +741,13 @@ export default function Cidades() {
                     </TableCell>
                     <TableCell>{getDemandasCount(c.name)}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
+                    <TableCell>
+                      {getEstimativaVotos(c.name) > 0 ? (
+                        <span className="font-bold">{getEstimativaVotos(c.name).toLocaleString("pt-BR")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>{getEmendasCount(c.name)}</TableCell>
                     <TableCell>
                       {(c as any).votos2022 > 0 ? (
