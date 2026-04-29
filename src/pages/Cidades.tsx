@@ -171,6 +171,10 @@ export default function Cidades() {
       return [...filtered].sort((a, b) => sortDir === "desc"
         ? ((b as any).votos2022 || 0) - ((a as any).votos2022 || 0)
         : ((a as any).votos2022 || 0) - ((b as any).votos2022 || 0));
+    } else if (sortField === "estimativa") {
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? getEstimativaVotos(b.name) - getEstimativaVotos(a.name)
+        : getEstimativaVotos(a.name) - getEstimativaVotos(b.name));
     } else if (sortField === "conversao") {
       const getConversao = (c: any) => {
         const votos = c.votos2022 || 0;
@@ -182,7 +186,7 @@ export default function Cidades() {
         : getConversao(a) - getConversao(b));
     }
     return [...filtered].sort((a, b) => b.score - a.score);
-  }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
+  }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir, estimativaVotosByCity]);
 
   const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
