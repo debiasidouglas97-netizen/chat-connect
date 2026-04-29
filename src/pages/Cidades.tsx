@@ -140,7 +140,7 @@ export default function Cidades() {
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [detailCity, setDetailCity] = useState<any | null>(null);
 
-  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos" | "conversao">("none");
+  const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos" | "estimativa" | "conversao">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
   const allCidades = useMemo(
@@ -171,6 +171,10 @@ export default function Cidades() {
       return [...filtered].sort((a, b) => sortDir === "desc"
         ? ((b as any).votos2022 || 0) - ((a as any).votos2022 || 0)
         : ((a as any).votos2022 || 0) - ((b as any).votos2022 || 0));
+    } else if (sortField === "estimativa") {
+      return [...filtered].sort((a, b) => sortDir === "desc"
+        ? getEstimativaVotos(b.name) - getEstimativaVotos(a.name)
+        : getEstimativaVotos(a.name) - getEstimativaVotos(b.name));
     } else if (sortField === "conversao") {
       const getConversao = (c: any) => {
         const votos = c.votos2022 || 0;
@@ -182,7 +186,7 @@ export default function Cidades() {
         : getConversao(a) - getConversao(b));
     }
     return [...filtered].sort((a, b) => b.score - a.score);
-  }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir]);
+  }, [allCidades, searchQuery, filterEstado, filterStatus, sortField, sortDir, estimativaVotosByCity]);
 
   const activeFilterCount = [filterEstado !== "all", filterStatus !== "all"].filter(Boolean).length;
   const estados = useMemo(() => [...new Set(allCidades.map(c => c.regiao))].sort(), [allCidades]);
@@ -433,6 +437,26 @@ export default function Cidades() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
+                    variant={sortField === "estimativa" ? "default" : "outline"}
+                    className="gap-2"
+                    onClick={() => {
+                      if (sortField !== "estimativa") { setSortField("estimativa"); setSortDir("desc"); }
+                      else if (sortDir === "desc") { setSortDir("asc"); }
+                      else { setSortField("none"); }
+                    }}
+                  >
+                    {sortField === "estimativa" && sortDir === "asc" ? <ArrowUpWideNarrow className="h-4 w-4" /> : <ArrowDownWideNarrow className="h-4 w-4" />}
+                    Est. Votos
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {sortField !== "estimativa" ? "Ordenar por estimativa de votos (maior → menor)" : sortDir === "desc" ? "Ordenar por estimativa de votos (menor → maior)" : "Voltar ao score"}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
                     variant={sortField === "conversao" ? "default" : "outline"}
                     className="gap-2"
                     onClick={() => {
@@ -648,6 +672,7 @@ export default function Cidades() {
                 {showScore && <TableHead>Score</TableHead>}
                 <TableHead>Demandas</TableHead>
                 <TableHead>Lideranças</TableHead>
+                <TableHead>Est. Votos</TableHead>
                 <TableHead>Emendas</TableHead>
                 <TableHead>Votos 2022</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -716,6 +741,13 @@ export default function Cidades() {
                     </TableCell>
                     <TableCell>{getDemandasCount(c.name)}</TableCell>
                     <TableCell>{c.liderancas}</TableCell>
+                    <TableCell>
+                      {getEstimativaVotos(c.name) > 0 ? (
+                        <span className="font-bold">{getEstimativaVotos(c.name).toLocaleString("pt-BR")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>{getEmendasCount(c.name)}</TableCell>
                     <TableCell>
                       {(c as any).votos2022 > 0 ? (
