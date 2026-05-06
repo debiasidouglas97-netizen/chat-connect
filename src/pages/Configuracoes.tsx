@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/components/configuracoes/UserManagement";
 import CamposCadastro from "@/pages/configuracoes/CamposCadastro";
 import EngagementConfigCard from "@/components/configuracoes/EngagementConfigCard";
+import DemandasDisplayConfigCard from "@/components/configuracoes/DemandasDisplayConfigCard";
 import { useStreamConfig } from "@/hooks/use-stream-config";
 import { toast } from "sonner";
 import { downloadAndParseTSEVotes } from "@/lib/tse-parser";
@@ -466,6 +467,7 @@ export default function Configuracoes() {
         </TabsContent>
 
         <TabsContent value="integracoes" className="mt-4 space-y-6">
+          <DemandasDisplayConfigCard />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
