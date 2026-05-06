@@ -82,7 +82,9 @@ export default function CidadeDetailDialog({ open, onOpenChange, cidade }: Cidad
       .filter((d) => {
         const matchCity = (d.city || "").split("/")[0].trim().toLowerCase() === cityKey;
         const isAgenda = (d.origin || "").toLowerCase() === "agenda";
-        return matchCity && !isAgenda;
+        const col = (d.col || "").toLowerCase();
+        const isInactive = col === "resolvida" || col === "arquivada";
+        return matchCity && !isAgenda && !isInactive;
       })
       .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   }, [cidade, demandas, cityKey]);
