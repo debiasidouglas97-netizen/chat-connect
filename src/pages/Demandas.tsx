@@ -7,6 +7,7 @@ import { NovaDemandaDialog } from "@/components/demandas/NovaDemandaDialog";
 import { DemandaDetailDialog } from "@/components/demandas/DemandaDetailDialog";
 import type { Demanda } from "@/components/demandas/types";
 import { useDemandas } from "@/hooks/use-demandas";
+import { useDemandasDisplayConfig } from "@/hooks/use-demandas-display-config";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -264,6 +265,7 @@ export default function Demandas() {
     notifyStatusChange,
   } = useDemandas();
   const { canWriteDemandas } = usePermissions();
+  const { config: displayConfig } = useDemandasDisplayConfig();
   const [newOpen, setNewOpen] = useState(false);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -277,9 +279,15 @@ export default function Demandas() {
     })
   );
 
-  const demandas: Demanda[] = useMemo(
-    () =>
-      rawDemandas.map((d) => ({
+  const demandas: Demanda[] = useMemo(() => {
+    const visible = new Set(displayConfig.visibleOrigins);
+    const maxAgeMs =
+      displayConfig.maxAgeDays && displayConfig.maxAgeDays > 0
+        ? displayConfig.maxAgeDays * 24 * 60 * 60 * 1000
+        : null;
+    const now = Date.now();
+    return rawDemandas
+      .map((d) => ({
         id: d.id,
         col: d.col
           .normalize("NFD")
@@ -299,9 +307,18 @@ export default function Demandas() {
         attachments: [],
         history: [],
         created_at: d.created_at,
-      })),
-    [rawDemandas]
-  );
+      }))
+      .filter((d) => {
+        // Always show archived view contents regardless of filters
+        if (d.col === "arquivada") return true;
+        if (!visible.has(d.origin)) return false;
+        if (maxAgeMs && d.created_at) {
+          const age = now - new Date(d.created_at).getTime();
+          if (age > maxAgeMs) return false;
+        }
+        return true;
+      });
+  }, [rawDemandas, displayConfig.visibleOrigins, displayConfig.maxAgeDays]);
 
   const activeItem = useMemo(
     () => demandas.find((d) => d.id === activeId) || null,
