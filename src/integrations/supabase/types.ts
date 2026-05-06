@@ -1783,6 +1783,8 @@ export type Database = {
           cpf: string | null
           created_at: string
           data_nascimento: string | null
+          demanda_max_age_days: number | null
+          demanda_visible_origins: string[]
           email: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
@@ -1809,6 +1811,8 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          demanda_max_age_days?: number | null
+          demanda_visible_origins?: string[]
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -1835,6 +1839,8 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          demanda_max_age_days?: number | null
+          demanda_visible_origins?: string[]
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
