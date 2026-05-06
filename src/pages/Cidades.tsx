@@ -109,6 +109,8 @@ export default function Cidades() {
     const map = new Map<string, number>();
     for (const d of demandas as any[]) {
       if ((d.origin || "").toLowerCase() === "agenda") continue;
+      const col = (d.col || "").toLowerCase();
+      if (col === "resolvida" || col === "arquivada") continue;
       const key = (d.city || "").split("/")[0].trim().toLowerCase();
       if (!key) continue;
       map.set(key, (map.get(key) || 0) + 1);
