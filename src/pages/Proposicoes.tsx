@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, RefreshCw, FileText, Filter, KanbanSquare, ExternalLink, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,17 @@ export default function Proposicoes() {
   const [selected, setSelected] = useState<Proposicao | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const busca = searchParams.get("busca");
+    if (busca) {
+      setSearch(busca);
+      setPage(1);
+      searchParams.delete("busca");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const statusOptions = useMemo(() => {
     if (!proposicoes) return [];

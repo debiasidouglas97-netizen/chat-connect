@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -141,6 +142,18 @@ export default function Cidades() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [detailCity, setDetailCity] = useState<any | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || !cidadesRaw.length) return;
+    const found = cidadesRaw.find((c: any) => c.id === id);
+    if (found) {
+      setDetailCity(found);
+      searchParams.delete("id");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [cidadesRaw, searchParams, setSearchParams]);
 
   const [sortField, setSortField] = useState<"none" | "pop" | "liderancas" | "votos" | "estimativa" | "conversao">("none");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");

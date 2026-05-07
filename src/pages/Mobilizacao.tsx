@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Megaphone, Plus, Send, Clock, FileText, ExternalLink, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,18 @@ export default function MobilizacaoPage() {
   const { mobilizacoes, isLoading, deleteMobilizacao } = useMobilizacoes();
   const [showNew, setShowNew] = useState(false);
   const [selected, setSelected] = useState<Mobilizacao | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || !mobilizacoes.length) return;
+    const found = mobilizacoes.find((m) => m.id === id);
+    if (found) {
+      setSelected(found);
+      searchParams.delete("id");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [mobilizacoes, searchParams, setSearchParams]);
 
   return (
     <div className="space-y-6">
