@@ -7,9 +7,27 @@ import {
   Brain, MapPin, Users, Landmark, FileText, Calendar,
   Megaphone, ArrowRight, RefreshCw,
 } from "lucide-react";
-import { useActivityLogs } from "@/hooks/use-activity-logs";
+import { useActivityLogs, type ActivityLog } from "@/hooks/use-activity-logs";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+
+const PROPOSICAO_REGEX = /\b(PL|PLP|PEC|REQ|MPV|PDL|PLN|PLV|MSC|INC)\s*\d+\s*\/\s*\d+/i;
+
+function getLogRoute(log: ActivityLog): string | null {
+  const desc = `${log.descricao_ia || ""} ${log.descricao_bruta || ""}`;
+  if (PROPOSICAO_REGEX.test(desc)) return "/proposicoes";
+  switch (log.entidade) {
+    case "demanda": return "/demandas";
+    case "cidade": return "/cidades";
+    case "lideranca": return "/liderancas";
+    case "eleitor": return "/eleitores";
+    case "emenda": return "/emendas";
+    case "evento": return "/agenda";
+    case "mobilizacao": return "/mobilizacao";
+    default: return null;
+  }
+}
 
 const eventConfig: Record<string, { icon: typeof MapPin; color: string; bgColor: string }> = {
   cidade_criada: { icon: MapPin, color: "text-[hsl(145_50%_35%)]", bgColor: "bg-[hsl(145_50%_92%)]" },
@@ -30,6 +48,7 @@ const prioridadeBadge: Record<string, string> = {
 export default function InteligenciaMandato() {
   const [showAll, setShowAll] = useState(false);
   const { logs, isLoading, processAI, isProcessing } = useActivityLogs(showAll ? 50 : 5);
+  const navigate = useNavigate();
 
   // Auto-process AI descriptions for logs that don't have them
   useEffect(() => {
@@ -79,7 +98,8 @@ export default function InteligenciaMandato() {
             return (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                onClick={() => { const r = getLogRoute(log); if (r) navigate(r); }}
+                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${cfg.bgColor}`}>
