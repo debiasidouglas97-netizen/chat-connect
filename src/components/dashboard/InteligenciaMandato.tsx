@@ -7,9 +7,27 @@ import {
   Brain, MapPin, Users, Landmark, FileText, Calendar,
   Megaphone, ArrowRight, RefreshCw,
 } from "lucide-react";
-import { useActivityLogs } from "@/hooks/use-activity-logs";
+import { useActivityLogs, type ActivityLog } from "@/hooks/use-activity-logs";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+
+const PROPOSICAO_REGEX = /\b(PL|PLP|PEC|REQ|MPV|PDL|PLN|PLV|MSC|INC)\s*\d+\s*\/\s*\d+/i;
+
+function getLogRoute(log: ActivityLog): string | null {
+  const desc = `${log.descricao_ia || ""} ${log.descricao_bruta || ""}`;
+  if (PROPOSICAO_REGEX.test(desc)) return "/proposicoes";
+  switch (log.entidade) {
+    case "demanda": return "/demandas";
+    case "cidade": return "/cidades";
+    case "lideranca": return "/liderancas";
+    case "eleitor": return "/eleitores";
+    case "emenda": return "/emendas";
+    case "evento": return "/agenda";
+    case "mobilizacao": return "/mobilizacao";
+    default: return null;
+  }
+}
 
 const eventConfig: Record<string, { icon: typeof MapPin; color: string; bgColor: string }> = {
   cidade_criada: { icon: MapPin, color: "text-[hsl(145_50%_35%)]", bgColor: "bg-[hsl(145_50%_92%)]" },
