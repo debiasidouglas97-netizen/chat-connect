@@ -28,6 +28,18 @@ export default function MobilizacaoPage() {
   const { mobilizacoes, isLoading, deleteMobilizacao } = useMobilizacoes();
   const [showNew, setShowNew] = useState(false);
   const [selected, setSelected] = useState<Mobilizacao | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || !mobilizacoes.length) return;
+    const found = mobilizacoes.find((m) => m.id === id);
+    if (found) {
+      setSelected(found);
+      searchParams.delete("id");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [mobilizacoes, searchParams, setSearchParams]);
 
   return (
     <div className="space-y-6">
