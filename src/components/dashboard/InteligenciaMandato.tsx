@@ -15,17 +15,19 @@ import { useNavigate } from "react-router-dom";
 const PROPOSICAO_REGEX = /\b(PL|PLP|PEC|REQ|MPV|PDL|PLN|PLV|MSC|INC)\s*\d+\s*\/\s*\d+/i;
 
 function getLogRoute(log: ActivityLog): string | null {
-  const desc = `${log.descricao_ia || ""} ${log.descricao_bruta || ""}`;
-  if (PROPOSICAO_REGEX.test(desc)) return "/proposicoes";
+  const id = log.entidade_id;
+  const q = id ? `?id=${id}` : "";
   switch (log.entidade) {
-    case "demanda": return "/demandas";
-    case "cidade": return "/cidades";
-    case "lideranca": return "/liderancas";
-    case "eleitor": return "/eleitores";
-    case "emenda": return "/emendas";
-    case "evento": return "/agenda";
-    case "mobilizacao": return "/mobilizacao";
-    default: return null;
+    case "demanda": return `/demandas${q}`;
+    case "cidade": return `/cidades${q}`;
+    case "lideranca": return `/liderancas${q}`;
+    case "eleitor": return `/eleitores${q}`;
+    case "emenda": return `/emendas${q}`;
+    case "evento": return `/agenda${id ? `?evento=${id}` : ""}`;
+    case "mobilizacao": return `/mobilizacao${q}`;
+    default:
+      if (PROPOSICAO_REGEX.test(`${log.descricao_ia || ""} ${log.descricao_bruta || ""}`)) return "/proposicoes";
+      return null;
   }
 }
 
