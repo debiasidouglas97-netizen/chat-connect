@@ -47,6 +47,18 @@ export default function Emendas() {
   const [editing, setEditing] = useState<EmendaRow | undefined>();
   const [detailEmenda, setDetailEmenda] = useState<EmendaRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || !emendas.length) return;
+    const found = emendas.find((e) => e.id === id);
+    if (found) {
+      setDetailEmenda(found);
+      searchParams.delete("id");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [emendas, searchParams, setSearchParams]);
 
   // Filters
   const [search, setSearch] = useState("");
