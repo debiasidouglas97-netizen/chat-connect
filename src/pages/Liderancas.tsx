@@ -46,6 +46,13 @@ export default function Liderancas() {
   const { liderancas: rawData, insert, update, remove } = useLiderancas();
   const { data: engagementScores } = useAllLeaderEngagementScores();
   const { canWriteLiderancas } = usePermissions();
+  const { cidades: cidadesRaw } = useCidades();
+
+  const cidadesMap = useMemo(() => {
+    const map = new Map<string, CidadeBase>();
+    cidadesRaw.forEach((c) => map.set(c.name, c));
+    return map;
+  }, [cidadesRaw]);
 
   useEffect(() => {
     const busca = searchParams.get("busca");
@@ -63,13 +70,6 @@ export default function Liderancas() {
       }
     }
   }, [searchParams, rawData, cidadesMap]);
-  const { cidades: cidadesRaw } = useCidades();
-
-  const cidadesMap = useMemo(() => {
-    const map = new Map<string, CidadeBase>();
-    cidadesRaw.forEach((c) => map.set(c.name, c));
-    return map;
-  }, [cidadesRaw]);
 
   const liderancas = useMemo(
     () => rawData.map((l) => ({ ...calcularScoreLideranca(l, cidadesMap), id: (l as any).id })),
