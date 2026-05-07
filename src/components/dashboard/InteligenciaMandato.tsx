@@ -98,7 +98,8 @@ export default function InteligenciaMandato() {
             return (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                onClick={() => { const r = getLogRoute(log); if (r) navigate(r); }}
+                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${cfg.bgColor}`}>
