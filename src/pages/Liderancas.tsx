@@ -53,7 +53,16 @@ export default function Liderancas() {
       setSearchQuery(busca);
       setSearchField("nome");
     }
-  }, [searchParams]);
+    const id = searchParams.get("id");
+    if (id && rawData.length) {
+      const found = rawData.find((l: any) => l.id === id);
+      if (found) {
+        const withScore = calcularScoreLideranca(found as any, cidadesMap);
+        setDetailLider({ ...withScore, id } as any);
+        setDetailOpen(true);
+      }
+    }
+  }, [searchParams, rawData, cidadesMap]);
   const { cidades: cidadesRaw } = useCidades();
 
   const cidadesMap = useMemo(() => {
