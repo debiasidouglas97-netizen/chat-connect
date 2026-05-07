@@ -16,6 +16,11 @@ const PROPOSICAO_REGEX = /\b(PL|PLP|PEC|REQ|MPV|PDL|PLN|PLV|MSC|INC)\s*\d+\s*\/\
 
 function getLogRoute(log: ActivityLog): string | null {
   const id = log.entidade_id;
+  const desc = `${log.descricao_ia || ""} ${log.descricao_bruta || ""}`;
+  const propMatch = desc.match(PROPOSICAO_REGEX);
+  if (propMatch) {
+    return `/proposicoes?busca=${encodeURIComponent(propMatch[0].replace(/\s+/g, ""))}`;
+  }
   const q = id ? `?id=${id}` : "";
   switch (log.entidade) {
     case "demanda": return `/demandas${q}`;
@@ -25,9 +30,7 @@ function getLogRoute(log: ActivityLog): string | null {
     case "emenda": return `/emendas${q}`;
     case "evento": return `/agenda${id ? `?evento=${id}` : ""}`;
     case "mobilizacao": return `/mobilizacao${q}`;
-    default:
-      if (PROPOSICAO_REGEX.test(`${log.descricao_ia || ""} ${log.descricao_bruta || ""}`)) return "/proposicoes";
-      return null;
+    default: return null;
   }
 }
 
