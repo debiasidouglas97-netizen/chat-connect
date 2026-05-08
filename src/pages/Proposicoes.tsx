@@ -47,13 +47,32 @@ export default function Proposicoes() {
 
   useEffect(() => {
     const busca = searchParams.get("busca");
-    if (busca) {
+    if (busca && proposicoes) {
+      // Try to parse "PL2239/2026" or "PL 2239/2026" format
+      const m = busca.match(/^([A-Za-zÇç]+)\s*(\d+)\/(\d+)$/);
+      if (m) {
+        const [, tipo, numero, ano] = m;
+        const found = proposicoes.find(
+          p => p.tipo.toLowerCase() === tipo.toLowerCase() &&
+               String(p.numero) === numero &&
+               String(p.ano) === ano
+        );
+        if (found) {
+          setSelected(found);
+          searchParams.delete("busca");
+          setSearchParams(searchParams, { replace: true });
+          return;
+        }
+      }
       setSearch(busca);
       setPage(1);
       searchParams.delete("busca");
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, proposicoes]);
+
+  // Improved search: handles "PL2239/2026", "PL 2239/2026", "2239/2026"
+  const normalizeQuery = (q: string) => q.toLowerCase().replace(/\s+/g, "");
 
   const statusOptions = useMemo(() => {
     if (!proposicoes) return [];
