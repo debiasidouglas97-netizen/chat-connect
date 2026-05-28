@@ -576,6 +576,7 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string
+          cpf: string | null
           created_at: string
           custom_field_values: Json
           email: string | null
@@ -596,6 +597,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade: string
+          cpf?: string | null
           created_at?: string
           custom_field_values?: Json
           email?: string | null
@@ -616,6 +618,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string
+          cpf?: string | null
           created_at?: string
           custom_field_values?: Json
           email?: string | null
