@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const OSM_BASE_URL = "https://osm.2dwtecnologia.com.br";
-const OSM_API_KEY = Deno.env.get("OSM_API_KEY") ?? "";
+const OSM_API_KEY = (Deno.env.get("OSM_API_KEY") ?? "").trim();
 
 let cachedSeacPlanId: number | null = null;
 
@@ -26,10 +26,11 @@ async function osmFetch(path: string, init: RequestInit = {}) {
 async function resolveSeacPlanId(): Promise<number> {
   if (cachedSeacPlanId) return cachedSeacPlanId;
   const { ok, body, status, raw } = await osmFetch("/api/provider/plans", { method: "GET" });
-  if (!ok || !Array.isArray(body)) {
+  const list = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : null);
+  if (!ok || !list) {
     throw new Error(`Falha ao listar planos OSM (${status}): ${raw?.slice(0, 200)}`);
   }
-  const seac = body.find((p: any) =>
+  const seac = list.find((p: any) =>
     String(p?.name || "").toLowerCase().includes("seac")
   );
   if (!seac?.id) throw new Error("Plano SEAC não encontrado na OSM");
