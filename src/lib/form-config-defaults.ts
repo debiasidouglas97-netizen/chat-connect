@@ -55,6 +55,7 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
     { key: "nome", defaultLabel: "Nome completo", group: "Informações Básicas", locked: true, inputType: "text" },
     { key: "cpf", defaultLabel: "CPF", group: "Informações Básicas", inputType: "text" },
     { key: "email", defaultLabel: "E-mail", group: "Informações Básicas", inputType: "text" },
+    { key: "senha", defaultLabel: "Senha", group: "Informações Básicas", inputType: "text" },
     { key: "cidade", defaultLabel: "Cidade", group: "Informações Básicas", locked: true, inputType: "text" },
     { key: "bairro", defaultLabel: "Bairro", group: "Informações Básicas", inputType: "text" },
     { key: "estado", defaultLabel: "Estado", group: "Informações Básicas", inputType: "text" },
@@ -112,7 +113,7 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
  * Se ausente → todos visíveis. Campos `locked` são sempre visíveis.
  */
 const DEFAULT_VISIBLE_BY_SEGMENT: Partial<Record<FormSegment, Set<string>>> = {
-  eleitores: new Set(["nome", "cidade", "whatsapp", "bairro"]),
+  eleitores: new Set(["nome", "cidade", "whatsapp", "bairro", "senha"]),
 };
 
 /**
