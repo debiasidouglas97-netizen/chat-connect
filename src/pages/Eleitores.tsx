@@ -11,7 +11,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download, CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Tv } from "lucide-react";
+import dwPlayLogo from "@/assets/dw-play-logo.png";
 import { useEleitores, type EleitorRow } from "@/hooks/use-eleitores";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
@@ -258,11 +259,15 @@ export default function Eleitores() {
                                   return (
                                     <Tooltip>
                                       <TooltipTrigger>
-                                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-fuchsia-300/60 bg-gradient-to-r from-orange-50 via-fuchsia-50 to-purple-50 px-1.5 py-0.5 text-[9px] font-semibold text-fuchsia-700 shadow-sm">
+                                          <Tv className="h-2.5 w-2.5" />
+                                          <span>TV</span>
+                                          <img src={dwPlayLogo} alt="DW Play" className="h-3 w-3 rounded-sm object-contain bg-black" />
+                                        </span>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        Sincronizado com OSM NxTV
-                                        {(e as any).osm_subscriber_id ? ` (#${(e as any).osm_subscriber_id})` : ""}
+                                        Cliente DW Play (TV a Cabo)
+                                        {(e as any).osm_subscriber_id ? ` — Assinante #${(e as any).osm_subscriber_id}` : ""}
                                       </TooltipContent>
                                     </Tooltip>
                                   );
