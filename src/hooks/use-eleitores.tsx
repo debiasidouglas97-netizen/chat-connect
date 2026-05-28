@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/use-tenant";
+import { toast } from "sonner";
 
 export interface EleitorRow {
   id: string;
@@ -21,6 +22,10 @@ export interface EleitorRow {
   custom_field_values: Record<string, any> | null;
   created_at: string;
   updated_at: string;
+  osm_subscriber_id?: number | null;
+  osm_sync_status?: "pending" | "synced" | "error" | null;
+  osm_sync_error?: string | null;
+  osm_synced_at?: string | null;
 }
 
 export interface EleitorInput {
@@ -38,6 +43,21 @@ export interface EleitorInput {
   observacoes?: string | null;
   avatar_url?: string | null;
   custom_field_values?: Record<string, any>;
+}
+
+async function syncOsm(action: "create" | "update" | "delete", eleitor_id: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke("osm-subscriber-sync", {
+      body: { action, eleitor_id },
+    });
+    if (error) throw error;
+    if ((data as any)?.error) throw new Error((data as any).error);
+    return { ok: true as const };
+  } catch (e: any) {
+    const msg = e?.message || "Erro desconhecido na OSM";
+    toast.warning("Sincronização OSM falhou", { description: msg });
+    return { ok: false as const, error: msg };
+  }
 }
 
 export function useEleitores() {
@@ -60,11 +80,14 @@ export function useEleitores() {
 
   const insert = useMutation({
     mutationFn: async (input: EleitorInput) => {
-      const { error } = await (supabase as any).from("eleitores").insert({
-        ...input,
-        tenant_id: tenantId,
-      });
+      const { data, error } = await (supabase as any)
+        .from("eleitores")
+        .insert({ ...input, tenant_id: tenantId })
+        .select("id")
+        .single();
       if (error) throw error;
+      const newId = (data as any)?.id as string;
+      if (newId) await syncOsm("create", newId);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["eleitores"] }),
   });
@@ -76,16 +99,30 @@ export function useEleitores() {
         .update(data)
         .eq("id", id);
       if (error) throw error;
+      await syncOsm("update", id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["eleitores"] }),
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
+      // Tenta baixar na OSM primeiro (mas não bloqueia exclusão local)
+      await syncOsm("delete", id);
       const { error } = await (supabase as any).from("eleitores").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["eleitores"] }),
+  });
+
+  const resyncOsm = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await syncOsm("update", id);
+      if (!res.ok) throw new Error(res.error);
+    },
+    onSuccess: () => {
+      toast.success("Sincronizado com OSM NxTV");
+      queryClient.invalidateQueries({ queryKey: ["eleitores"] });
+    },
   });
 
   return {
@@ -94,5 +131,6 @@ export function useEleitores() {
     insert: insert.mutateAsync,
     update: update.mutateAsync,
     remove: remove.mutateAsync,
+    resyncOsm: resyncOsm.mutateAsync,
   };
 }
