@@ -149,13 +149,28 @@ Deno.serve(async (req) => {
           method: "POST",
           body: JSON.stringify(payload),
         });
-
     if (!r.ok) {
-      await markError(`${isUpdate ? "PUT" : "POST"} OSM ${r.status}: ${r.raw?.slice(0, 300)}`);
-      return new Response(JSON.stringify({ error: "Falha na OSM", detail: r.body || r.raw }), {
+      // Extrai mensagem amigável de erros de validação da OSM
+      let friendly = `${isUpdate ? "PUT" : "POST"} OSM ${r.status}`;
+      const errs = r.body?.errors;
+      if (errs && typeof errs === "object") {
+        const parts: string[] = [];
+        for (const [field, msgs] of Object.entries(errs)) {
+          const m = Array.isArray(msgs) ? msgs.join(" ") : String(msgs);
+          parts.push(`${field}: ${m}`);
+        }
+        if (parts.length) friendly = parts.join(" | ");
+      } else if (r.body?.error) {
+        friendly = String(r.body.error);
+      } else if (r.raw) {
+        friendly = r.raw.slice(0, 200);
+      }
+      await markError(friendly);
+      return new Response(JSON.stringify({ error: friendly, detail: r.body || r.raw }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
     }
 
     const data = r.body?.data || r.body || {};
