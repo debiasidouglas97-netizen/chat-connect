@@ -53,6 +53,8 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
     // 1. Informações Básicas
     { key: "avatar_url", defaultLabel: "Foto", group: "Informações Básicas", inputType: "text" },
     { key: "nome", defaultLabel: "Nome completo", group: "Informações Básicas", locked: true, inputType: "text" },
+    { key: "cpf", defaultLabel: "CPF", group: "Informações Básicas", inputType: "text" },
+    { key: "email", defaultLabel: "E-mail", group: "Informações Básicas", inputType: "text" },
     { key: "cidade", defaultLabel: "Cidade", group: "Informações Básicas", locked: true, inputType: "text" },
     { key: "bairro", defaultLabel: "Bairro", group: "Informações Básicas", inputType: "text" },
     { key: "estado", defaultLabel: "Estado", group: "Informações Básicas", inputType: "text" },
@@ -60,7 +62,6 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
     // 2. Contato (Mobilização)
     { key: "whatsapp", defaultLabel: "WhatsApp", group: "Contato", locked: true, inputType: "phone" },
     { key: "telefone", defaultLabel: "Telefone", group: "Contato", inputType: "phone" },
-    { key: "email", defaultLabel: "E-mail", group: "Contato", inputType: "text" },
 
     // 3. Informações Eleitorais
     { key: "zona_eleitoral", defaultLabel: "Zona eleitoral", group: "Informações Eleitorais", inputType: "text" },
