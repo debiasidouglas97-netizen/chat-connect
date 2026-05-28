@@ -146,7 +146,13 @@ Deno.serve(async (req) => {
       phone: eleitor.whatsapp || undefined,
       plan_id: planId,
     };
-    if ((eleitor as any).cpf) payload.cpf = (eleitor as any).cpf;
+    const rawCpf = (eleitor as any).cpf || extras?.cpf;
+    if (rawCpf) {
+      const d = String(rawCpf).replace(/\D/g, "").slice(0, 11);
+      if (d.length === 11) {
+        payload.cpf = `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
+      }
+    }
 
     const isUpdate = action === "update" && eleitor.osm_subscriber_id;
 
