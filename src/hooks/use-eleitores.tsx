@@ -50,7 +50,18 @@ async function syncOsm(action: "create" | "update" | "delete", eleitor_id: strin
     const { data, error } = await supabase.functions.invoke("osm-subscriber-sync", {
       body: { action, eleitor_id },
     });
-    if (error) throw error;
+    if (error) {
+      // Tenta extrair o erro real do corpo de resposta (não-2xx)
+      let detailMsg = error.message || "Erro desconhecido na OSM";
+      try {
+        const ctx: any = (error as any).context;
+        if (ctx && typeof ctx.json === "function") {
+          const body = await ctx.json();
+          if (body?.error) detailMsg = String(body.error);
+        }
+      } catch { /* ignore */ }
+      throw new Error(detailMsg);
+    }
     if ((data as any)?.error) throw new Error((data as any).error);
     return { ok: true as const };
   } catch (e: any) {
