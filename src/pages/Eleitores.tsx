@@ -11,7 +11,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download, CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download, CheckCircle2, AlertTriangle, RefreshCw, Loader2, Tv } from "lucide-react";
+import dwPlayLogo from "@/assets/dw-play-logo.png";
 import { useEleitores, type EleitorRow } from "@/hooks/use-eleitores";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
