@@ -418,6 +418,20 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
           </div>
         );
       default: {
+        if (key === "senha") {
+          return (
+            <div key={key}>
+              {labelEl}
+              <Input
+                type="password"
+                autoComplete="new-password"
+                value={extras.senha || ""}
+                onChange={(e) => setExtra("senha", e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+          );
+        }
         // Campos extras (JSONB)
         const opts = SELECT_OPTIONS[key];
         if (opts) {
