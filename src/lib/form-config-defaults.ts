@@ -113,7 +113,7 @@ export const NATIVE_FIELDS_CATALOG: Record<FormSegment, NativeFieldDef[]> = {
  * Se ausente → todos visíveis. Campos `locked` são sempre visíveis.
  */
 const DEFAULT_VISIBLE_BY_SEGMENT: Partial<Record<FormSegment, Set<string>>> = {
-  eleitores: new Set(["nome", "cidade", "whatsapp", "bairro"]),
+  eleitores: new Set(["nome", "cidade", "whatsapp", "bairro", "senha"]),
 };
 
 /**
