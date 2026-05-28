@@ -54,6 +54,14 @@ function maskCep(value: string): string {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
+function maskCpf(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  return digits
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
 const QUICK_KEYS = new Set(["nome", "cidade", "whatsapp", "bairro"]);
 
 const SELECT_OPTIONS: Record<string, string[]> = {
@@ -418,6 +426,19 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
           </div>
         );
       default: {
+        if (key === "cpf") {
+          return (
+            <div key={key}>
+              {labelEl}
+              <Input
+                value={maskCpf(extras.cpf || "")}
+                onChange={(e) => setExtra("cpf", maskCpf(e.target.value))}
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+              />
+            </div>
+          );
+        }
         if (key === "senha") {
           return (
             <div key={key}>
@@ -482,6 +503,7 @@ export default function NovoEleitorDialog({ open, onOpenChange, editing }: Props
     if (!cidade.trim()) return toast.error("Cidade é obrigatória");
 
     const mergedCustom: Record<string, any> = { ...extras, ...customValues };
+    if (mergedCustom.cpf) mergedCustom.cpf = maskCpf(String(mergedCustom.cpf));
 
     const payload: EleitorInput = {
       nome: nome.trim(),
