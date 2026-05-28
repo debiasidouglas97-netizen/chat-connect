@@ -24,7 +24,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
 export default function Eleitores() {
-  const { eleitores, isLoading, remove } = useEleitores();
+  const { eleitores, isLoading, remove, resyncOsm } = useEleitores();
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
   const { canDeleteEleitores, isWriter } = usePermissions() as any;
