@@ -129,14 +129,24 @@ Deno.serve(async (req) => {
 
     // CREATE or UPDATE
     const planId = await resolveSeacPlanId();
+
+    // OSM exige email válido e password no cadastro.
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let email = (eleitor.email || "").trim();
+    if (!emailRegex.test(email)) {
+      const digits = String(eleitor.whatsapp || "").replace(/\D/g, "") || eleitorId.replace(/-/g, "").slice(0, 12);
+      email = `eleitor.${digits}@nxtv.local`;
+    }
+    const password = senha || `Nx${eleitorId.replace(/-/g, "").slice(0, 10)}!`;
+
     const payload: Record<string, any> = {
       name: eleitor.nome,
-      email: eleitor.email || undefined,
-      cpf: eleitor.cpf || undefined,
+      email,
+      password,
       phone: eleitor.whatsapp || undefined,
       plan_id: planId,
     };
-    if (senha) payload.password = senha;
+    if ((eleitor as any).cpf) payload.cpf = (eleitor as any).cpf;
 
     const isUpdate = action === "update" && eleitor.osm_subscriber_id;
 
@@ -150,7 +160,6 @@ Deno.serve(async (req) => {
           body: JSON.stringify(payload),
         });
     if (!r.ok) {
-      // Extrai mensagem amigável de erros de validação da OSM
       let friendly = `${isUpdate ? "PUT" : "POST"} OSM ${r.status}`;
       const errs = r.body?.errors;
       if (errs && typeof errs === "object") {
@@ -167,11 +176,11 @@ Deno.serve(async (req) => {
       }
       await markError(friendly);
       return new Response(JSON.stringify({ error: friendly, detail: r.body || r.raw }), {
-        status: 502,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    }
+
 
     const data = r.body?.data || r.body || {};
     const newSubId = data?.id ? Number(data.id) : eleitor.osm_subscriber_id;
