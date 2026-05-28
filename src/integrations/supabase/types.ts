@@ -587,6 +587,10 @@ export type Database = {
           nome: string
           numero: string | null
           observacoes: string | null
+          osm_subscriber_id: number | null
+          osm_sync_error: string | null
+          osm_sync_status: string
+          osm_synced_at: string | null
           telegram: string | null
           tenant_id: string | null
           updated_at: string
@@ -608,6 +612,10 @@ export type Database = {
           nome: string
           numero?: string | null
           observacoes?: string | null
+          osm_subscriber_id?: number | null
+          osm_sync_error?: string | null
+          osm_sync_status?: string
+          osm_synced_at?: string | null
           telegram?: string | null
           tenant_id?: string | null
           updated_at?: string
@@ -629,6 +637,10 @@ export type Database = {
           nome?: string
           numero?: string | null
           observacoes?: string | null
+          osm_subscriber_id?: number | null
+          osm_sync_error?: string | null
+          osm_sync_status?: string
+          osm_synced_at?: string | null
           telegram?: string | null
           tenant_id?: string | null
           updated_at?: string
