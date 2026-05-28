@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const OSM_BASE_URL = "https://osm.2dwtecnologia.com.br";
-const OSM_API_KEY = Deno.env.get("OSM_API_KEY") ?? "";
+const OSM_API_KEY = (Deno.env.get("OSM_API_KEY") ?? "").trim();
 
 let cachedSeacPlanId: number | null = null;
 
