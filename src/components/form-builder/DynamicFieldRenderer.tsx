@@ -98,7 +98,9 @@ export default function DynamicFieldRenderer({ field, value, onChange, showError
     case "phone":
     case "url":
     case "text":
+    case "text":
     default: {
+      const isCpf = field.key === "cpf";
       const inputType =
         field.type === "number"
           ? "number"
@@ -109,16 +111,31 @@ export default function DynamicFieldRenderer({ field, value, onChange, showError
           : field.type === "url"
           ? "url"
           : "text";
+      const maskCpf = (v: string) => {
+        const d = v.replace(/\D/g, "").slice(0, 11);
+        return d
+          .replace(/(\d{3})(\d)/, "$1.$2")
+          .replace(/(\d{3})(\d)/, "$1.$2")
+          .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      };
       return (
         <div className="space-y-1">
           {labelEl}
           <Input
             id={id}
-            type={inputType}
-            value={value ?? ""}
-            onChange={(e) =>
-              onChange(field.type === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value)
-            }
+            type={isCpf ? "text" : inputType}
+            inputMode={isCpf ? "numeric" : undefined}
+            placeholder={isCpf ? "000.000.000-00" : undefined}
+            value={isCpf ? maskCpf(String(value ?? "")) : (value ?? "")}
+            onChange={(e) => {
+              if (isCpf) {
+                onChange(maskCpf(e.target.value));
+              } else if (field.type === "number") {
+                onChange(e.target.value === "" ? null : Number(e.target.value));
+              } else {
+                onChange(e.target.value);
+              }
+            }}
             className={errorRing}
             disabled={disabled}
           />
