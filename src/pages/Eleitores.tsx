@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, MessageCircle, Mail, AtSign, Info, Download, CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { useEleitores, type EleitorRow } from "@/hooks/use-eleitores";
 import { useLiderancas } from "@/hooks/use-liderancas";
 import { useCidades } from "@/hooks/use-cidades";
@@ -24,7 +24,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
 export default function Eleitores() {
-  const { eleitores, isLoading, remove } = useEleitores();
+  const { eleitores, isLoading, remove, resyncOsm } = useEleitores();
   const { liderancas } = useLiderancas();
   const { cidades } = useCidades();
   const { canDeleteEleitores, isWriter } = usePermissions() as any;
@@ -252,6 +252,54 @@ export default function Eleitores() {
                               {e.whatsapp && <MessageCircle className="h-3 w-3" />}
                               {e.email && <Mail className="h-3 w-3" />}
                               {e.telegram && <AtSign className="h-3 w-3" />}
+                              {(() => {
+                                const st = (e as any).osm_sync_status as string | undefined;
+                                if (st === "synced") {
+                                  return (
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Sincronizado com OSM NxTV
+                                        {(e as any).osm_subscriber_id ? ` (#${(e as any).osm_subscriber_id})` : ""}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                }
+                                if (st === "error") {
+                                  return (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          type="button"
+                                          className="inline-flex items-center gap-0.5"
+                                          onClick={(ev) => {
+                                            ev.stopPropagation();
+                                            resyncOsm(e.id);
+                                          }}
+                                        >
+                                          <AlertTriangle className="h-3 w-3 text-amber-600" />
+                                          <RefreshCw className="h-2.5 w-2.5 text-amber-600" />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        <p className="font-medium">Erro ao sincronizar com OSM NxTV</p>
+                                        <p className="text-[10px] opacity-80 break-all">{(e as any).osm_sync_error || "—"}</p>
+                                        <p className="text-[10px] mt-1">Clique para reenviar</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                }
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Loader2 className="h-3 w-3 text-muted-foreground/60" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Aguardando sincronização OSM</TooltipContent>
+                                  </Tooltip>
+                                );
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
